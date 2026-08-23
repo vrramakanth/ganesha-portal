@@ -1,0 +1,16 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Implements the API surface from `claude.md` §50 on top of Google Sheets (§34, §51). This is a single Apps Script **Web App** — there's no real URL routing, so every request is `POST/GET <web-app-url>?action=<name>`.",
+  "main": "Announcements.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@google/clasp": "^3.4.0"
+  }
+}
