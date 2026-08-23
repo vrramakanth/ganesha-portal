@@ -7,6 +7,7 @@ import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import type { EventRegistration } from "@/lib/types";
 import BlockSelect from "@/components/BlockSelect";
+import FlatInput from "@/components/FlatInput";
 import PageHeader from "@/components/PageHeader";
 
 export default function EventDetailClient({ eventId }: { eventId: string }) {
@@ -123,13 +124,8 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
             <BlockSelect value={fields.block} onChange={setBlock} />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Flat</label>
-            <input
-              required
-              value={fields.flatNumber}
-              onChange={(e) => setFlatNumber(e.target.value)}
-              className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
-            />
+            <label className="text-sm font-medium">Flat (3-digit number only)</label>
+            <FlatInput value={fields.flatNumber} onChange={setFlatNumber} />
           </div>
 
           {submitError && <p className="text-sm text-red-600">{submitError}</p>}

@@ -7,6 +7,7 @@ import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { openRazorpayCheckout } from "@/lib/razorpay";
 import BlockSelect from "@/components/BlockSelect";
+import FlatInput from "@/components/FlatInput";
 import PageHeader from "@/components/PageHeader";
 
 type Step = "form" | "paying" | "success";
@@ -156,13 +157,8 @@ export default function DinnerPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Flat</label>
-            <input
-              required
-              value={fields.flatNumber}
-              onChange={(e) => setFlatNumber(e.target.value)}
-              className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
-            />
+            <label className="text-sm font-medium">Flat (3-digit number only)</label>
+            <FlatInput value={fields.flatNumber} onChange={setFlatNumber} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">

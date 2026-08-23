@@ -6,6 +6,7 @@ import { useResidentProfile } from "@/lib/useResidentProfile";
 import { openRazorpayCheckout } from "@/lib/razorpay";
 import { formatCurrency } from "@/lib/date";
 import BlockSelect from "@/components/BlockSelect";
+import FlatInput from "@/components/FlatInput";
 import PageHeader from "@/components/PageHeader";
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
@@ -143,13 +144,8 @@ export default function DonatePage() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Flat</label>
-          <input
-            required
-            value={fields.flatNumber}
-            onChange={(e) => setFlatNumber(e.target.value)}
-            className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
-          />
+          <label className="text-sm font-medium">Flat (3-digit number only)</label>
+          <FlatInput value={fields.flatNumber} onChange={setFlatNumber} />
         </div>
 
         <div className="space-y-1.5">
