@@ -246,6 +246,8 @@ Volunteer authorization must be checked server-side.
 
 Simply hiding the Volunteer menu is not security.
 
+A volunteer is a resident too, just with elevated access (Decision 1) — signing in to the Volunteer experience does not replace the Resident experience. A "Resident View" link in the volunteer header returns to the resident-facing pages at any time, and a "Volunteer Login" link on the resident Home page returns to the volunteer dashboard without re-authenticating, since the sign-in session persists for the browser session.
+
 ---
 
 # 7. Home Page
@@ -354,13 +356,15 @@ Optional:
 - Email
 - Anonymous/public recognition preference
 
-## Block Dropdown
+## Block Input
 
-Block must be selected from a fixed master list.
+Block is a single letter, typed directly rather than chosen from a dropdown, restricted client-side to a fixed set: **A–H, J–N, P–S** (I and O are excluded — easily confused with 1 and 0).
 
-Do not allow free-text block names.
+The backend independently validates the typed block against the master list in Google Sheets (`Blocks`) — the frontend restriction is a UX convenience, not the source of truth.
 
-The master list should be maintained in Google Sheets.
+## Flat Number
+
+Flat number is a mandatory 3-digit number. Flats 1–99 must be zero-padded (e.g. `005`, `023`); the input restricts entry to digits only, capped at 3 characters.
 
 ## Donation Amount
 
@@ -485,8 +489,8 @@ Receipt No: GWG-R-000123
 Transaction: GWG-20260822-000123
 
 Name: John Doe
-Block: Block 4
-Flat: A-1204
+Block: F
+Flat: 204
 
 Amount: ₹1,000
 Date: 22-Aug-2026
@@ -532,9 +536,9 @@ PARTICIPATION
 Also show block-wise collection:
 
 ```text
-Block 1   ₹85,000
-Block 2   ₹72,000
-Block 3   ₹64,000
+Block A   ₹85,000
+Block B   ₹72,000
+Block C   ₹64,000
 ...
 ```
 
@@ -645,7 +649,7 @@ Volunteer sees:
 VALID REGISTRATION
 
 John Doe
-A-1204
+Block F, Flat 204
 Kids Drawing — Age 8
 
 [ CHECK IN ]
@@ -794,7 +798,7 @@ After scanning:
 ```text
 VALID TOKEN
 
-Flat: A-1204
+Block F, Flat 204
 Allocated: 5
 Served: 2
 Remaining: 3
@@ -2015,6 +2019,14 @@ Test:
 - Desktop Chrome
 - Desktop Safari
 
+## Test Mode
+
+A `TEST_MODE` toggle allows the full resident and volunteer journeys to be exercised without real Razorpay keys or a registered Google admin account:
+
+- Backend Script Property `TEST_MODE=true` makes `createRazorpayOrder`/`verifyCheckoutSignature` (Payments.js) return a mock order and skip signature verification, and makes `verifyVolunteerToken` (Auth.js) accept the sentinel idToken `TEST_TOKEN` as a mock volunteer with every permission.
+- Frontend `NEXT_PUBLIC_TEST_MODE=true` skips loading Razorpay Checkout in favour of an auto-completing mock payment, and shows a "Sign in as Test Volunteer" button on the volunteer sign-in screen.
+- Both default off. Turning either side off independently resumes real payments/auth — no code changes needed either way.
+
 ---
 
 # 55. Acceptance Criteria
@@ -2023,8 +2035,8 @@ The MVP is ready when:
 
 - [ ] Resident can access portal without complicated login.
 - [ ] Resident can donate.
-- [ ] Block is selected from a fixed list.
-- [ ] Flat number is mandatory.
+- [ ] Block is restricted to the fixed letter set (A–H, J–N, P–S) client-side and validated server-side.
+- [ ] Flat number is mandatory and restricted to 3 digits.
 - [ ] Payment is securely confirmed.
 - [ ] Successful donation generates exactly one receipt.
 - [ ] Total collection is accurate.
