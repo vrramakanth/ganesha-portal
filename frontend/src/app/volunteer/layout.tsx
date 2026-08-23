@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import VolunteerNav from "@/components/VolunteerNav";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
 import { VolunteerAuthProvider, useVolunteerAuth } from "@/lib/VolunteerAuthContext";
@@ -40,9 +41,14 @@ function VolunteerGate({ children }: { children: React.ReactNode }) {
     <>
       <div className="w-full max-w-lg mx-auto flex items-center justify-between px-5 pt-3 text-xs text-muted">
         <span>{volunteer.email}</span>
-        <button onClick={signOut} className="font-semibold text-maroon">
-          Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <Link href="/" className="font-semibold text-maroon">
+            Resident View
+          </Link>
+          <button onClick={signOut} className="font-semibold text-maroon">
+            Sign out
+          </button>
+        </div>
       </div>
       <main className="flex-1 w-full max-w-lg mx-auto pb-20">{children}</main>
       <VolunteerNav />
