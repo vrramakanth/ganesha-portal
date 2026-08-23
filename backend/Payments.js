@@ -24,6 +24,10 @@
  */
 
 function createRazorpayOrder(amountRupees, receiptLabel) {
+  if (isTestMode()) {
+    return { id: `test_order_${Utilities.getUuid()}` };
+  }
+
   const keyId = getScriptProperty("RAZORPAY_KEY_ID");
   const keySecret = getScriptProperty("RAZORPAY_KEY_SECRET");
 
@@ -48,6 +52,8 @@ function createRazorpayOrder(amountRupees, receiptLabel) {
 }
 
 function verifyCheckoutSignature(orderId, paymentId, signature) {
+  if (isTestMode()) return true;
+
   const keySecret = getScriptProperty("RAZORPAY_KEY_SECRET");
   const expected = Utilities.computeHmacSha256Signature(`${orderId}|${paymentId}`, keySecret)
     .map((b) => (b < 0 ? b + 256 : b).toString(16).padStart(2, "0"))

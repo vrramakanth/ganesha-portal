@@ -30,6 +30,15 @@ function getScriptProperty(key) {
   return value;
 }
 
+/** Test config (not part of the spec): when the Script Property
+ *  TEST_MODE is "true", payment flows skip real Razorpay calls entirely
+ *  (see Payments.js) so the whole portal can be exercised end-to-end
+ *  before Razorpay keys are set up. Set TEST_MODE=false (or delete the
+ *  property) to resume real payments — no other code changes needed. */
+function isTestMode() {
+  return PropertiesService.getScriptProperties().getProperty("TEST_MODE") === "true";
+}
+
 function getSpreadsheetId() {
   const explicit = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID");
   if (explicit) return explicit;

@@ -34,6 +34,25 @@ routing, so every request is `POST/GET <web-app-url>?action=<name>`.
    **Anyone**. Copy the deployment URL — that's `NEXT_PUBLIC_API_URL` for
    the frontend.
 
+## Testing without Razorpay
+
+To exercise the full portal (donations, dinner payments) before Razorpay
+keys are set up:
+
+1. **Project Settings → Script Properties**, add `TEST_MODE` = `true`.
+2. In `frontend/.env.local`, set `NEXT_PUBLIC_TEST_MODE=true`.
+
+With both set, `createRazorpayOrder`/`verifyCheckoutSignature`
+(`Payments.js`) and `openRazorpayCheckout` (`frontend/src/lib/razorpay.ts`)
+short-circuit: no real Razorpay API calls, and the checkout flow
+auto-completes with a mock payment so transactions/entitlements go
+straight to `SUCCESS`/active, same as a real payment would. No other code
+changes.
+
+To resume real payments, delete/`false` the `TEST_MODE` Script Property
+and set `NEXT_PUBLIC_TEST_MODE=false` (or remove it), then fill in the
+real `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET`/`NEXT_PUBLIC_RAZORPAY_KEY_ID`.
+
 ## Known Apps Script constraints (by design, not oversights)
 
 - **No custom response status codes.** Every response is HTTP 200; success
