@@ -10,8 +10,19 @@
  * this and check permissions server-side (spec §6, §38).
  */
 
+/** Test config: when TEST_MODE is "true", the sentinel idToken "TEST_TOKEN"
+ *  signs in as a mock volunteer with every permission, skipping real Google
+ *  verification and the Admins sheet lookup — see also the frontend's
+ *  "Sign in as Test Volunteer" button in volunteer/layout.tsx. Set
+ *  TEST_MODE=false (or delete the property) to close this off. */
+const TEST_PERMISSIONS = ["Operations", "Events", "Dinner", "Finance", "Content"];
+
 function verifyVolunteerToken(idToken) {
   if (!idToken) throw new ApiError("Missing idToken", 401);
+
+  if (isTestMode() && idToken === "TEST_TOKEN") {
+    return { email: "test-volunteer@example.com", name: "Test Volunteer", permissions: TEST_PERMISSIONS };
+  }
 
   const resp = UrlFetchApp.fetch(
     `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,

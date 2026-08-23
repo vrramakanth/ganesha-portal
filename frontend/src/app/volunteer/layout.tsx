@@ -23,6 +23,14 @@ function VolunteerGate({ children }: { children: React.ReactNode }) {
           Sign in with the Google account your admin registered for volunteer access.
         </p>
         <GoogleSignInButton onCredential={handleCredential} />
+        {process.env.NEXT_PUBLIC_TEST_MODE === "true" && (
+          <button
+            onClick={() => handleCredential("TEST_TOKEN")}
+            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-maroon"
+          >
+            Sign in as Test Volunteer
+          </button>
+        )}
         {error && <p className="text-sm text-red-600 max-w-xs">{error}</p>}
       </main>
     );
