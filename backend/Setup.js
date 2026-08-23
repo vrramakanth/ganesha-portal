@@ -86,8 +86,20 @@ function seedDefaults() {
 
   const blocks = getSheet(SHEETS.BLOCKS);
   if (rowsToObjects(blocks).length === 0) {
-    ["Block 1", "Block 2", "Block 3", "Block 4"].forEach((name, i) =>
-      appendObject(blocks, { block_id: `BLK-${i + 1}`, block_name: name, active: "TRUE" })
-    );
+    BLOCK_NAMES.forEach((name) => appendObject(blocks, { block_id: `BLK-${name}`, block_name: name, active: "TRUE" }));
   }
+}
+
+/** Block letters residents may pick from (no I/O — easily confused with 1/0). */
+const BLOCK_NAMES = ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "Q", "R", "S"];
+
+/** One-off migration: replaces whatever is in the Blocks sheet with
+ *  BLOCK_NAMES. Run this once from the Apps Script editor if the sheet was
+ *  already seeded with the old placeholder block names ("Block 1", etc.)
+ *  — safe to re-run, always leaves the sheet matching BLOCK_NAMES exactly. */
+function resetBlocks() {
+  const sheet = getSheet(SHEETS.BLOCKS);
+  if (sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
+  BLOCK_NAMES.forEach((name) => appendObject(sheet, { block_id: `BLK-${name}`, block_name: name, active: "TRUE" }));
+  return { blocks: BLOCK_NAMES };
 }

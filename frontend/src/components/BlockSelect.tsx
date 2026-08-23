@@ -1,7 +1,6 @@
 "use client";
 
-import { api } from "@/lib/api";
-import { useAsync } from "@/lib/useAsync";
+const ALLOWED_BLOCKS = ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "Q", "R", "S"];
 
 export default function BlockSelect({
   value,
@@ -10,23 +9,20 @@ export default function BlockSelect({
   value: string;
   onChange: (block: string) => void;
 }) {
-  const { data: blocks, loading } = useAsync(() => api.blocks.list(), []);
-
   return (
-    <select
-      required
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
-    >
-      <option value="" disabled>
-        {loading ? "Loading blocks…" : "Select block"}
-      </option>
-      {(blocks ?? []).map((b) => (
-        <option key={b.block_id} value={b.block_name}>
-          {b.block_name}
-        </option>
-      ))}
-    </select>
+    <div>
+      <input
+        required
+        value={value}
+        maxLength={1}
+        placeholder="e.g. A"
+        onChange={(e) => {
+          const letter = e.target.value.trim().toUpperCase().slice(-1);
+          if (letter === "" || ALLOWED_BLOCKS.includes(letter)) onChange(letter);
+        }}
+        className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm uppercase"
+      />
+      <p className="mt-1 text-xs text-muted">Allowed blocks: {ALLOWED_BLOCKS.join(", ")}</p>
+    </div>
   );
 }
