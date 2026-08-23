@@ -37,6 +37,13 @@ export default function Home() {
         Donate Now
       </Link>
 
+      <Link
+        href="/volunteer"
+        className="block w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon"
+      >
+        Volunteer Login
+      </Link>
+
       {error && <p className="text-center text-sm text-red-600">{error}</p>}
 
       <div className="rounded-xl border border-border bg-card p-5 text-center">
