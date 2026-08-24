@@ -143,6 +143,7 @@ export type Volunteer = {
   email: string;
   name: string;
   permissions: string[];
+  isSuperAdmin: boolean;
 };
 
 export type Transaction = {

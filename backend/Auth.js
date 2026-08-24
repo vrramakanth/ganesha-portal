@@ -17,6 +17,20 @@
  *  once in. */
 const ALL_PERMISSIONS = ["Operations", "Events", "Dinner", "Finance", "Content"];
 
+/** A single email, configurable via the Configuration sheet's
+ *  `super_admin_email` key, that alone may approve volunteer applications
+ *  (Volunteers.js). Defaults to mc.bwaoa@gmail.com so this works with no
+ *  Sheet edits required; override by adding a `super_admin_email` row. */
+function getSuperAdminEmail() {
+  return getConfig("super_admin_email", "mc.bwaoa@gmail.com");
+}
+
+function requireSuperAdmin(volunteer) {
+  if (!volunteer.isSuperAdmin) {
+    throw new ApiError("Only the super admin can approve volunteers", 403);
+  }
+}
+
 /** Test config: when TEST_MODE is "true", the sentinel idToken "TEST_TOKEN"
  *  signs in as a mock volunteer with every permission, skipping real Google
  *  verification and the Admins sheet lookup — see also the frontend's
@@ -26,7 +40,12 @@ function verifyVolunteerToken(idToken) {
   if (!idToken) throw new ApiError("Missing idToken", 401);
 
   if (isTestMode() && idToken === "TEST_TOKEN") {
-    return { email: "test-volunteer@example.com", name: "Test Volunteer", permissions: ALL_PERMISSIONS };
+    return {
+      email: "test-volunteer@example.com",
+      name: "Test Volunteer",
+      permissions: ALL_PERMISSIONS,
+      isSuperAdmin: true,
+    };
   }
 
   const resp = UrlFetchApp.fetch(
@@ -51,7 +70,12 @@ function verifyVolunteerToken(idToken) {
     throw new ApiError("This Google account is not an authorized volunteer", 403);
   }
 
-  return { email: payload.email, name: admin.name, permissions: ALL_PERMISSIONS };
+  return {
+    email: payload.email,
+    name: admin.name,
+    permissions: ALL_PERMISSIONS,
+    isSuperAdmin: payload.email.toLowerCase() === getSuperAdminEmail().toLowerCase(),
+  };
 }
 
 function findAdminByEmail(email) {

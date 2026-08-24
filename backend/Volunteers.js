@@ -36,7 +36,7 @@ function listMyVolunteerStatus(mobile) {
 }
 
 function listVolunteers(volunteer) {
-  requirePermission(volunteer, "Operations");
+  requireSuperAdmin(volunteer);
   const volunteers = rowsToObjects(getSheet(SHEETS.VOLUNTEERS));
 
   const requirementsJson = getConfig("volunteer_requirements", "{}");
@@ -73,7 +73,7 @@ function listVolunteers(volunteer) {
 }
 
 function activateVolunteer(volunteer, volunteerId) {
-  requirePermission(volunteer, "Operations");
+  requireSuperAdmin(volunteer);
   return withLock(() => {
     const sheet = getSheet(SHEETS.VOLUNTEERS);
     const rowIndex = findRowIndexById(sheet, "volunteer_id", volunteerId);

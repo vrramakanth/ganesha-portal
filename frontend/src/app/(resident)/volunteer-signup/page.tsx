@@ -69,7 +69,7 @@ export default function VolunteerSignupPage() {
   if (done) {
     return (
       <div className="flex flex-col gap-3 px-5 pt-8 text-center">
-        <PageHeader title="Thank you!" subtitle="A volunteer coordinator will activate your account soon." />
+        <PageHeader title="Thank you!" subtitle="Waiting for admin's approval." />
       </div>
     );
   }

@@ -8,20 +8,20 @@ import { formatCurrency } from "@/lib/date";
 import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
 
-const quickActions = [
-  { href: "/volunteer/donations", label: "Review Payments" },
-  { href: "/volunteer/dinner/counter", label: "Dinner Counter" },
-  { href: "/volunteer/events", label: "Events" },
-  { href: "/volunteer/volunteers", label: "Volunteers" },
-  { href: "/volunteer/reports", label: "Reports" },
-];
-
 export default function VolunteerDashboardPage() {
-  const { idToken } = useVolunteerAuth();
+  const { idToken, volunteer } = useVolunteerAuth();
   const { data, loading, error } = useAsync(
     () => api.volunteer.dashboard(idToken as string),
     [idToken]
   );
+
+  const quickActions = [
+    { href: "/volunteer/donations", label: "Review Payments" },
+    { href: "/volunteer/dinner/counter", label: "Dinner Counter" },
+    { href: "/volunteer/events", label: "Events" },
+    ...(volunteer?.isSuperAdmin ? [{ href: "/volunteer/volunteers", label: "Volunteers" }] : []),
+    { href: "/volunteer/reports", label: "Reports" },
+  ];
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
