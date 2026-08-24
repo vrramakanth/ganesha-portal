@@ -101,7 +101,7 @@ export default function Home() {
         href="/volunteer"
         className="mx-auto text-xs font-medium text-muted"
       >
-        Volunteer Login
+        Admin Login
       </Link>
     </div>
   );
