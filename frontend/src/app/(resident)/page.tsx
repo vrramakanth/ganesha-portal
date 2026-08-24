@@ -98,7 +98,7 @@ export default function Home() {
       )}
 
       <Link
-        href="/volunteer"
+        href="/admin"
         className="mx-auto text-xs font-medium text-muted"
       >
         Admin Login
