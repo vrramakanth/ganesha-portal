@@ -10,18 +10,23 @@
  * this and check permissions server-side (spec §6, §38).
  */
 
+/** Every volunteer permission area (spec §4.2). Any admin row with
+ *  active=TRUE is granted all of these — the Admins sheet's `permissions`
+ *  column is not enforced. There is only one public-facing Volunteer role;
+ *  the allowlist controls who can sign in at all, not what they can do
+ *  once in. */
+const ALL_PERMISSIONS = ["Operations", "Events", "Dinner", "Finance", "Content"];
+
 /** Test config: when TEST_MODE is "true", the sentinel idToken "TEST_TOKEN"
  *  signs in as a mock volunteer with every permission, skipping real Google
  *  verification and the Admins sheet lookup — see also the frontend's
  *  "Sign in as Test Volunteer" button in volunteer/layout.tsx. Set
  *  TEST_MODE=false (or delete the property) to close this off. */
-const TEST_PERMISSIONS = ["Operations", "Events", "Dinner", "Finance", "Content"];
-
 function verifyVolunteerToken(idToken) {
   if (!idToken) throw new ApiError("Missing idToken", 401);
 
   if (isTestMode() && idToken === "TEST_TOKEN") {
-    return { email: "test-volunteer@example.com", name: "Test Volunteer", permissions: TEST_PERMISSIONS };
+    return { email: "test-volunteer@example.com", name: "Test Volunteer", permissions: ALL_PERMISSIONS };
   }
 
   const resp = UrlFetchApp.fetch(
@@ -46,14 +51,7 @@ function verifyVolunteerToken(idToken) {
     throw new ApiError("This Google account is not an authorized volunteer", 403);
   }
 
-  return {
-    email: payload.email,
-    name: admin.name,
-    permissions: String(admin.permissions || "")
-      .split(",")
-      .map((p) => p.trim())
-      .filter(Boolean),
-  };
+  return { email: payload.email, name: admin.name, permissions: ALL_PERMISSIONS };
 }
 
 function findAdminByEmail(email) {
