@@ -17,12 +17,16 @@
  *  once in. */
 const ALL_PERMISSIONS = ["Operations", "Events", "Dinner", "Finance", "Content"];
 
-/** A single email, configurable via the Configuration sheet's
+/** Comma-separated emails, configurable via the Configuration sheet's
  *  `super_admin_email` key, that alone may approve volunteer applications
- *  (Volunteers.js). Defaults to mc.bwaoa@gmail.com so this works with no
- *  Sheet edits required; override by adding a `super_admin_email` row. */
-function getSuperAdminEmail() {
-  return getConfig("super_admin_email", "mc.bwaoa@gmail.com");
+ *  (Volunteers.js). Defaults to mc.bwaoa@gmail.com and vrramakanth@gmail.com
+ *  so this works with no Sheet edits required; override by adding a
+ *  `super_admin_email` row (comma-separate multiple addresses). */
+function getSuperAdminEmails() {
+  return getConfig("super_admin_email", "mc.bwaoa@gmail.com,vrramakanth@gmail.com")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 function requireSuperAdmin(volunteer) {
@@ -74,7 +78,7 @@ function verifyVolunteerToken(idToken) {
     email: payload.email,
     name: admin.name,
     permissions: ALL_PERMISSIONS,
-    isSuperAdmin: payload.email.toLowerCase() === getSuperAdminEmail().toLowerCase(),
+    isSuperAdmin: getSuperAdminEmails().includes(payload.email.toLowerCase()),
   };
 }
 
