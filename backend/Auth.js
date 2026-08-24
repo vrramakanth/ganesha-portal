@@ -19,11 +19,12 @@ const ALL_PERMISSIONS = ["Operations", "Events", "Dinner", "Finance", "Content"]
 
 /** Comma-separated emails, configurable via the Configuration sheet's
  *  `super_admin_email` key, that alone may approve volunteer applications
- *  (Volunteers.js). Defaults to mc.bwaoa@gmail.com and vrramakanth@gmail.com
- *  so this works with no Sheet edits required; override by adding a
- *  `super_admin_email` row (comma-separate multiple addresses). */
+ *  (Volunteers.js). Defaults to mc.bwaoa@gmail.com, vrramakanth@gmail.com,
+ *  and kalindeemi@gmail.com so this works with no Sheet edits required;
+ *  override by adding a `super_admin_email` row (comma-separate multiple
+ *  addresses). */
 function getSuperAdminEmails() {
-  return getConfig("super_admin_email", "mc.bwaoa@gmail.com,vrramakanth@gmail.com")
+  return getConfig("super_admin_email", "mc.bwaoa@gmail.com,vrramakanth@gmail.com,kalindeemi@gmail.com")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
