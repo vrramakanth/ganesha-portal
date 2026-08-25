@@ -49,6 +49,24 @@ export default function MorePage() {
         </section>
       )}
 
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
+          Need Help?
+        </h2>
+        <a
+          href="/docs/user-guide.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3.5"
+        >
+          <div>
+            <p className="font-semibold text-sm">How-To Guide</p>
+            <p className="text-xs text-muted">Donating, events, dinner tokens &amp; more</p>
+          </div>
+          <span className="text-muted">›</span>
+        </a>
+      </section>
+
       <Link
         href="/volunteer-signup"
         className="w-full rounded-xl bg-maroon py-4 text-center text-sm font-semibold text-white active:bg-maroon-dark transition-colors"
