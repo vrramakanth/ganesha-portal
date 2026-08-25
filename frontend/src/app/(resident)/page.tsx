@@ -97,6 +97,15 @@ export default function Home() {
         </section>
       )}
 
+      <a
+        href="/docs/user-guide.pdf"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mx-auto text-xs font-medium text-muted"
+      >
+        Need help?
+      </a>
+
       <Link
         href="/admin"
         className="mx-auto text-xs font-medium text-muted"
