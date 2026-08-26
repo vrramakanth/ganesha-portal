@@ -25,8 +25,15 @@ export function useResidentProfile() {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       // One-time hydration from localStorage on mount — there is no
       // external subscription to attach to, just a synchronous read.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (raw) setProfile(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw) as ResidentProfile;
+        // A stored mobile from before format validation existed (or any
+        // other stale garbage) shouldn't keep auto-filling forever — drop
+        // just that field rather than the whole saved profile.
+        if (!/^[6-9]\d{9}$/.test(parsed.mobile)) parsed.mobile = "";
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setProfile(parsed);
+      }
     } catch {
       // ignore — private browsing / storage blocked
     } finally {
