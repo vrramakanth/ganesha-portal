@@ -200,6 +200,9 @@ export default function DinnerPage() {
               required
               value={fields.name}
               onChange={(e) => setName(e.target.value)}
+              autoComplete="off"
+              autoCapitalize="off"
+              autoCorrect="off"
               className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
             />
           </div>
@@ -211,6 +214,7 @@ export default function DinnerPage() {
               type="tel"
               value={fields.mobile}
               onChange={(e) => setMobile(e.target.value)}
+              autoComplete="off"
               className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
             />
           </div>
