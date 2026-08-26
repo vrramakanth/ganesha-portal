@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -16,7 +16,7 @@ export default function DinnerPage() {
   const { data: events, loading, error: eventsError } = useAsync(() => api.events.list(), []);
   const { data: festival } = useAsync(() => api.festival.get(), []);
   const dinnerDays = (events ?? []).filter((e) => e.category === "Dinner" && e.status === "OPEN");
-  const { profile, saveProfile } = useResidentProfile();
+  const { profile, saveProfile, loaded } = useResidentProfile();
 
   const [eventId, setEventId] = useState("");
   const [name, setName] = useState("");
@@ -33,13 +33,20 @@ export default function DinnerPage() {
   const [mealAmount, setMealAmount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
+  // One-time hydration from the saved profile once it loads — see Donate
+  // page for why: without this, fields || profile.x can never be cleared
+  // to empty, since "" is falsy and falls straight back to the saved value.
+  useEffect(() => {
+    if (!loaded) return;
+    setName((prev) => prev || profile.name);
+    setMobile((prev) => prev || profile.mobile);
+    setBlock((prev) => prev || profile.block);
+    setFlatNumber((prev) => prev || profile.flatNumber);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
   const selectedDay = eventId || dinnerDays[0]?.event_id || "";
-  const fields = {
-    name: name || profile.name,
-    mobile: mobile || profile.mobile,
-    block: block || profile.block,
-    flatNumber: flatNumber || profile.flatNumber,
-  };
+  const fields = { name, mobile, block, flatNumber };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

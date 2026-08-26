@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import BlockSelect from "@/components/BlockSelect";
@@ -14,7 +14,7 @@ const AREAS = [
 ];
 
 export default function VolunteerSignupPage() {
-  const { profile, saveProfile } = useResidentProfile();
+  const { profile, saveProfile, loaded } = useResidentProfile();
 
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
@@ -28,12 +28,19 @@ export default function VolunteerSignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  const fields = {
-    name: name || profile.name,
-    mobile: mobile || profile.mobile,
-    block: block || profile.block,
-    flatNumber: flatNumber || profile.flatNumber,
-  };
+  // One-time hydration from the saved profile once it loads — see Donate
+  // page for why: without this, fields || profile.x can never be cleared
+  // to empty, since "" is falsy and falls straight back to the saved value.
+  useEffect(() => {
+    if (!loaded) return;
+    setName((prev) => prev || profile.name);
+    setMobile((prev) => prev || profile.mobile);
+    setBlock((prev) => prev || profile.block);
+    setFlatNumber((prev) => prev || profile.flatNumber);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
+  const fields = { name, mobile, block, flatNumber };
 
   function toggleArea(area: string) {
     setAreas((prev) => (prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]));

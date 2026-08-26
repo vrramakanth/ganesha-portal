@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
@@ -15,7 +15,7 @@ const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 type Step = "form" | "creating" | "reference" | "submitted" | "cancelled";
 
 export default function DonatePage() {
-  const { profile, saveProfile } = useResidentProfile();
+  const { profile, saveProfile, loaded } = useResidentProfile();
   const { data: festival } = useAsync(() => api.festival.get(), []);
 
   const [name, setName] = useState("");
@@ -32,12 +32,20 @@ export default function DonatePage() {
   const [donationAmount, setDonationAmount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
-  const fields = {
-    name: name || profile.name,
-    mobile: mobile || profile.mobile,
-    block: block || profile.block,
-    flatNumber: flatNumber || profile.flatNumber,
-  };
+  // One-time hydration from the saved profile once it loads — after this,
+  // each field's own state is the single source of truth, so clearing a
+  // field to empty (e.g. to retype it) actually stays empty instead of
+  // snapping back to the saved value on every keystroke.
+  useEffect(() => {
+    if (!loaded) return;
+    setName((prev) => prev || profile.name);
+    setMobile((prev) => prev || profile.mobile);
+    setBlock((prev) => prev || profile.block);
+    setFlatNumber((prev) => prev || profile.flatNumber);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
+  const fields = { name, mobile, block, flatNumber };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
