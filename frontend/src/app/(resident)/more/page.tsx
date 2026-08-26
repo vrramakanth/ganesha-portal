@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -11,6 +12,12 @@ export default function MorePage() {
     []
   );
   const [festival, announcements] = data ?? [null, null];
+  const [cleared, setCleared] = useState(false);
+
+  function clearSavedInfo() {
+    window.localStorage.removeItem("gwg_resident_profile");
+    setCleared(true);
+  }
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
@@ -73,6 +80,23 @@ export default function MorePage() {
       >
         I Want to Volunteer
       </Link>
+
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
+          This Device
+        </h2>
+        <button
+          type="button"
+          onClick={clearSavedInfo}
+          className="w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon"
+        >
+          {cleared ? "Cleared — forms will ask fresh next time" : "Clear My Saved Details"}
+        </button>
+        <p className="text-xs text-muted">
+          Forgets the name, mobile, block and flat this browser remembers for you. Doesn&apos;t
+          affect any donation, registration or dinner token you&apos;ve already submitted.
+        </p>
+      </section>
     </div>
   );
 }
