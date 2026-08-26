@@ -7,6 +7,7 @@ import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
+import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 import PaymentReferenceStep from "@/components/PaymentReferenceStep";
 
@@ -51,6 +52,10 @@ export default function DinnerPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!/^[6-9]\d{9}$/.test(fields.mobile)) {
+      setError("Enter a valid 10-digit mobile number.");
+      return;
+    }
     if (adults + children <= 0) {
       setError("At least one meal is required.");
       return;
@@ -209,14 +214,7 @@ export default function DinnerPage() {
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Mobile</label>
-            <input
-              required
-              type="tel"
-              value={fields.mobile}
-              onChange={(e) => setMobile(e.target.value)}
-              autoComplete="off"
-              className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
-            />
+            <MobileInput value={fields.mobile} onChange={setMobile} />
           </div>
 
           <div className="space-y-1.5">

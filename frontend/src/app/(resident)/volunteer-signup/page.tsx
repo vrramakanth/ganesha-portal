@@ -5,6 +5,7 @@ import { api, ApiClientError } from "@/lib/api";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
+import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 
 const AREAS = [
@@ -49,6 +50,10 @@ export default function VolunteerSignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!/^[6-9]\d{9}$/.test(fields.mobile)) {
+      setError("Enter a valid 10-digit mobile number.");
+      return;
+    }
     if (areas.length === 0) {
       setError("Pick at least one area you'd like to help with.");
       return;
@@ -100,14 +105,7 @@ export default function VolunteerSignupPage() {
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Mobile</label>
-          <input
-            required
-            type="tel"
-            value={fields.mobile}
-            onChange={(e) => setMobile(e.target.value)}
-            autoComplete="off"
-            className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
-          />
+          <MobileInput value={fields.mobile} onChange={setMobile} />
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Email (optional)</label>
