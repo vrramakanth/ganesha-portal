@@ -15,6 +15,10 @@ function getFestivalInfo() {
   ];
   const info = {};
   keys.forEach((k) => (info[k] = getConfig(k, "")));
+  // Same fallback as the backend actually enforces in createDonation, so
+  // the frontend can validate against a real number even before anyone
+  // has added a maximum_donation row to Configuration.
+  info.maximum_donation = getConfig("maximum_donation", "100000");
   return info;
 }
 

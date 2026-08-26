@@ -47,6 +47,8 @@ export default function DonatePage() {
 
   const fields = { name, mobile, block, flatNumber };
 
+  const maxAmount = Number(festival?.maximum_donation || 0) || undefined;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -54,6 +56,10 @@ export default function DonatePage() {
     const amt = Number(amount || customAmount);
     if (!amt) {
       setError("Please choose or enter an amount.");
+      return;
+    }
+    if (maxAmount && amt > maxAmount) {
+      setError(`Amount cannot exceed ${formatCurrency(maxAmount)}. Please double-check the amount.`);
       return;
     }
 
@@ -217,6 +223,7 @@ export default function DonatePage() {
           <input
             type="number"
             min={1}
+            max={maxAmount}
             placeholder="Other amount"
             value={customAmount}
             onChange={(e) => {
@@ -225,6 +232,9 @@ export default function DonatePage() {
             }}
             className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
           />
+          {maxAmount && (
+            <p className="text-xs text-muted">Maximum {formatCurrency(maxAmount)} per donation.</p>
+          )}
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

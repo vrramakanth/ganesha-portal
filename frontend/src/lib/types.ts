@@ -12,6 +12,7 @@ export type FestivalInfo = {
   venue: string;
   donation_goal: string;
   minimum_donation: string;
+  maximum_donation: string;
   contact: string;
   upi_vpa: string;
   upi_payee_name: string;

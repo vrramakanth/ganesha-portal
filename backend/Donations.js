@@ -13,8 +13,12 @@ function createDonation({ name, mobile, email, block, flatNumber, amount }) {
 
   const amountNum = Number(amount);
   const minimum = Number(getConfig("minimum_donation", "0")) || 0;
+  const maximum = Number(getConfig("maximum_donation", "100000")) || 100000;
   if (!(amountNum > 0) || amountNum < minimum) {
     throw new ApiError(`Amount must be at least ₹${minimum}`, 400);
+  }
+  if (amountNum > maximum) {
+    throw new ApiError(`Amount cannot exceed ₹${maximum}`, 400);
   }
   validateBlock(block);
   const resident = upsertResident({ name, mobile, email, block, flatNumber });
