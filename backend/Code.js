@@ -11,6 +11,7 @@ const ROUTES = {
   "stats.public": { handler: () => getPublicStats() },
   "announcements.list": { handler: () => listActiveAnnouncements() },
   "payments.extractReference": { handler: (p) => extractPaymentReference(p.image, p.mimeType) },
+  "bugs.report": { handler: (p) => reportBug(p) },
 
   // --- Resident ---
   "donations.create": { handler: (p) => createDonation(p) },
@@ -51,6 +52,8 @@ const ROUTES = {
   "volunteer.config.list": { auth: true, handler: (p, v) => listConfig(v) },
   "volunteer.config.update": { auth: true, handler: (p, v) => updateConfig(v, p.updates) },
   "volunteer.auditLog.list": { auth: true, handler: (p, v) => listAuditLog(v) },
+  "volunteer.bugs.list": { auth: true, handler: (p, v) => listBugs(v) },
+  "volunteer.bugs.updateStatus": { auth: true, handler: (p, v) => updateBugStatus(v, p.bugId, p.status) },
 };
 
 function doGet(e) {

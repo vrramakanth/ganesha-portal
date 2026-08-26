@@ -49,6 +49,10 @@ const SHEET_SCHEMAS = {
   [SHEETS.AUDIT_LOG]: [
     "timestamp", "volunteer_id", "action", "entity", "entity_id", "old_value", "new_value",
   ],
+  [SHEETS.BUGS]: [
+    "bug_id", "description", "screenshot_url", "status", "reporter_name", "reporter_mobile",
+    "page_url", "reported_at", "updated_at",
+  ],
 };
 
 function setupSheets() {

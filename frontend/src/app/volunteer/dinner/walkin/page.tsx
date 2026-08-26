@@ -45,7 +45,7 @@ export default function DinnerWalkinPage() {
   if (tokenId) {
     return (
       <div className="flex flex-col gap-4 px-5 pt-8 text-center">
-        <PageHeader title="Token Generated" />
+        <PageHeader title="Token Generated" backHref="/volunteer/dinner" backLabel="← Dinner" />
         <p className="text-2xl font-bold text-maroon">{tokenId}</p>
         <button
           onClick={() => {
@@ -64,7 +64,7 @@ export default function DinnerWalkinPage() {
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
-      <PageHeader title="Walk-in Registration" />
+      <PageHeader title="Walk-in Registration" backHref="/volunteer/dinner" backLabel="← Dinner" />
 
       {dinnerDays.length === 0 ? (
         <p className="text-sm text-muted">No dinner days configured yet.</p>

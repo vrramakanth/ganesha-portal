@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -8,12 +8,13 @@ import { useResidentProfile } from "@/lib/useResidentProfile";
 import type { EventRegistration } from "@/lib/types";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
+import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 
 export default function EventDetailClient({ eventId }: { eventId: string }) {
   const { data: events, loading, error } = useAsync(() => api.events.list(), []);
   const event = (events ?? []).find((e) => e.event_id === eventId);
-  const { profile, saveProfile } = useResidentProfile();
+  const { profile, saveProfile, loaded } = useResidentProfile();
 
   const [participantName, setParticipantName] = useState("");
   const [participantAge, setParticipantAge] = useState("");
@@ -24,22 +25,33 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [registration, setRegistration] = useState<EventRegistration | null>(null);
 
+  // One-time hydration from the saved profile once it loads — see Donate
+  // page for why: without this, fields || profile.x can never be cleared
+  // to empty, since "" is falsy and falls straight back to the saved value.
+  useEffect(() => {
+    if (!loaded) return;
+    setParticipantName((prev) => prev || profile.name);
+    setMobile((prev) => prev || profile.mobile);
+    setBlock((prev) => prev || profile.block);
+    setFlatNumber((prev) => prev || profile.flatNumber);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
   if (loading) return <p className="px-5 pt-8 text-sm text-muted">Loading event…</p>;
   if (error) return <p className="px-5 pt-8 text-sm text-red-600">{error}</p>;
   if (!event) return <p className="px-5 pt-8 text-sm text-muted">Event not found.</p>;
 
-  const fields = {
-    participantName: participantName || profile.name,
-    mobile: mobile || profile.mobile,
-    block: block || profile.block,
-    flatNumber: flatNumber || profile.flatNumber,
-  };
+  const fields = { participantName, mobile, block, flatNumber };
 
   const canRegister = event.status === "OPEN" && Number(event.fee || 0) === 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
+    if (!/^[6-9]\d{9}$/.test(fields.mobile)) {
+      setSubmitError("Enter a valid 10-digit mobile number.");
+      return;
+    }
     setSubmitting(true);
     try {
       const result = await api.events.register({
@@ -62,7 +74,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   if (registration) {
     return (
       <div className="flex flex-col gap-6 px-5 pt-8 items-center text-center">
-        <PageHeader title="You're registered!" subtitle={event.name} />
+        <PageHeader title="You're registered!" subtitle={event.name} backHref="/events" backLabel="← Events" />
         <div className="rounded-xl border border-border bg-card p-6">
           <QRCodeSVG value={registration.registration_id} size={180} />
         </div>
@@ -77,6 +89,8 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       <PageHeader
         title={event.name}
         subtitle={`${event.date} · ${event.start_time} · ${event.location}`}
+        backHref="/events"
+        backLabel="← Events"
       />
       {event.description && <p className="text-sm text-muted">{event.description}</p>}
 
@@ -96,6 +110,9 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
               required
               value={fields.participantName}
               onChange={(e) => setParticipantName(e.target.value)}
+              autoComplete="off"
+              autoCapitalize="off"
+              autoCorrect="off"
               className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
             />
           </div>
@@ -111,13 +128,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
           )}
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Mobile</label>
-            <input
-              required
-              type="tel"
-              value={fields.mobile}
-              onChange={(e) => setMobile(e.target.value)}
-              className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
-            />
+            <MobileInput value={fields.mobile} onChange={setMobile} />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Block</label>

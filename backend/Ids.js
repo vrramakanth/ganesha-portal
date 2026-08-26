@@ -63,3 +63,8 @@ function generateAnnouncementId() {
   const seq = nextSequence("counter_announcement");
   return `GWG-ANN-${pad(seq, 4)}`;
 }
+
+function generateBugId() {
+  const seq = nextSequence("counter_bug");
+  return `GWG-BUG-${pad(seq, 4)}`;
+}

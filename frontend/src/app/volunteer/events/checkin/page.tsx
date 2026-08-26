@@ -38,6 +38,8 @@ export default function EventCheckinPage() {
       <PageHeader
         title="Event Check-in"
         subtitle={eventId ? `Event: ${eventId}` : "Enter a registration ID to check in"}
+        backHref="/volunteer/events"
+        backLabel="← Events"
       />
 
       <form onSubmit={handleSubmit} className="flex gap-2">

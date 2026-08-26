@@ -2,6 +2,7 @@ import type {
   Announcement,
   AuditLogEntry,
   Block,
+  BugReport,
   CancelResult,
   ConfigEntry,
   CreateDonationResult,
@@ -104,6 +105,16 @@ export const api = {
   },
   announcements: {
     list: () => apiGet<Announcement[]>("announcements.list"),
+  },
+  bugs: {
+    report: (payload: {
+      description: string;
+      screenshot?: string;
+      mimeType?: string;
+      reporterName?: string;
+      reporterMobile?: string;
+      pageUrl?: string;
+    }) => apiPost<BugReport>("bugs.report", payload),
   },
   payments: {
     extractReference: (image: string, mimeType: string) =>
@@ -228,5 +239,8 @@ export const api = {
     updateConfig: (idToken: string, updates: Record<string, string>) =>
       apiPost<ConfigEntry[]>("volunteer.config.update", { idToken, updates }),
     auditLog: (idToken: string) => apiGet<AuditLogEntry[]>("volunteer.auditLog.list", { idToken }),
+    bugsList: (idToken: string) => apiGet<BugReport[]>("volunteer.bugs.list", { idToken }),
+    updateBugStatus: (idToken: string, bugId: string, status: "OPEN" | "CLOSED") =>
+      apiPost<{ bugId: string; status: string }>("volunteer.bugs.updateStatus", { idToken, bugId, status }),
   },
 };

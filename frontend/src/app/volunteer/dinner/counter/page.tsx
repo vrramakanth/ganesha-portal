@@ -44,7 +44,7 @@ export default function DinnerCounterPage() {
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
-      <PageHeader title="Dinner Counter" />
+      <PageHeader title="Dinner Counter" backHref="/volunteer/dinner" backLabel="← Dinner" />
 
       <form
         onSubmit={(e) => {

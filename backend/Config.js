@@ -22,6 +22,7 @@ const SHEETS = {
   CONFIGURATION: "Configuration",
   ADMINS: "Admins",
   AUDIT_LOG: "Audit Log",
+  BUGS: "Bugs",
 };
 
 function getScriptProperty(key) {

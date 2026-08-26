@@ -51,7 +51,7 @@ export default function AnnouncementsPage() {
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
       <div className="flex items-start justify-between gap-3">
-        <PageHeader title="Announcements" />
+        <PageHeader title="Announcements" backHref="/volunteer/more" backLabel="← More" />
         <button
           onClick={() => setShowForm((s) => !s)}
           className="shrink-0 rounded-lg bg-saffron px-3 py-2 text-xs font-semibold text-white active:bg-saffron-dark transition-colors"

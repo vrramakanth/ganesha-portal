@@ -14,7 +14,12 @@ export default function AuditLogPage() {
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
-      <PageHeader title="Audit Log" subtitle="Sensitive volunteer actions" />
+      <PageHeader
+        title="Audit Log"
+        subtitle="Sensitive volunteer actions"
+        backHref="/volunteer/more"
+        backLabel="← More"
+      />
 
       {loading && <p className="text-sm text-muted">Loading…</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}

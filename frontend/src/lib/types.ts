@@ -252,3 +252,15 @@ export type AuditLogEntry = {
   old_value: string;
   new_value: string;
 };
+
+export type BugReport = {
+  bug_id: string;
+  description: string;
+  screenshot_url: string;
+  status: "OPEN" | "CLOSED";
+  reporter_name: string;
+  reporter_mobile: string;
+  page_url: string;
+  reported_at: string;
+  updated_at: string;
+};

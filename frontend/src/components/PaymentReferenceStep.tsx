@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { api } from "@/lib/api";
 import { formatCurrency } from "@/lib/date";
+import { fileToBase64 } from "@/lib/file";
 import type { FestivalInfo } from "@/lib/types";
 
 type Props = {
@@ -131,16 +132,4 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
       </div>
     </div>
   );
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(",")[1] ?? "");
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
 }

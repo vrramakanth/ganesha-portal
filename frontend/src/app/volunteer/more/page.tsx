@@ -6,6 +6,7 @@ const links = [
   { href: "/volunteer/announcements", label: "Announcements", description: "Publish updates residents see on Home" },
   { href: "/volunteer/settings", label: "Settings", description: "Festival configuration" },
   { href: "/volunteer/audit-log", label: "Audit Log", description: "History of sensitive volunteer actions" },
+  { href: "/volunteer/bugs", label: "Bug Reports", description: "Issues reported by residents and volunteers" },
 ];
 
 export default function VolunteerMorePage() {

@@ -38,7 +38,7 @@ export default function ReportsPage() {
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
-      <PageHeader title="Reports" subtitle="Export as CSV" />
+      <PageHeader title="Reports" subtitle="Export as CSV" backHref="/volunteer/more" backLabel="← More" />
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

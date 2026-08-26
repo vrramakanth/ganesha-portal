@@ -34,7 +34,7 @@ export default function VolunteersPage() {
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
-      <PageHeader title="Volunteers" />
+      <PageHeader title="Volunteers" backHref="/volunteer" backLabel="← Dashboard" />
 
       {loading && <p className="text-sm text-muted">Loading…</p>}
       {loadError && <p className="text-sm text-red-600">{loadError}</p>}
