@@ -5,15 +5,16 @@ import { QRCodeSVG } from "qrcode.react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
-import { openRazorpayCheckout } from "@/lib/razorpay";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import PageHeader from "@/components/PageHeader";
+import PaymentReferenceStep from "@/components/PaymentReferenceStep";
 
-type Step = "form" | "paying" | "success";
+type Step = "form" | "registering" | "reference" | "submitted" | "cancelled" | "success";
 
 export default function DinnerPage() {
   const { data: events, loading, error: eventsError } = useAsync(() => api.events.list(), []);
+  const { data: festival } = useAsync(() => api.festival.get(), []);
   const dinnerDays = (events ?? []).filter((e) => e.category === "Dinner" && e.status === "OPEN");
   const { profile, saveProfile } = useResidentProfile();
 
@@ -28,6 +29,9 @@ export default function DinnerPage() {
   const [step, setStep] = useState<Step>("form");
   const [error, setError] = useState<string | null>(null);
   const [tokenId, setTokenId] = useState<string | null>(null);
+  const [entitlementId, setEntitlementId] = useState<string | null>(null);
+  const [mealAmount, setMealAmount] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   const selectedDay = eventId || dinnerDays[0]?.event_id || "";
   const fields = {
@@ -45,7 +49,7 @@ export default function DinnerPage() {
       return;
     }
 
-    setStep("paying");
+    setStep("registering");
     try {
       const result = await api.dinner.register({
         eventId: selectedDay,
@@ -64,27 +68,39 @@ export default function DinnerPage() {
         return;
       }
 
-      await openRazorpayCheckout({
-        amount: result.amount,
-        orderId: result.razorpayOrderId,
-        name: "Brigade Woods Community Dinner",
-        description: "Dinner meal tokens",
-        prefill: { name: fields.name, contact: fields.mobile },
-        onSuccess: async (response) => {
-          try {
-            const confirmed = await api.dinner.confirm({ entitlementId: result.entitlementId, ...response });
-            setTokenId(confirmed.tokenId);
-            setStep("success");
-          } catch (err) {
-            setError(err instanceof ApiClientError ? err.message : "Could not confirm payment.");
-            setStep("form");
-          }
-        },
-        onDismiss: () => setStep("form"),
-      });
+      setEntitlementId(result.entitlementId);
+      setMealAmount(result.amount);
+      setStep("reference");
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Something went wrong. Please try again.");
       setStep("form");
+    }
+  }
+
+  async function handleSubmitReference(reference: string) {
+    if (!entitlementId) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.dinner.submitReference(entitlementId, reference);
+      setStep("submitted");
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Could not submit your reference. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleCancel() {
+    if (!entitlementId) return;
+    setSubmitting(true);
+    try {
+      await api.dinner.cancel(entitlementId);
+      setStep("cancelled");
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Could not cancel. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -97,6 +113,47 @@ export default function DinnerPage() {
         </div>
         <p className="text-sm text-muted">Token: {tokenId}</p>
         <p className="text-sm text-muted">Show this QR at the dinner counter.</p>
+      </div>
+    );
+  }
+
+  if (step === "reference" && entitlementId) {
+    return (
+      <div className="flex flex-col gap-6 px-5 pt-8">
+        <PageHeader title="Community Dinner" subtitle={`${adults + children} meals`} />
+        <PaymentReferenceStep
+          amount={mealAmount}
+          festival={festival ?? null}
+          onSubmitReference={handleSubmitReference}
+          onCancel={handleCancel}
+          submitting={submitting}
+          error={error}
+        />
+      </div>
+    );
+  }
+
+  if (step === "submitted") {
+    return (
+      <div className="flex flex-col gap-6 px-5 pt-8 items-center text-center">
+        <PageHeader
+          title="Thank you!"
+          subtitle="Your dinner registration is submitted and waiting for a volunteer to verify the payment. Your meal token will appear under My Stuff once it's confirmed."
+        />
+      </div>
+    );
+  }
+
+  if (step === "cancelled") {
+    return (
+      <div className="flex flex-col gap-6 px-5 pt-8 items-center text-center">
+        <PageHeader title="Registration cancelled" subtitle="No worries — you can register again anytime." />
+        <button
+          onClick={() => setStep("form")}
+          className="rounded-xl bg-saffron px-6 py-3 text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
+        >
+          Back to Dinner
+        </button>
       </div>
     );
   }
@@ -188,10 +245,10 @@ export default function DinnerPage() {
 
           <button
             type="submit"
-            disabled={step === "paying"}
+            disabled={step === "registering"}
             className="w-full rounded-xl bg-saffron py-4 text-center text-lg font-semibold text-white disabled:opacity-60 active:bg-saffron-dark transition-colors"
           >
-            {step === "paying" ? "Processing…" : `Register ${adults + children} Meals`}
+            {step === "registering" ? "Processing…" : `Register ${adults + children} Meals`}
           </button>
         </form>
       )}

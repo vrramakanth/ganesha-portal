@@ -21,7 +21,6 @@ function createDonation({ name, mobile, email, block, flatNumber, amount }) {
 
   return withLock(() => {
     const transactionId = generateTransactionId();
-    const order = createRazorpayOrder(amountNum, transactionId);
 
     const transaction = {
       transaction_id: transactionId,
@@ -34,8 +33,8 @@ function createDonation({ name, mobile, email, block, flatNumber, amount }) {
       email: email || "",
       amount: amountNum,
       currency: "INR",
-      payment_provider: "razorpay",
-      payment_order_id: order.id,
+      payment_provider: "upi_qr",
+      payment_order_id: "",
       payment_id: "",
       payment_reference: "",
       status: "PAYMENT_PENDING",
@@ -48,16 +47,18 @@ function createDonation({ name, mobile, email, block, flatNumber, amount }) {
     };
     appendObject(getSheet(SHEETS.TRANSACTIONS), transaction);
 
-    return { transactionId, razorpayOrderId: order.id, amount: amountNum, currency: "INR" };
+    return { transactionId, amount: amountNum, currency: "INR" };
   });
 }
 
-/** Called by the frontend once Razorpay Checkout reports success. */
-function confirmPayment({ transactionId, razorpay_order_id, razorpay_payment_id, razorpay_signature }) {
-  requireFields(
-    { transactionId, razorpay_order_id, razorpay_payment_id, razorpay_signature },
-    ["transactionId", "razorpay_order_id", "razorpay_payment_id", "razorpay_signature"]
-  );
+/** Called once the resident scans the UPI QR, pays in their own app, and
+ *  reports back a reference (typed, or pre-filled from a screenshot —
+ *  either way it's just a claim). This only ever reaches MANUAL_REVIEW,
+ *  never SUCCESS — a volunteer must independently confirm the money
+ *  actually arrived before verifyPaymentManual() issues a receipt
+ *  (Decision 4: payment truth comes from the backend, not the resident). */
+function submitPaymentReference({ transactionId, reference }) {
+  requireFields({ transactionId, reference }, ["transactionId", "reference"]);
 
   return withLock(() => {
     const sheet = getSheet(SHEETS.TRANSACTIONS);
@@ -65,33 +66,40 @@ function confirmPayment({ transactionId, razorpay_order_id, razorpay_payment_id,
     if (rowIndex === -1) throw new ApiError("Unknown transaction", 404);
     const transaction = getRowObject(sheet, rowIndex);
 
-    // Idempotent: webhook/callback may fire more than once (spec §39).
     if (SUCCESS_STATUSES.includes(transaction.status)) {
-      return { transactionId, status: transaction.status, receiptUrl: transaction.receipt_url };
+      return { transactionId, status: transaction.status };
     }
-    if (transaction.payment_order_id !== razorpay_order_id) {
-      throw new ApiError("Order mismatch", 400);
+    if (transaction.status === "CANCELLED") {
+      throw new ApiError("This donation was cancelled", 400);
     }
-
-    const valid = verifyCheckoutSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
-    if (!valid) {
-      updateRowFields(sheet, rowIndex, { status: "FAILED", updated_at: new Date() });
-      throw new ApiError("Payment signature verification failed", 400);
-    }
-
-    const receipt = generateReceipt({ ...transaction, payment_id: razorpay_payment_id, status: "SUCCESS" });
 
     updateRowFields(sheet, rowIndex, {
-      payment_id: razorpay_payment_id,
-      payment_reference: razorpay_payment_id,
-      status: "SUCCESS",
-      verified_at: new Date(),
-      receipt_id: receipt.receiptId,
-      receipt_url: receipt.url,
+      payment_reference: reference,
+      status: "MANUAL_REVIEW",
       updated_at: new Date(),
     });
+    return { transactionId, status: "MANUAL_REVIEW" };
+  });
+}
 
-    return { transactionId, status: "SUCCESS", receiptUrl: receipt.url };
+/** Lets a resident back out of their own still-pending donation (the
+ *  "Cancel" option on the QR/reference screen) so it doesn't sit around
+ *  as an orphaned PAYMENT_PENDING row forever. */
+function cancelDonation(transactionId) {
+  requireFields({ transactionId }, ["transactionId"]);
+
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.TRANSACTIONS);
+    const rowIndex = findRowIndexById(sheet, "transaction_id", transactionId);
+    if (rowIndex === -1) throw new ApiError("Unknown transaction", 404);
+    const transaction = getRowObject(sheet, rowIndex);
+
+    if (SUCCESS_STATUSES.includes(transaction.status)) {
+      throw new ApiError("Cannot cancel a completed donation", 400);
+    }
+
+    updateRowFields(sheet, rowIndex, { status: "CANCELLED", updated_at: new Date() });
+    return { transactionId, status: "CANCELLED" };
   });
 }
 

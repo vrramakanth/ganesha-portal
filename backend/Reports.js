@@ -3,15 +3,16 @@
 function getVolunteerDashboard(volunteer) {
   const transactions = rowsToObjects(getSheet(SHEETS.TRANSACTIONS));
   const successful = transactions.filter((t) => SUCCESS_STATUSES.includes(t.status));
-  const entitlements = rowsToObjects(getSheet(SHEETS.ENTITLEMENTS)).filter(
-    (e) => e.status !== ENTITLEMENT_STATUS.PAYMENT_PENDING
-  );
+  const allEntitlements = rowsToObjects(getSheet(SHEETS.ENTITLEMENTS));
+  const entitlements = allEntitlements.filter((e) => ACTIVATED_ENTITLEMENT_STATUSES.includes(e.status));
   const volunteers = rowsToObjects(getSheet(SHEETS.VOLUNTEERS)).filter((v) => v.status === "ACTIVE");
   const events = rowsToObjects(getSheet(SHEETS.EVENTS));
 
   const alerts = [];
   const needsReview = transactions.filter((t) => t.status === "MANUAL_REVIEW").length;
   if (needsReview > 0) alerts.push(`${needsReview} payments need review`);
+  const dinnerNeedsReview = allEntitlements.filter((e) => e.status === ENTITLEMENT_STATUS.MANUAL_REVIEW).length;
+  if (dinnerNeedsReview > 0) alerts.push(`${dinnerNeedsReview} dinner payments need review`);
 
   const closingToday = events.filter((e) => {
     if (!e.registration_deadline) return false;

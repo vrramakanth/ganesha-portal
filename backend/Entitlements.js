@@ -3,10 +3,21 @@
 
 const ENTITLEMENT_STATUS = {
   PAYMENT_PENDING: "PAYMENT_PENDING",
+  MANUAL_REVIEW: "MANUAL_REVIEW",
   ACTIVE: "ACTIVE",
   PARTIALLY_REDEEMED: "PARTIALLY_REDEEMED",
   REDEEMED: "REDEEMED",
+  CANCELLED: "CANCELLED",
 };
+
+/** Statuses that mean "this entitlement has a real token and should count
+ *  toward meals-registered/capacity/dashboard totals" — i.e. everything
+ *  except not-yet-paid (PAYMENT_PENDING/MANUAL_REVIEW) and CANCELLED. */
+const ACTIVATED_ENTITLEMENT_STATUSES = [
+  ENTITLEMENT_STATUS.ACTIVE,
+  ENTITLEMENT_STATUS.PARTIALLY_REDEEMED,
+  ENTITLEMENT_STATUS.REDEEMED,
+];
 
 function createEntitlement({ eventId, residentId, block, flatNumber, allocatedQuantity, source, tokenCode }) {
   return withLock(() => {
@@ -62,8 +73,11 @@ function activateEntitlement(entitlementId, tokenCode) {
     const rowIndex = findRowIndexById(sheet, "entitlement_id", entitlementId);
     if (rowIndex === -1) throw new ApiError("Unknown entitlement", 404);
     const entitlement = getRowObject(sheet, rowIndex);
-    if (entitlement.status !== ENTITLEMENT_STATUS.PAYMENT_PENDING) {
+    if (ACTIVATED_ENTITLEMENT_STATUSES.includes(entitlement.status)) {
       return entitlement; // idempotent
+    }
+    if (entitlement.status === ENTITLEMENT_STATUS.CANCELLED) {
+      throw new ApiError("This registration was cancelled", 400);
     }
     const tokenId = generateTokenId(tokenCode);
     updateRowFields(sheet, rowIndex, {

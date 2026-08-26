@@ -9,7 +9,7 @@ function getDinnerEvent(eventId) {
 
 function countMealsForEvent(eventId) {
   return rowsToObjects(getSheet(SHEETS.ENTITLEMENTS))
-    .filter((e) => e.event_id === eventId && e.status !== ENTITLEMENT_STATUS.PAYMENT_PENDING)
+    .filter((e) => e.event_id === eventId && ACTIVATED_ENTITLEMENT_STATUSES.includes(e.status))
     .reduce((sum, e) => sum + Number(e.allocated_quantity || 0), 0);
 }
 
@@ -50,18 +50,9 @@ function registerDinner({ eventId, name, mobile, email, block, flatNumber, adult
       requestedQuantity: meals,
       source: "ONLINE",
     });
-    const order = createRazorpayOrder(fee * meals, entitlement.entitlement_id);
-    withLock(() =>
-      updateRowFields(
-        getSheet(SHEETS.ENTITLEMENTS),
-        findRowIndexById(getSheet(SHEETS.ENTITLEMENTS), "entitlement_id", entitlement.entitlement_id),
-        { source: `ONLINE:${order.id}` }
-      )
-    );
     return {
       entitlementId: entitlement.entitlement_id,
       paymentRequired: true,
-      razorpayOrderId: order.id,
       amount: fee * meals,
       currency: "INR",
     };
@@ -79,6 +70,9 @@ function registerDinner({ eventId, name, mobile, email, block, flatNumber, adult
   return { entitlementId: entitlement.entitlement_id, tokenId: entitlement.token_id, paymentRequired: false };
 }
 
+/** Legacy Razorpay confirmation path — unused by the current UPI QR flow
+ *  (see submitDinnerPaymentReference below) but left in place in case
+ *  Razorpay comes back online later. Not routed from Code.js by default. */
 function confirmDinnerPayment({ entitlementId, razorpay_order_id, razorpay_payment_id, razorpay_signature }) {
   requireFields(
     { entitlementId, razorpay_order_id, razorpay_payment_id, razorpay_signature },
@@ -95,6 +89,96 @@ function confirmDinnerPayment({ entitlementId, razorpay_order_id, razorpay_payme
 
   const activated = activateEntitlement(entitlementId, event.token_code || event.event_id);
   return { entitlementId, tokenId: activated.token_id, status: activated.status };
+}
+
+/** Resident reports a UPI reference after paying the QR (mirrors
+ *  Donations.js submitPaymentReference) — moves the entitlement to
+ *  MANUAL_REVIEW. No token is generated yet; a volunteer must approve it
+ *  first (Decision 4 applies here just as much as to donations). */
+function submitDinnerPaymentReference({ entitlementId, reference }) {
+  requireFields({ entitlementId, reference }, ["entitlementId", "reference"]);
+
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.ENTITLEMENTS);
+    const rowIndex = findRowIndexById(sheet, "entitlement_id", entitlementId);
+    if (rowIndex === -1) throw new ApiError("Unknown entitlement", 404);
+    const entitlement = getRowObject(sheet, rowIndex);
+
+    if (ACTIVATED_ENTITLEMENT_STATUSES.includes(entitlement.status)) {
+      return { entitlementId, status: entitlement.status };
+    }
+    if (entitlement.status === ENTITLEMENT_STATUS.CANCELLED) {
+      throw new ApiError("This registration was cancelled", 400);
+    }
+
+    updateRowFields(sheet, rowIndex, {
+      source: `ONLINE:MANUAL:${reference}`,
+      status: ENTITLEMENT_STATUS.MANUAL_REVIEW,
+    });
+    return { entitlementId, status: ENTITLEMENT_STATUS.MANUAL_REVIEW };
+  });
+}
+
+/** Lets a resident back out of their own still-pending/under-review dinner
+ *  registration (the "Cancel" option on the QR/reference screen). */
+function cancelDinnerRegistration(entitlementId) {
+  requireFields({ entitlementId }, ["entitlementId"]);
+
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.ENTITLEMENTS);
+    const rowIndex = findRowIndexById(sheet, "entitlement_id", entitlementId);
+    if (rowIndex === -1) throw new ApiError("Unknown entitlement", 404);
+    const entitlement = getRowObject(sheet, rowIndex);
+
+    if (ACTIVATED_ENTITLEMENT_STATUSES.includes(entitlement.status)) {
+      throw new ApiError("Cannot cancel an already-active registration", 400);
+    }
+
+    updateRowFields(sheet, rowIndex, { status: ENTITLEMENT_STATUS.CANCELLED });
+    return { entitlementId, status: ENTITLEMENT_STATUS.CANCELLED };
+  });
+}
+
+/** Dinner payments awaiting volunteer confirmation — the dinner-side
+ *  equivalent of Donations.js listTransactions, scoped to just the
+ *  entitlements a volunteer actually needs to act on. */
+function listDinnerPaymentsForReview(volunteer) {
+  requirePermission(volunteer, "Finance");
+  return rowsToObjects(getSheet(SHEETS.ENTITLEMENTS)).filter(
+    (e) => e.status === ENTITLEMENT_STATUS.MANUAL_REVIEW
+  );
+}
+
+/** Volunteer confirms the resident's claimed UPI reference actually
+ *  matches a real payment — only then is a token generated. */
+function approveDinnerPayment(volunteer, entitlementId) {
+  requirePermission(volunteer, "Finance");
+  const sheet = getSheet(SHEETS.ENTITLEMENTS);
+  const rowIndex = findRowIndexById(sheet, "entitlement_id", entitlementId);
+  if (rowIndex === -1) throw new ApiError("Unknown entitlement", 404);
+  const before = getRowObject(sheet, rowIndex);
+  const event = getDinnerEvent(before.event_id);
+
+  const activated = activateEntitlement(entitlementId, event.token_code || event.event_id);
+  logAudit(volunteer.email, "Approved dinner payment", "Entitlement", entitlementId, before.status, activated.status);
+  return { entitlementId, tokenId: activated.token_id, status: activated.status };
+}
+
+function rejectDinnerPayment(volunteer, entitlementId, notes) {
+  requirePermission(volunteer, "Finance");
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.ENTITLEMENTS);
+    const rowIndex = findRowIndexById(sheet, "entitlement_id", entitlementId);
+    if (rowIndex === -1) throw new ApiError("Unknown entitlement", 404);
+    const entitlement = getRowObject(sheet, rowIndex);
+    if (ACTIVATED_ENTITLEMENT_STATUSES.includes(entitlement.status)) {
+      throw new ApiError("Cannot reject an already-active registration", 400);
+    }
+
+    updateRowFields(sheet, rowIndex, { status: ENTITLEMENT_STATUS.CANCELLED });
+    logAudit(volunteer.email, "Rejected dinner payment", "Entitlement", entitlementId, entitlement.status, "CANCELLED");
+    return { entitlementId, status: ENTITLEMENT_STATUS.CANCELLED, notes: notes || "" };
+  });
 }
 
 function getDinnerToken(tokenId) {
@@ -126,6 +210,7 @@ function listMyDinnerTokens(mobile) {
   return rowsToObjects(getSheet(SHEETS.ENTITLEMENTS))
     .filter((e) => e.resident_id === resident.resident_id && e.status !== ENTITLEMENT_STATUS.PAYMENT_PENDING)
     .map((e) => ({
+      entitlementId: e.entitlement_id,
       tokenId: e.token_id,
       eventId: e.event_id,
       allocated: e.allocated_quantity,
@@ -159,7 +244,7 @@ function dinnerWalkin(volunteer, { eventId, block, flatNumber, meals }) {
 function getDinnerDashboard(eventId) {
   const event = getDinnerEvent(eventId);
   const entitlements = rowsToObjects(getSheet(SHEETS.ENTITLEMENTS)).filter(
-    (e) => e.event_id === eventId && e.status !== ENTITLEMENT_STATUS.PAYMENT_PENDING
+    (e) => e.event_id === eventId && ACTIVATED_ENTITLEMENT_STATUSES.includes(e.status)
   );
 
   const allocated = entitlements.reduce((s, e) => s + Number(e.allocated_quantity || 0), 0);

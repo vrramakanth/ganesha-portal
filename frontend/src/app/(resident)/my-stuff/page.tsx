@@ -105,17 +105,24 @@ export default function MyStuffPage() {
 
           <Section title="My Dinner Tokens">
             {dinnerTokens.length === 0 && <Empty>No dinner tokens yet.</Empty>}
-            {dinnerTokens.map((t) => (
-              <div key={t.tokenId} className="px-4 py-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-sm">{t.tokenId}</p>
-                  <p className="text-xs text-muted">
-                    Allocated {t.allocated} · Served {t.served} · Remaining {t.remaining}
-                  </p>
+            {dinnerTokens.map((t) =>
+              t.tokenId ? (
+                <div key={t.entitlementId} className="px-4 py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-sm">{t.tokenId}</p>
+                    <p className="text-xs text-muted">
+                      Allocated {t.allocated} · Served {t.served} · Remaining {t.remaining}
+                    </p>
+                  </div>
+                  <QRCodeSVG value={t.tokenId} size={48} />
                 </div>
-                <QRCodeSVG value={t.tokenId} size={48} />
-              </div>
-            ))}
+              ) : (
+                <Row key={t.entitlementId}>
+                  <p className="text-sm text-muted">Dinner registration</p>
+                  <StatusBadge label={t.status.replace(/_/g, " ")} tone={t.status === "CANCELLED" ? "danger" : "warning"} />
+                </Row>
+              )
+            )}
           </Section>
 
           <Section title="My Volunteer Status">

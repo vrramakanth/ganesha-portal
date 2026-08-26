@@ -10,6 +10,8 @@ function getFestivalInfo() {
     "donation_goal",
     "minimum_donation",
     "contact",
+    "upi_vpa",
+    "upi_payee_name",
   ];
   const info = {};
   keys.forEach((k) => (info[k] = getConfig(k, "")));

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import PageHeader from "@/components/PageHeader";
@@ -16,10 +16,45 @@ export default function VolunteerDinnerPage() {
   const [eventId, setEventId] = useState<string | null>(null);
   const selected = eventId || dinnerDays[0]?.event_id || null;
 
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [actioning, setActioning] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
   const { data: dashboard, loading, error } = useAsync(
     () => (selected ? api.volunteer.dinnerDashboard(idToken as string, selected) : Promise.resolve(null)),
     [idToken, selected]
   );
+
+  const { data: needsReview } = useAsync(
+    () => api.volunteer.dinnerPayments(idToken as string),
+    [idToken, refreshKey]
+  );
+
+  async function handleApprove(entitlementId: string) {
+    setActionError(null);
+    setActioning(entitlementId);
+    try {
+      await api.volunteer.approveDinnerPayment(idToken as string, entitlementId);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not approve payment.");
+    } finally {
+      setActioning(null);
+    }
+  }
+
+  async function handleReject(entitlementId: string) {
+    setActionError(null);
+    setActioning(entitlementId);
+    try {
+      await api.volunteer.rejectDinnerPayment(idToken as string, entitlementId);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not reject payment.");
+    } finally {
+      setActioning(null);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
@@ -50,6 +85,47 @@ export default function VolunteerDinnerPage() {
         >
           Open Dinner Counter
         </Link>
+      )}
+
+      {actionError && <p className="text-sm text-red-600">{actionError}</p>}
+
+      {needsReview && needsReview.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Payments Needing Review</h2>
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {needsReview.map((e) => (
+              <div key={e.entitlement_id} className="px-4 py-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-sm">
+                      {e.block} · {e.flat_number}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {e.allocated_quantity} meals · {e.entitlement_id}
+                    </p>
+                    <p className="text-xs text-muted">{e.source.replace("ONLINE:MANUAL:", "Ref: ")}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    disabled={actioning === e.entitlement_id}
+                    onClick={() => handleApprove(e.entitlement_id)}
+                    className="flex-1 rounded-lg bg-maroon py-2 text-xs font-semibold text-white disabled:opacity-60 active:bg-maroon-dark transition-colors"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    disabled={actioning === e.entitlement_id}
+                    onClick={() => handleReject(e.entitlement_id)}
+                    className="flex-1 rounded-lg border border-border py-2 text-xs font-semibold text-foreground disabled:opacity-60"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {loading && <p className="text-sm text-muted">Loading…</p>}

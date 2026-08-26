@@ -2,20 +2,24 @@ import type {
   Announcement,
   AuditLogEntry,
   Block,
+  CancelResult,
   ConfigEntry,
-  ConfirmPaymentResult,
   CreateDonationResult,
   DinnerDashboard,
   DinnerRegisterResult,
+  DinnerSubmitReferenceResult,
   DinnerToken,
   DonationSummary,
+  EntitlementRow,
   EventRecord,
   EventRegistration,
+  ExtractReferenceResult,
   FestivalInfo,
   MyDinnerToken,
   PublicStats,
   RedeemResult,
   ReportExport,
+  SubmitReferenceResult,
   Transaction,
   Volunteer,
   VolunteerDashboard,
@@ -101,15 +105,16 @@ export const api = {
   announcements: {
     list: () => apiGet<Announcement[]>("announcements.list"),
   },
+  payments: {
+    extractReference: (image: string, mimeType: string) =>
+      apiPost<ExtractReferenceResult>("payments.extractReference", { image, mimeType }),
+  },
   donations: {
     create: (payload: { name: string; mobile: string; email?: string; block: string; flatNumber: string; amount: number }) =>
       apiPost<CreateDonationResult>("donations.create", payload),
-    confirm: (payload: {
-      transactionId: string;
-      razorpay_order_id: string;
-      razorpay_payment_id: string;
-      razorpay_signature: string;
-    }) => apiPost<ConfirmPaymentResult>("donations.confirm", payload),
+    submitReference: (transactionId: string, reference: string) =>
+      apiPost<SubmitReferenceResult>("donations.submitReference", { transactionId, reference }),
+    cancel: (transactionId: string) => apiPost<CancelResult>("donations.cancel", { transactionId }),
     get: (transactionId: string) => apiGet<DonationSummary>("donations.get", { transactionId }),
     mine: (mobile: string) => apiGet<DonationSummary[]>("donations.mine", { mobile }),
   },
@@ -127,12 +132,9 @@ export const api = {
       adults: number;
       children: number;
     }) => apiPost<DinnerRegisterResult>("dinner.register", payload),
-    confirm: (payload: {
-      entitlementId: string;
-      razorpay_order_id: string;
-      razorpay_payment_id: string;
-      razorpay_signature: string;
-    }) => apiPost<{ entitlementId: string; tokenId: string; status: string }>("dinner.confirm", payload),
+    submitReference: (entitlementId: string, reference: string) =>
+      apiPost<DinnerSubmitReferenceResult>("dinner.submitReference", { entitlementId, reference }),
+    cancel: (entitlementId: string) => apiPost<CancelResult>("dinner.cancel", { entitlementId }),
     token: (tokenId: string) => apiGet<DinnerToken>("dinner.token", { tokenId }),
     mine: (mobile: string) => apiGet<MyDinnerToken[]>("dinner.mine", { mobile }),
   },
@@ -196,6 +198,18 @@ export const api = {
       idToken: string,
       payload: { eventId: string; block: string; flatNumber: string; meals: number }
     ) => apiPost<{ entitlementId: string; tokenId: string }>("volunteer.dinner.walkin", { idToken, ...payload }),
+    dinnerPayments: (idToken: string) => apiGet<EntitlementRow[]>("volunteer.dinner.payments", { idToken }),
+    approveDinnerPayment: (idToken: string, entitlementId: string) =>
+      apiPost<{ entitlementId: string; tokenId: string; status: string }>("volunteer.dinner.payment.approve", {
+        idToken,
+        entitlementId,
+      }),
+    rejectDinnerPayment: (idToken: string, entitlementId: string, notes?: string) =>
+      apiPost<{ entitlementId: string; status: string }>("volunteer.dinner.payment.reject", {
+        idToken,
+        entitlementId,
+        notes,
+      }),
     volunteersList: (idToken: string) => apiGet<VolunteerRoster>("volunteer.volunteers.list", { idToken }),
     activateVolunteer: (idToken: string, volunteerId: string) =>
       apiPost<{ volunteerId: string; status: string }>("volunteer.volunteers.activate", { idToken, volunteerId }),

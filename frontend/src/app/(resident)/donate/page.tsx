@@ -2,19 +2,21 @@
 
 import { useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
-import { openRazorpayCheckout } from "@/lib/razorpay";
 import { formatCurrency } from "@/lib/date";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import PageHeader from "@/components/PageHeader";
+import PaymentReferenceStep from "@/components/PaymentReferenceStep";
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
-type Step = "form" | "paying" | "success";
+type Step = "form" | "creating" | "reference" | "submitted" | "cancelled";
 
 export default function DonatePage() {
   const { profile, saveProfile } = useResidentProfile();
+  const { data: festival } = useAsync(() => api.festival.get(), []);
 
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
@@ -26,7 +28,9 @@ export default function DonatePage() {
 
   const [step, setStep] = useState<Step>("form");
   const [error, setError] = useState<string | null>(null);
-  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [donationAmount, setDonationAmount] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   const fields = {
     name: name || profile.name,
@@ -39,13 +43,13 @@ export default function DonatePage() {
     e.preventDefault();
     setError(null);
 
-    const donationAmount = Number(amount || customAmount);
-    if (!donationAmount) {
+    const amt = Number(amount || customAmount);
+    if (!amt) {
       setError("Please choose or enter an amount.");
       return;
     }
 
-    setStep("paying");
+    setStep("creating");
     try {
       const order = await api.donations.create({
         name: fields.name,
@@ -53,51 +57,82 @@ export default function DonatePage() {
         email: email || undefined,
         block: fields.block,
         flatNumber: fields.flatNumber,
-        amount: donationAmount,
+        amount: amt,
       });
       saveProfile({ name: fields.name, mobile: fields.mobile, block: fields.block, flatNumber: fields.flatNumber });
-
-      await openRazorpayCheckout({
-        amount: order.amount,
-        orderId: order.razorpayOrderId,
-        name: "Brigade Woods Ganesha Chathurthi",
-        description: "Festival Donation",
-        prefill: { name: fields.name, contact: fields.mobile, email },
-        onSuccess: async (response) => {
-          try {
-            const confirmed = await api.donations.confirm({
-              transactionId: order.transactionId,
-              ...response,
-            });
-            setReceiptUrl(confirmed.receiptUrl);
-            setStep("success");
-          } catch (err) {
-            setError(err instanceof ApiClientError ? err.message : "Could not confirm payment.");
-            setStep("form");
-          }
-        },
-        onDismiss: () => setStep("form"),
-      });
+      setTransactionId(order.transactionId);
+      setDonationAmount(order.amount);
+      setStep("reference");
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Something went wrong. Please try again.");
       setStep("form");
     }
   }
 
-  if (step === "success") {
+  async function handleSubmitReference(reference: string) {
+    if (!transactionId) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.donations.submitReference(transactionId, reference);
+      setStep("submitted");
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Could not submit your reference. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleCancel() {
+    if (!transactionId) return;
+    setSubmitting(true);
+    try {
+      await api.donations.cancel(transactionId);
+      setStep("cancelled");
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Could not cancel. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (step === "reference" && transactionId) {
+    return (
+      <div className="flex flex-col gap-6 px-5 pt-8">
+        <PageHeader title="Donate" subtitle={`Transaction ${transactionId}`} />
+        <PaymentReferenceStep
+          amount={donationAmount}
+          festival={festival ?? null}
+          onSubmitReference={handleSubmitReference}
+          onCancel={handleCancel}
+          submitting={submitting}
+          error={error}
+        />
+      </div>
+    );
+  }
+
+  if (step === "submitted") {
     return (
       <div className="flex flex-col gap-6 px-5 pt-8 items-center text-center">
-        <PageHeader title="Thank you for contributing!" subtitle="Your donation was successful." />
-        {receiptUrl && (
-          <a
-            href={receiptUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full max-w-xs rounded-xl bg-maroon py-3 text-center text-sm font-semibold text-white"
-          >
-            View Receipt
-          </a>
-        )}
+        <PageHeader
+          title="Thank you!"
+          subtitle="Your donation is submitted and waiting for a volunteer to verify the payment. Your receipt will appear under My Stuff once it's confirmed."
+        />
+      </div>
+    );
+  }
+
+  if (step === "cancelled") {
+    return (
+      <div className="flex flex-col gap-6 px-5 pt-8 items-center text-center">
+        <PageHeader title="Donation cancelled" subtitle="No worries — you can start a new donation anytime." />
+        <button
+          onClick={() => setStep("form")}
+          className="rounded-xl bg-saffron px-6 py-3 text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
+        >
+          Back to Donate
+        </button>
       </div>
     );
   }
@@ -184,11 +219,11 @@ export default function DonatePage() {
 
         <button
           type="submit"
-          disabled={step === "paying"}
+          disabled={step === "creating"}
           className="w-full rounded-xl bg-saffron py-4 text-center text-lg font-semibold text-white disabled:opacity-60 active:bg-saffron-dark transition-colors"
         >
-          {step === "paying"
-            ? "Opening payment…"
+          {step === "creating"
+            ? "Preparing…"
             : `Pay ${amount || customAmount ? formatCurrency(Number(amount || customAmount)) : ""}`}
         </button>
       </form>

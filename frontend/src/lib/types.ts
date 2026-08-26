@@ -13,6 +13,8 @@ export type FestivalInfo = {
   donation_goal: string;
   minimum_donation: string;
   contact: string;
+  upi_vpa: string;
+  upi_payee_name: string;
 };
 
 export type Block = {
@@ -60,15 +62,18 @@ export type Announcement = {
 
 export type CreateDonationResult = {
   transactionId: string;
-  razorpayOrderId: string;
   amount: number;
   currency: string;
 };
 
-export type ConfirmPaymentResult = {
+export type SubmitReferenceResult = {
   transactionId: string;
   status: string;
-  receiptUrl: string;
+};
+
+export type CancelResult = {
+  transactionId: string;
+  status: string;
 };
 
 export type DonationSummary = {
@@ -97,7 +102,17 @@ export type EventRegistration = {
 
 export type DinnerRegisterResult =
   | { entitlementId: string; tokenId: string; paymentRequired: false }
-  | { entitlementId: string; paymentRequired: true; razorpayOrderId: string; amount: number; currency: string };
+  | { entitlementId: string; paymentRequired: true; amount: number; currency: string };
+
+export type DinnerSubmitReferenceResult = {
+  entitlementId: string;
+  status: string;
+};
+
+export type ExtractReferenceResult = {
+  guess: string;
+  rawText: string;
+};
 
 export type DinnerToken = {
   tokenId: string;
@@ -109,7 +124,24 @@ export type DinnerToken = {
   status: string;
 };
 
+/** Raw Entitlements sheet row, as returned by listDinnerPaymentsForReview. */
+export type EntitlementRow = {
+  entitlement_id: string;
+  event_id: string;
+  resident_id: string;
+  token_id: string;
+  allocated_quantity: number;
+  redeemed_quantity: number;
+  remaining_quantity: number;
+  source: string;
+  status: string;
+  block: string;
+  flat_number: string;
+  created_at: string;
+};
+
 export type MyDinnerToken = {
+  entitlementId: string;
   tokenId: string;
   eventId: string;
   allocated: number;
