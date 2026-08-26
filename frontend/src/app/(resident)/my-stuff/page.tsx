@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatCurrency } from "@/lib/date";
+import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
 
@@ -13,8 +14,12 @@ export default function MyStuffPage() {
   const { profile, loaded } = useResidentProfile();
   const [mobileInput, setMobileInput] = useState("");
   const [mobile, setMobile] = useState<string | null>(null);
+  // Overrides the profile.mobile auto-fill below when the resident
+  // explicitly asks to look up a different number — otherwise the saved
+  // profile would just override an empty `mobile` right back.
+  const [searchingNew, setSearchingNew] = useState(false);
 
-  const activeMobile = mobile || (loaded && profile.mobile ? profile.mobile : null);
+  const activeMobile = searchingNew ? null : mobile || (loaded && profile.mobile ? profile.mobile : null);
 
   const { data, loading, error } = useAsync(
     () =>
@@ -36,18 +41,14 @@ export default function MyStuffPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (mobileInput) setMobile(mobileInput);
+            if (mobileInput) {
+              setMobile(mobileInput);
+              setSearchingNew(false);
+            }
           }}
           className="space-y-3"
         >
-          <input
-            required
-            type="tel"
-            placeholder="Your mobile number"
-            value={mobileInput}
-            onChange={(e) => setMobileInput(e.target.value)}
-            className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
-          />
+          <MobileInput value={mobileInput} onChange={setMobileInput} />
           <button
             type="submit"
             className="w-full rounded-xl bg-saffron py-3.5 text-center text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
@@ -63,7 +64,18 @@ export default function MyStuffPage() {
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
-      <PageHeader title="My Stuff" subtitle={activeMobile} />
+      <PageHeader title="My Stuff" subtitle={`Showing results for ${activeMobile}`} />
+      <button
+        type="button"
+        onClick={() => {
+          setMobile(null);
+          setMobileInput("");
+          setSearchingNew(true);
+        }}
+        className="text-left text-xs font-medium text-maroon underline -mt-4"
+      >
+        Look up a different number
+      </button>
 
       {loading && <p className="text-sm text-muted">Loading…</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
