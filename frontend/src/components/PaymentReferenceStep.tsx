@@ -45,6 +45,15 @@ const APP_LABELS: Record<string, string> = {
   whatsapp: "WhatsApp",
 };
 
+/** TEMPORARY: the receiving Vyapar VPA currently rejects QR/deep-link-
+ *  initiated UPI payments (confirmed: manually typing the same UPI ID
+ *  into a UPI app succeeds; scanning a QR or opening any of the app
+ *  buttons below fails) — most likely QR/collect-request payment isn't
+ *  yet enabled on the merchant account. Set back to true once HDFC
+ *  confirms it's enabled, which restores the Google Pay/PhonePe/BHIM/
+ *  WhatsApp picker as options alongside Copy UPI ID. */
+const APP_PICKER_ENABLED = false;
+
 /** UPI QR + "how did you pay" step, shared by Donate and Dinner. Nothing
  *  here ever marks a payment successful — it only submits the resident's
  *  claimed reference for a volunteer to independently verify (Decision 4).
@@ -55,7 +64,7 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [screenshot, setScreenshot] = useState<{ base64: string; mimeType: string } | null>(null);
-  const [selectedApp, setSelectedApp] = useState("gpay");
+  const [selectedApp, setSelectedApp] = useState(APP_PICKER_ENABLED ? "gpay" : "copy");
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,7 +81,7 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
   const upiLink = vpa ? `upi://${upiParams}` : "";
   const isAndroid = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
   const isIOS = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const appIds = isAndroid ? ["gpay", "phonepe", "bhim", "whatsapp"] : isIOS ? ["gpay", "phonepe"] : [];
+  const appIds = !APP_PICKER_ENABLED ? [] : isAndroid ? ["gpay", "phonepe", "bhim", "whatsapp"] : isIOS ? ["gpay", "phonepe"] : [];
   const appOptions = [...appIds.map((id) => ({ id, label: APP_LABELS[id] })), { id: "copy", label: "Copy UPI ID" }];
 
   const upiButtonLink = vpa
@@ -147,24 +156,26 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
               <QRCodeSVG value={upiLink} size={180} />
             </div>
 
-            <div className="w-full grid grid-cols-2 gap-2 text-left">
-              {appOptions.map((app) => (
-                <label
-                  key={app.id}
-                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
-                    selectedApp === app.id ? "border-saffron bg-saffron/10" : "border-border"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="upi-app"
-                    checked={selectedApp === app.id}
-                    onChange={() => selectApp(app.id)}
-                  />
-                  {app.label}
-                </label>
-              ))}
-            </div>
+            {appIds.length > 0 && (
+              <div className="w-full grid grid-cols-2 gap-2 text-left">
+                {appOptions.map((app) => (
+                  <label
+                    key={app.id}
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                      selectedApp === app.id ? "border-saffron bg-saffron/10" : "border-border"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="upi-app"
+                      checked={selectedApp === app.id}
+                      onChange={() => selectApp(app.id)}
+                    />
+                    {app.label}
+                  </label>
+                ))}
+              </div>
+            )}
 
             {selectedApp === "copy" ? (
               <>
@@ -175,6 +186,9 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
                 >
                   {copied ? "Copied ✓" : "Copy UPI ID"}
                 </button>
+                <p className="text-xs text-muted">
+                  Paste into your UPI app&apos;s &quot;Pay to UPI ID&quot; option, not the QR scanner.
+                </p>
                 {copyFailed && (
                   <p className="text-xs text-saffron-dark">Couldn&apos;t copy — select the UPI ID below instead.</p>
                 )}
