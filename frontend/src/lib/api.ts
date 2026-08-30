@@ -123,8 +123,8 @@ export const api = {
   donations: {
     create: (payload: { name: string; mobile: string; email?: string; block: string; flatNumber: string; amount: number }) =>
       apiPost<CreateDonationResult>("donations.create", payload),
-    submitReference: (transactionId: string, reference: string) =>
-      apiPost<SubmitReferenceResult>("donations.submitReference", { transactionId, reference }),
+    submitReference: (transactionId: string, reference: string, screenshot?: string, mimeType?: string) =>
+      apiPost<SubmitReferenceResult>("donations.submitReference", { transactionId, reference, screenshot, mimeType }),
     cancel: (transactionId: string) => apiPost<CancelResult>("donations.cancel", { transactionId }),
     get: (transactionId: string) => apiGet<DonationSummary>("donations.get", { transactionId }),
     mine: (mobile: string) => apiGet<DonationSummary[]>("donations.mine", { mobile }),
@@ -143,8 +143,8 @@ export const api = {
       adults: number;
       children: number;
     }) => apiPost<DinnerRegisterResult>("dinner.register", payload),
-    submitReference: (entitlementId: string, reference: string) =>
-      apiPost<DinnerSubmitReferenceResult>("dinner.submitReference", { entitlementId, reference }),
+    submitReference: (entitlementId: string, reference: string, screenshot?: string, mimeType?: string) =>
+      apiPost<DinnerSubmitReferenceResult>("dinner.submitReference", { entitlementId, reference, screenshot, mimeType }),
     cancel: (entitlementId: string) => apiPost<CancelResult>("dinner.cancel", { entitlementId }),
     token: (tokenId: string) => apiGet<DinnerToken>("dinner.token", { tokenId }),
     mine: (mobile: string) => apiGet<MyDinnerToken[]>("dinner.mine", { mobile }),

@@ -89,12 +89,12 @@ export default function DinnerPage() {
     }
   }
 
-  async function handleSubmitReference(reference: string) {
+  async function handleSubmitReference(reference: string, screenshot?: string, mimeType?: string) {
     if (!entitlementId) return;
     setSubmitting(true);
     setError(null);
     try {
-      await api.dinner.submitReference(entitlementId, reference);
+      await api.dinner.submitReference(entitlementId, reference, screenshot, mimeType);
       setStep("submitted");
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not submit your reference. Please try again.");

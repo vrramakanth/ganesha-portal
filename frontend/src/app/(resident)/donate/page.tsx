@@ -89,12 +89,12 @@ export default function DonatePage() {
     }
   }
 
-  async function handleSubmitReference(reference: string) {
+  async function handleSubmitReference(reference: string, screenshot?: string, mimeType?: string) {
     if (!transactionId) return;
     setSubmitting(true);
     setError(null);
     try {
-      await api.donations.submitReference(transactionId, reference);
+      await api.donations.submitReference(transactionId, reference, screenshot, mimeType);
       setStep("submitted");
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not submit your reference. Please try again.");

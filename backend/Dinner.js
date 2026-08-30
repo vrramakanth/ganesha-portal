@@ -95,7 +95,7 @@ function confirmDinnerPayment({ entitlementId, razorpay_order_id, razorpay_payme
  *  Donations.js submitPaymentReference) — moves the entitlement to
  *  MANUAL_REVIEW. No token is generated yet; a volunteer must approve it
  *  first (Decision 4 applies here just as much as to donations). */
-function submitDinnerPaymentReference({ entitlementId, reference }) {
+function submitDinnerPaymentReference({ entitlementId, reference, screenshot, mimeType }) {
   requireFields({ entitlementId, reference }, ["entitlementId", "reference"]);
 
   return withLock(() => {
@@ -111,10 +111,15 @@ function submitDinnerPaymentReference({ entitlementId, reference }) {
       throw new ApiError("This registration was cancelled", 400);
     }
 
-    updateRowFields(sheet, rowIndex, {
+    const fields = {
       source: `ONLINE:MANUAL:${reference}`,
       status: ENTITLEMENT_STATUS.MANUAL_REVIEW,
-    });
+    };
+    if (screenshot) {
+      ensureColumn(sheet, "payment_screenshot_url");
+      fields.payment_screenshot_url = savePaymentScreenshot(screenshot, mimeType);
+    }
+    updateRowFields(sheet, rowIndex, fields);
     return { entitlementId, status: ENTITLEMENT_STATUS.MANUAL_REVIEW };
   });
 }

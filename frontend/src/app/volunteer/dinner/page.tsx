@@ -104,6 +104,16 @@ export default function VolunteerDinnerPage() {
                       {e.allocated_quantity} meals · {e.entitlement_id}
                     </p>
                     <p className="text-xs text-muted">{e.source.replace("ONLINE:MANUAL:", "Ref: ")}</p>
+                    {e.payment_screenshot_url && (
+                      <a
+                        href={e.payment_screenshot_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block text-xs font-semibold text-maroon"
+                      >
+                        View Screenshot
+                      </a>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">

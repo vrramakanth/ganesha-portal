@@ -60,6 +60,16 @@ function getRowObject(sheet, rowIndex) {
   return obj;
 }
 
+/** Adds a header column if it doesn't already exist — lets a handler
+ *  introduce a new field on a sheet that was already created and
+ *  populated, without needing setupSheets() re-run (which only fills in
+ *  headers for brand-new sheets). */
+function ensureColumn(sheet, columnName) {
+  const headers = getHeaders(sheet);
+  if (headers.includes(columnName)) return;
+  sheet.getRange(1, headers.length + 1).setValue(columnName);
+}
+
 /** Updates only the given fields (by header name) on a specific row. */
 function updateRowFields(sheet, rowIndex, fields) {
   const headers = getHeaders(sheet);

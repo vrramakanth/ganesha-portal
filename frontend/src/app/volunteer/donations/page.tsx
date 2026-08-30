@@ -106,6 +106,19 @@ export default function VolunteerDonationsPage() {
                       </div>
                       <p className="font-semibold text-maroon shrink-0">{formatCurrency(Number(t.amount))}</p>
                     </div>
+                    {t.payment_reference && (
+                      <p className="text-xs text-muted">Ref: {t.payment_reference}</p>
+                    )}
+                    {t.payment_screenshot_url && (
+                      <a
+                        href={t.payment_screenshot_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block text-xs font-semibold text-maroon"
+                      >
+                        View Screenshot
+                      </a>
+                    )}
                     <div className="flex gap-2">
                       <button
                         disabled={actioning === t.transaction_id}

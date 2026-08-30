@@ -8,7 +8,7 @@ const SHEET_SCHEMAS = {
     "transaction_id", "resident_id", "created_at", "resident_name", "block", "flat_number",
     "mobile", "email", "amount", "currency", "payment_provider", "payment_order_id",
     "payment_id", "payment_reference", "status", "verified_at", "receipt_id", "receipt_url",
-    "source", "admin_notes", "updated_at",
+    "source", "admin_notes", "updated_at", "payment_screenshot_url",
   ],
   [SHEETS.BLOCKS]: ["block_id", "block_name", "active"],
   [SHEETS.RESIDENTS]: [
@@ -26,6 +26,7 @@ const SHEET_SCHEMAS = {
   [SHEETS.ENTITLEMENTS]: [
     "entitlement_id", "event_id", "resident_id", "token_id", "allocated_quantity",
     "redeemed_quantity", "remaining_quantity", "source", "status", "block", "flat_number", "created_at",
+    "payment_screenshot_url",
   ],
   [SHEETS.REDEMPTION_LOG]: [
     "redemption_id", "entitlement_id", "quantity", "counter_id", "volunteer_id", "redeemed_at",
@@ -96,6 +97,81 @@ function seedDefaults() {
 
 /** Block letters residents may pick from (no I/O — easily confused with 1/0). */
 const BLOCK_NAMES = ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "Q", "R", "S"];
+
+/** Mobile numbers typed only while developers were exercising the app
+ *  end-to-end before go-live — never a real resident. Used by the
+ *  cleanup pair below to find and remove that data ahead of production. */
+const TEST_MOBILES = [
+  "9999999999",
+  "9876543210",
+  "9123456780",
+  "9123456781",
+  "9123456782",
+  "9123456783",
+];
+
+function findTestDataRows_() {
+  function matchRows(sheetName, predicate) {
+    const rows = rowsToObjects(getSheet(sheetName));
+    const matches = [];
+    rows.forEach((row, i) => {
+      if (predicate(row)) matches.push({ rowIndex: i + 2, row });
+    });
+    return matches;
+  }
+
+  const isTestMobile = (m) => TEST_MOBILES.includes(String(m));
+  const residents = matchRows(SHEETS.RESIDENTS, (r) => isTestMobile(r.mobile));
+  const testResidentIds = new Set(residents.map((m) => m.row.resident_id));
+
+  return {
+    residents,
+    transactions: matchRows(SHEETS.TRANSACTIONS, (t) => isTestMobile(t.mobile)),
+    entitlements: matchRows(SHEETS.ENTITLEMENTS, (e) => testResidentIds.has(e.resident_id)),
+    volunteers: matchRows(SHEETS.VOLUNTEERS, (v) => testResidentIds.has(v.resident_id)),
+    bugs: matchRows(SHEETS.BUGS, (b) => /^test[:\s]/i.test(String(b.description || ""))),
+  };
+}
+
+/** Dry run — logs exactly which rows would be removed by deleteTestData(),
+ *  without touching anything. Run this first (Run > previewTestDataCleanup
+ *  in the Apps Script editor, then View > Logs) and review every row
+ *  before running deleteTestData(). Safe to re-run anytime. */
+function previewTestDataCleanup() {
+  const found = findTestDataRows_();
+  let total = 0;
+  Object.entries(found).forEach(([sheetKey, matches]) => {
+    Logger.log(`\n--- ${sheetKey}: ${matches.length} match(es) ---`);
+    matches.forEach((m) => Logger.log(`row ${m.rowIndex}: ${JSON.stringify(m.row)}`));
+    total += matches.length;
+  });
+  Logger.log(`\nTotal rows that WOULD be deleted: ${total}. Review every row above — only run deleteTestData() once you're sure none of these are real.`);
+  return { totalMatches: total };
+}
+
+/** Actually deletes the rows previewTestDataCleanup() reported. Deletes
+ *  bottom-up per sheet so earlier row indices stay valid mid-run. Run
+ *  once, after reviewing the preview — re-running afterward is harmless
+ *  since a clean sheet simply matches nothing. */
+function deleteTestData() {
+  const found = findTestDataRows_();
+  const sheetNameFor = {
+    residents: SHEETS.RESIDENTS,
+    transactions: SHEETS.TRANSACTIONS,
+    entitlements: SHEETS.ENTITLEMENTS,
+    volunteers: SHEETS.VOLUNTEERS,
+    bugs: SHEETS.BUGS,
+  };
+  const deleted = {};
+  Object.entries(found).forEach(([sheetKey, matches]) => {
+    const sheet = getSheet(sheetNameFor[sheetKey]);
+    const rowIndices = matches.map((m) => m.rowIndex).sort((a, b) => b - a);
+    rowIndices.forEach((rowIndex) => sheet.deleteRow(rowIndex));
+    deleted[sheetKey] = rowIndices.length;
+  });
+  Logger.log(`Deleted: ${JSON.stringify(deleted)}`);
+  return deleted;
+}
 
 /** One-off migration: replaces whatever is in the Blocks sheet with
  *  BLOCK_NAMES. Run this once from the Apps Script editor if the sheet was

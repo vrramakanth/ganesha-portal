@@ -139,6 +139,7 @@ export type EntitlementRow = {
   block: string;
   flat_number: string;
   created_at: string;
+  payment_screenshot_url?: string;
 };
 
 export type MyDinnerToken = {
@@ -201,6 +202,7 @@ export type Transaction = {
   source: string;
   admin_notes: string;
   updated_at: string;
+  payment_screenshot_url?: string;
 };
 
 export type VolunteerDashboard = {

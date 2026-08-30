@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -19,8 +20,17 @@ export default function Home() {
   const dinnerEvent = (events ?? []).find((e) => e.category === "Dinner" && e.status === "OPEN");
 
   return (
-    <div className="flex flex-col gap-6 px-5 pt-8">
-      <header className="text-center space-y-1">
+    <div className="flex flex-col gap-6 px-5 pt-6 pb-8">
+      <Image
+        src="/images/ganesha-hero.png"
+        alt="Lord Ganesha"
+        width={335}
+        height={597}
+        priority
+        className="mx-auto h-56 w-auto"
+      />
+
+      <header className="text-center space-y-1 -mt-4">
         <p className="text-sm font-semibold tracking-widest text-maroon uppercase">
           Brigade Woods
         </p>

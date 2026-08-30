@@ -61,7 +61,7 @@ function createDonation({ name, mobile, email, block, flatNumber, amount }) {
  *  never SUCCESS — a volunteer must independently confirm the money
  *  actually arrived before verifyPaymentManual() issues a receipt
  *  (Decision 4: payment truth comes from the backend, not the resident). */
-function submitPaymentReference({ transactionId, reference }) {
+function submitPaymentReference({ transactionId, reference, screenshot, mimeType }) {
   requireFields({ transactionId, reference }, ["transactionId", "reference"]);
 
   return withLock(() => {
@@ -77,11 +77,16 @@ function submitPaymentReference({ transactionId, reference }) {
       throw new ApiError("This donation was cancelled", 400);
     }
 
-    updateRowFields(sheet, rowIndex, {
+    const fields = {
       payment_reference: reference,
       status: "MANUAL_REVIEW",
       updated_at: new Date(),
-    });
+    };
+    if (screenshot) {
+      ensureColumn(sheet, "payment_screenshot_url");
+      fields.payment_screenshot_url = savePaymentScreenshot(screenshot, mimeType);
+    }
+    updateRowFields(sheet, rowIndex, fields);
     return { transactionId, status: "MANUAL_REVIEW" };
   });
 }

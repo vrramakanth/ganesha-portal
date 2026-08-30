@@ -10,10 +10,39 @@ import type { FestivalInfo } from "@/lib/types";
 type Props = {
   amount: number;
   festival: FestivalInfo | null;
-  onSubmitReference: (reference: string) => void | Promise<void>;
+  onSubmitReference: (reference: string, screenshot?: string, mimeType?: string) => void | Promise<void>;
   onCancel: () => void | Promise<void>;
   submitting: boolean;
   error: string | null;
+};
+
+/** Android: targeting a package explicitly via intent:// "package=" is
+ *  what actually picks a specific app — a bare "upi://" link lets
+ *  Android silently resolve to whatever it feels like (observed: always
+ *  WhatsApp). All four have well-documented package names. */
+const ANDROID_PACKAGES: Record<string, string> = {
+  gpay: "com.google.android.apps.nbu.paisa.user",
+  phonepe: "com.phonepe.app",
+  bhim: "in.org.npci.upiapp",
+  whatsapp: "com.whatsapp",
+};
+
+/** iOS has no intent-style targeting — only an app's own distinct URL
+ *  scheme reliably opens that exact app there (a shared "upi://" is just
+ *  as ambiguous as it is on Android). Limited to the two schemes this
+ *  codebase can vouch for; BHIM and WhatsApp are left off iOS rather than
+ *  ship a guessed scheme that might silently do nothing. Each value is
+ *  the full scheme+path prefix, since GPay's differs from PhonePe's. */
+const IOS_SCHEME_PREFIXES: Record<string, string> = {
+  gpay: "tez://upi/",
+  phonepe: "phonepe://",
+};
+
+const APP_LABELS: Record<string, string> = {
+  gpay: "Google Pay",
+  phonepe: "PhonePe",
+  bhim: "BHIM",
+  whatsapp: "WhatsApp",
 };
 
 /** UPI QR + "how did you pay" step, shared by Donate and Dinner. Nothing
@@ -25,13 +54,54 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
   const [reference, setReference] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
+  const [screenshot, setScreenshot] = useState<{ base64: string; mimeType: string } | null>(null);
+  const [selectedApp, setSelectedApp] = useState("gpay");
+  const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const vpa = festival?.upi_vpa || "";
   const payeeName = festival?.upi_payee_name || festival?.festival_name || "Brigade Woods";
-  const upiLink = vpa
-    ? `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`
+  const upiParams = `pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`;
+  // The QR code must always encode the plain "upi://" URI — a UPI app's
+  // camera scanner only recognizes that scheme, not an Android intent://
+  // wrapper or an iOS app-specific scheme. The *button*, on the other
+  // hand, is a browser-mediated click, where a bare "upi://" scheme lets
+  // both platforms silently resolve to whatever they feel like (observed:
+  // always WhatsApp) rather than the app the resident actually picked.
+  const upiLink = vpa ? `upi://${upiParams}` : "";
+  const isAndroid = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
+  const isIOS = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const appIds = isAndroid ? ["gpay", "phonepe", "bhim", "whatsapp"] : isIOS ? ["gpay", "phonepe"] : [];
+  const appOptions = [...appIds.map((id) => ({ id, label: APP_LABELS[id] })), { id: "copy", label: "Copy UPI ID" }];
+
+  const upiButtonLink = vpa
+    ? isAndroid
+      ? `intent://${upiParams}#Intent;scheme=upi;package=${ANDROID_PACKAGES[selectedApp]};end;`
+      : isIOS && IOS_SCHEME_PREFIXES[selectedApp]
+      ? `${IOS_SCHEME_PREFIXES[selectedApp]}${upiParams}`
+      : upiLink
     : "";
+
+  async function copyVpa() {
+    try {
+      await navigator.clipboard.writeText(vpa);
+      setCopied(true);
+      setCopyFailed(false);
+    } catch {
+      setCopied(false);
+      setCopyFailed(true);
+    }
+  }
+
+  function selectApp(id: string) {
+    setSelectedApp(id);
+    if (id === "copy") copyVpa();
+    else {
+      setCopied(false);
+      setCopyFailed(false);
+    }
+  }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -47,7 +117,12 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
     setExtracting(true);
     try {
       const base64 = await fileToBase64(file);
-      const result = await api.payments.extractReference(base64, file.type || "image/jpeg");
+      const mimeType = file.type || "image/jpeg";
+      // Keep the screenshot around (even if OCR can't read it) so it's
+      // still attached when the resident submits — it's what lets a
+      // volunteer visually verify the payment on the Needs Review list.
+      setScreenshot({ base64, mimeType });
+      const result = await api.payments.extractReference(base64, mimeType);
       if (result.guess) {
         setReference(result.guess);
       } else {
@@ -71,12 +146,47 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
             <div className="rounded-lg bg-white p-3">
               <QRCodeSVG value={upiLink} size={180} />
             </div>
-            <a
-              href={upiLink}
-              className="w-full rounded-xl bg-saffron py-3 text-center text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
-            >
-              Pay in UPI App
-            </a>
+
+            <div className="w-full grid grid-cols-2 gap-2 text-left">
+              {appOptions.map((app) => (
+                <label
+                  key={app.id}
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                    selectedApp === app.id ? "border-saffron bg-saffron/10" : "border-border"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="upi-app"
+                    checked={selectedApp === app.id}
+                    onChange={() => selectApp(app.id)}
+                  />
+                  {app.label}
+                </label>
+              ))}
+            </div>
+
+            {selectedApp === "copy" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={copyVpa}
+                  className="w-full rounded-xl bg-saffron py-3 text-center text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
+                >
+                  {copied ? "Copied ✓" : "Copy UPI ID"}
+                </button>
+                {copyFailed && (
+                  <p className="text-xs text-saffron-dark">Couldn&apos;t copy — select the UPI ID below instead.</p>
+                )}
+              </>
+            ) : (
+              <a
+                href={upiButtonLink}
+                className="w-full rounded-xl bg-saffron py-3 text-center text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
+              >
+                Pay in UPI App
+              </a>
+            )}
             <p className="text-xs text-muted">{payeeName} &middot; {vpa}</p>
           </>
         ) : (
@@ -96,7 +206,7 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
           onClick={() => fileInputRef.current?.click()}
           className="w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon disabled:opacity-60"
         >
-          {extracting ? "Reading screenshot…" : "Upload Payment Screenshot"}
+          {extracting ? "Reading screenshot…" : screenshot ? "Screenshot Attached ✓" : "Upload Payment Screenshot"}
         </button>
         {extractError && <p className="text-xs text-saffron-dark">{extractError}</p>}
 
@@ -115,7 +225,7 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
         <button
           type="button"
           disabled={submitting || !reference.trim()}
-          onClick={() => onSubmitReference(reference.trim())}
+          onClick={() => onSubmitReference(reference.trim(), screenshot?.base64, screenshot?.mimeType)}
           className="w-full rounded-xl bg-maroon py-4 text-center text-sm font-semibold text-white disabled:opacity-60 active:bg-maroon-dark transition-colors"
         >
           {submitting ? "Submitting…" : "Submit for Verification"}
