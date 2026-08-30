@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { api } from "@/lib/api";
@@ -167,12 +166,19 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
           <>
             {USE_STATIC_BANK_QR ? (
               <div className="rounded-lg bg-white p-3 flex flex-col items-center gap-2">
-                <Image
+                {/* Plain <img>, not next/image — Next's image optimizer
+                    re-encodes through a lossy, resized pipeline (confirmed:
+                    456px source down to 384px, quality 75, re-palettized),
+                    which a phone camera scanning a screen has a much
+                    harder time reading reliably than the crisp source
+                    file, even though it still technically decodes fine
+                    programmatically. This guarantees the browser gets the
+                    exact same bytes verified to decode correctly. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src="/images/hdfc-vyapar-qr.png"
                   alt="HDFC Vyapar UPI QR code"
-                  width={180}
-                  height={180}
-                  className="h-[180px] w-[180px]"
+                  className="h-[260px] w-[260px]"
                 />
                 <p className="text-xs font-semibold text-maroon">
                   Enter {formatCurrency(amount)} after scanning
