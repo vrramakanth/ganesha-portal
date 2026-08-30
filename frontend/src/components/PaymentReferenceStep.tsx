@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { api } from "@/lib/api";
@@ -53,6 +54,18 @@ const APP_LABELS: Record<string, string> = {
  *  confirms it's enabled, which restores the Google Pay/PhonePe/BHIM/
  *  WhatsApp picker as options alongside Copy UPI ID. */
 const APP_PICKER_ENABLED = false;
+
+/** TEMPORARY, same underlying issue as APP_PICKER_ENABLED above: our own
+ *  dynamically-generated QR (encoding "upi://pay?...") is a third-party-
+ *  built collection request, which appears to be exactly what's being
+ *  rejected. HDFC's own official Vyapar QR carries their bank-issued
+ *  Terminal ID and is what residents are confirmed able to pay via
+ *  manual entry — showing their actual QR image instead is a test of
+ *  whether it's treated differently. Trade-off: it's a *static* merchant
+ *  QR (no dynamic amount encoded), so residents have to type the amount
+ *  in themselves after scanning — worth reverting to the dynamic
+ *  QRCodeSVG once QR/collect-request payment is confirmed enabled. */
+const USE_STATIC_BANK_QR = true;
 
 /** UPI QR + "how did you pay" step, shared by Donate and Dinner. Nothing
  *  here ever marks a payment successful — it only submits the resident's
@@ -152,9 +165,24 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
 
         {vpa ? (
           <>
-            <div className="rounded-lg bg-white p-3">
-              <QRCodeSVG value={upiLink} size={180} />
-            </div>
+            {USE_STATIC_BANK_QR ? (
+              <div className="rounded-lg bg-white p-3 flex flex-col items-center gap-2">
+                <Image
+                  src="/images/hdfc-vyapar-qr.png"
+                  alt="HDFC Vyapar UPI QR code"
+                  width={180}
+                  height={180}
+                  className="h-[180px] w-[180px]"
+                />
+                <p className="text-xs font-semibold text-maroon">
+                  Enter {formatCurrency(amount)} after scanning
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-lg bg-white p-3">
+                <QRCodeSVG value={upiLink} size={180} />
+              </div>
+            )}
 
             {appIds.length > 0 && (
               <div className="w-full grid grid-cols-2 gap-2 text-left">
