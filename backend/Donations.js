@@ -164,6 +164,7 @@ function verifyPaymentManual(volunteer, transactionId, notes) {
       updated_at: new Date(),
     });
     logAudit(volunteer.email, "Verified payment", "Transaction", transactionId, transaction.status, "VERIFIED_SUCCESS");
+    invalidatePublicStatsCache();
     return { transactionId, status: "VERIFIED_SUCCESS", receiptUrl: receipt.url };
   });
 }
