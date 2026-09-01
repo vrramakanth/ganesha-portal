@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatCurrency } from "@/lib/date";
+import { parseVolunteerAvailability, isAreaApproved } from "@/lib/volunteerAreas";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
@@ -139,15 +140,31 @@ export default function MyStuffPage() {
 
           <Section title="My Seva Status">
             {volunteerStatus.length === 0 && <Empty>You haven&apos;t signed up for Seva yet.</Empty>}
-            {volunteerStatus.map((v) => (
-              <Row key={v.volunteer_id}>
-                <div>
-                  <p className="font-semibold text-sm">{v.areas}</p>
-                  <p className="text-xs text-muted">{v.volunteer_id}</p>
-                </div>
-                <StatusBadge label={v.status} tone={v.status === "ACTIVE" ? "success" : "warning"} />
-              </Row>
-            ))}
+            {volunteerStatus.flatMap((v) => {
+              const picks = parseVolunteerAvailability(v.availability);
+              if (picks.length === 0) {
+                return [
+                  <Row key={v.volunteer_id}>
+                    <p className="font-semibold text-sm">{v.areas}</p>
+                    <StatusBadge label={v.status} tone={v.status === "ACTIVE" ? "success" : "warning"} />
+                  </Row>,
+                ];
+              }
+              return picks.map((pick, i) => {
+                const confirmed = isAreaApproved(v, pick.area);
+                return (
+                  <Row key={`${v.volunteer_id}-${i}`}>
+                    <div>
+                      <p className="font-semibold text-sm">{pick.area}</p>
+                      <p className="text-xs text-muted">
+                        {pick.dates.join(", ")} · {pick.sessions.join(", ")}
+                      </p>
+                    </div>
+                    <StatusBadge label={confirmed ? "CONFIRMED" : "PENDING"} tone={confirmed ? "success" : "warning"} />
+                  </Row>
+                );
+              });
+            })}
           </Section>
         </>
       )}

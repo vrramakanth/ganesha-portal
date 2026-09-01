@@ -31,3 +31,18 @@ export function parseVolunteerAvailability(availability: string): VolunteerSignu
     })
     .filter((s): s is VolunteerSignup => s !== null);
 }
+
+/** Whether this specific area of a volunteer's application has been
+ *  approved — not the same as their overall status, since someone who
+ *  applied for two areas can be approved for one and still pending on
+ *  the other. Rows approved before per-area tracking existed have no
+ *  "approved_areas" value, so an already-ACTIVE row with nothing there
+ *  falls back to "every area they applied for". Shared by the admin
+ *  roster and the resident's own My Stuff status so they can't drift. */
+export function isAreaApproved(v: { areas: string; approved_areas?: string; status: string }, area: string): boolean {
+  const applied = String(v.areas || "").split(",").map((a) => a.trim()).filter(Boolean);
+  if (!applied.includes(area)) return false;
+  const approved = String(v.approved_areas ?? "").split(",").map((a) => a.trim()).filter(Boolean);
+  if (approved.length > 0) return approved.includes(area);
+  return v.status === "ACTIVE";
+}

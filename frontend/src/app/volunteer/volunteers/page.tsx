@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
-import { VOLUNTEER_AREAS, parseVolunteerAvailability, type VolunteerSignup } from "@/lib/volunteerAreas";
+import { VOLUNTEER_AREAS, parseVolunteerAvailability, isAreaApproved, type VolunteerSignup } from "@/lib/volunteerAreas";
 import type { VolunteerRegistration } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
@@ -16,19 +16,6 @@ type Slot = { date: string; session: string; names: string[] };
 
 function volunteerAreaList(v: VolunteerRegistration): string[] {
   return String(v.areas).split(",").map((a) => a.trim()).filter(Boolean);
-}
-
-/** Whether this specific area of a volunteer's application has been
- *  approved — not the same as their overall status, since someone who
- *  applied for two areas can be approved for one and still pending on
- *  the other. Rows approved before per-area tracking existed have no
- *  "approved_areas" value, so an already-ACTIVE row with nothing there
- *  falls back to "every area they applied for". */
-function isAreaApproved(v: VolunteerRegistration, area: string): boolean {
-  if (!volunteerAreaList(v).includes(area)) return false;
-  const approved = String(v.approved_areas ?? "").split(",").map((a) => a.trim()).filter(Boolean);
-  if (approved.length > 0) return approved.includes(area);
-  return v.status === "ACTIVE";
 }
 
 function picksForArea(v: VolunteerRegistration, area: string): VolunteerSignup[] {
