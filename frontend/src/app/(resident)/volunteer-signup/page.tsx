@@ -20,11 +20,11 @@ type Commitment = {
   id: string;
   area: string;
   dates: string[];
-  session: Session | "";
+  sessions: Session[];
 };
 
 function newCommitment(): Commitment {
-  return { id: crypto.randomUUID(), area: "", dates: [], session: "" };
+  return { id: crypto.randomUUID(), area: "", dates: [], sessions: [] };
 }
 
 export default function VolunteerSignupPage() {
@@ -75,6 +75,21 @@ export default function VolunteerSignupPage() {
     );
   }
 
+  function toggleSession(id: string, session: Session) {
+    setCommitments((prev) =>
+      prev.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              sessions: c.sessions.includes(session)
+                ? c.sessions.filter((s) => s !== session)
+                : [...c.sessions, session],
+            }
+          : c
+      )
+    );
+  }
+
   function addCommitment() {
     setCommitments((prev) => [...prev, newCommitment()]);
   }
@@ -98,8 +113,8 @@ export default function VolunteerSignupPage() {
       setError("Enter a valid 10-digit mobile number.");
       return;
     }
-    if (commitments.some((c) => !c.area || c.dates.length === 0 || !c.session)) {
-      setError("Finish each area you've added — pick preferred dates and a session, or remove it.");
+    if (commitments.some((c) => !c.area || c.dates.length === 0 || c.sessions.length === 0)) {
+      setError("Finish each area you've added — pick preferred dates and at least one session, or remove it.");
       return;
     }
 
@@ -113,7 +128,7 @@ export default function VolunteerSignupPage() {
         flatNumber: fields.flatNumber,
         areas: commitments.map((c) => c.area),
         availability: commitments
-          .map((c) => `${c.area}: ${formatDates(c.dates)} (${c.session})`)
+          .map((c) => `${c.area}: ${formatDates(c.dates)} (${c.sessions.join(", ")})`)
           .join("; "),
       });
       saveProfile({ name: fields.name, mobile: fields.mobile, block: fields.block, flatNumber: fields.flatNumber });
@@ -181,7 +196,7 @@ export default function VolunteerSignupPage() {
 
           {commitments.map((c) => {
             const usedElsewhere = commitments.filter((x) => x.id !== c.id).map((x) => x.area);
-            const complete = Boolean(c.area) && c.dates.length > 0 && Boolean(c.session);
+            const complete = Boolean(c.area) && c.dates.length > 0 && c.sessions.length > 0;
 
             return (
               <div key={c.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
@@ -252,15 +267,15 @@ export default function VolunteerSignupPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-muted uppercase tracking-wide">Session</p>
+                  <p className="text-xs font-medium text-muted uppercase tracking-wide">Session(s)</p>
                   <div className="flex gap-2">
                     {SESSIONS.map((s) => (
                       <button
                         key={s}
                         type="button"
-                        onClick={() => updateCommitment(c.id, { session: s })}
+                        onClick={() => toggleSession(c.id, s)}
                         className={`flex-1 rounded-lg border px-3 py-2.5 text-sm font-semibold transition-colors ${
-                          c.session === s
+                          c.sessions.includes(s)
                             ? "border-saffron bg-saffron/10 text-saffron-dark"
                             : "border-border text-foreground"
                         }`}
@@ -275,7 +290,7 @@ export default function VolunteerSignupPage() {
                   <p className="text-xs text-muted">
                     You&apos;ll help with <span className="font-semibold text-foreground">{c.area}</span> on{" "}
                     <span className="font-semibold text-foreground">{formatDates(c.dates)}</span> —{" "}
-                    <span className="font-semibold text-foreground">{c.session}</span>.
+                    <span className="font-semibold text-foreground">{c.sessions.join(" & ")}</span>.
                   </p>
                 )}
               </div>

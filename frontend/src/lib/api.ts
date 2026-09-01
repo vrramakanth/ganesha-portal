@@ -224,6 +224,11 @@ export const api = {
     volunteersList: (idToken: string) => apiGet<VolunteerRoster>("volunteer.volunteers.list", { idToken }),
     activateVolunteer: (idToken: string, volunteerId: string) =>
       apiPost<{ volunteerId: string; status: string }>("volunteer.volunteers.activate", { idToken, volunteerId }),
+    approveVolunteerArea: (idToken: string, volunteerId: string, area: string) =>
+      apiPost<{ volunteerId: string; area: string; approvedAreas: string[]; status: string }>(
+        "volunteer.volunteers.approveArea",
+        { idToken, volunteerId, area }
+      ),
     createAnnouncement: (
       idToken: string,
       payload: { title: string; message: string; expiresAt?: string; relatedEventId?: string }

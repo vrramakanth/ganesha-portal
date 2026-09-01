@@ -18,13 +18,26 @@ function volunteerAreaList(v: VolunteerRegistration): string[] {
   return String(v.areas).split(",").map((a) => a.trim()).filter(Boolean);
 }
 
+/** Whether this specific area of a volunteer's application has been
+ *  approved — not the same as their overall status, since someone who
+ *  applied for two areas can be approved for one and still pending on
+ *  the other. Rows approved before per-area tracking existed have no
+ *  "approved_areas" value, so an already-ACTIVE row with nothing there
+ *  falls back to "every area they applied for". */
+function isAreaApproved(v: VolunteerRegistration, area: string): boolean {
+  if (!volunteerAreaList(v).includes(area)) return false;
+  const approved = String(v.approved_areas ?? "").split(",").map((a) => a.trim()).filter(Boolean);
+  if (approved.length > 0) return approved.includes(area);
+  return v.status === "ACTIVE";
+}
+
 function picksForArea(v: VolunteerRegistration, area: string): VolunteerSignup[] {
   return parseVolunteerAvailability(v.availability).filter((s) => s.area === area);
 }
 
 function formatPicks(picks: VolunteerSignup[]): string {
   if (picks.length === 0) return "date/session not specified";
-  return picks.map((p) => `${p.dates.join(", ")} — ${p.session}`).join("; ");
+  return picks.map((p) => `${p.dates.join(", ")} — ${p.sessions.join(", ")}`).join("; ");
 }
 
 function slotSort(a: Slot, b: Slot) {
@@ -34,7 +47,7 @@ function slotSort(a: Slot, b: Slot) {
   return (SESSION_ORDER[a.session] ?? 2) - (SESSION_ORDER[b.session] ?? 2);
 }
 
-/** Groups an area's ACTIVE sign-ups into one row per date+session, so
+/** Groups an area's approved sign-ups into one row per date+session, so
  *  admins can see who's confirmed to turn up when at a glance. Anyone
  *  whose pick didn't parse (older free-text availability from before
  *  dates/sessions existed) lands in a trailing "Not specified" row. */
@@ -43,7 +56,7 @@ function buildActiveSlots(volunteers: VolunteerRegistration[], area: string): Sl
   const unspecified: string[] = [];
 
   volunteers
-    .filter((v) => v.status === "ACTIVE" && volunteerAreaList(v).includes(area))
+    .filter((v) => isAreaApproved(v, area))
     .forEach((v) => {
       const picks = picksForArea(v, area);
       if (picks.length === 0) {
@@ -51,11 +64,13 @@ function buildActiveSlots(volunteers: VolunteerRegistration[], area: string): Sl
         return;
       }
       picks.forEach((pick) =>
-        pick.dates.forEach((date) => {
-          const key = `${date}|${pick.session}`;
-          if (!slotMap.has(key)) slotMap.set(key, { date, session: pick.session, names: [] });
-          slotMap.get(key)!.names.push(v.name);
-        })
+        pick.dates.forEach((date) =>
+          pick.sessions.forEach((session) => {
+            const key = `${date}|${session}`;
+            if (!slotMap.has(key)) slotMap.set(key, { date, session, names: [] });
+            slotMap.get(key)!.names.push(v.name);
+          })
+        )
       );
     });
 
@@ -98,7 +113,7 @@ export default function VolunteersPage() {
         area: a.label,
         active: buildActiveSlots(volunteers, a.label),
         pending: volunteers.filter(
-          (v) => v.status !== "ACTIVE" && volunteerAreaList(v).includes(a.label)
+          (v) => volunteerAreaList(v).includes(a.label) && !isAreaApproved(v, a.label)
         ),
       })),
     [volunteers]
@@ -122,6 +137,19 @@ export default function VolunteersPage() {
       setRefreshKey((k) => k + 1);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not activate volunteer.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function approveArea(volunteerId: string, area: string) {
+    setError(null);
+    setBusyId(volunteerId);
+    try {
+      await api.volunteer.approveVolunteerArea(idToken as string, volunteerId, area);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Could not approve.");
     } finally {
       setBusyId(null);
     }
@@ -200,7 +228,7 @@ export default function VolunteersPage() {
                     {pending.map((v) => {
                       const picks = picksForArea(v, area);
                       const clash = picks.some((p) =>
-                        p.dates.some((d) => activeCountFor(active, d, p.session) > 0)
+                        p.dates.some((d) => p.sessions.some((s) => activeCountFor(active, d, s) > 0))
                       );
                       return (
                         <div key={v.volunteer_id} className="px-4 py-3 space-y-2">
@@ -248,7 +276,7 @@ export default function VolunteersPage() {
                               <button
                                 type="button"
                                 disabled={busyId === v.volunteer_id}
-                                onClick={() => activate(v.volunteer_id)}
+                                onClick={() => approveArea(v.volunteer_id, area)}
                                 className="flex-1 rounded-lg bg-maroon py-2 text-center text-xs font-semibold text-white disabled:opacity-60"
                               >
                                 Approve

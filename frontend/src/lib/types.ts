@@ -162,6 +162,7 @@ export type VolunteerRegistration = {
   areas: string;
   availability: string;
   status: string;
+  approved_areas?: string;
   created_at: string;
 };
 

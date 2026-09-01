@@ -5,10 +5,10 @@ export const VOLUNTEER_AREAS = [
   { label: "Bhog/Prasadam/Food", note: null as string | null },
 ];
 
-export type VolunteerSignup = { area: string; dates: string[]; session: string };
+export type VolunteerSignup = { area: string; dates: string[]; sessions: string[] };
 
 /** Parses the "availability" string the sign-up form writes, e.g.
- *  "Bhog/Prasadam/Food: 14 Sept, 15 Sept (Morning); Decorate Idol/Pooja/Aarti: 16 Sept (Evening)"
+ *  "Bhog/Prasadam/Food: 14 Sept, 15 Sept (Morning, Evening); Decorate Idol/Pooja/Aarti: 16 Sept (Evening)"
  *  back into structured picks. Segments that don't match (older
  *  free-text availability from before this format existed) are simply
  *  skipped rather than thrown away — see the "not specified" fallback
@@ -22,11 +22,11 @@ export function parseVolunteerAvailability(availability: string): VolunteerSignu
     .map((part) => {
       const match = part.match(/^(.+?):\s*(.+?)\s*\(([^)]+)\)$/);
       if (!match) return null;
-      const [, area, datesStr, session] = match;
+      const [, area, datesStr, sessionsStr] = match;
       return {
         area: area.trim(),
         dates: datesStr.split(",").map((d) => d.trim()).filter(Boolean),
-        session: session.trim(),
+        sessions: sessionsStr.split(",").map((s) => s.trim()).filter(Boolean),
       };
     })
     .filter((s): s is VolunteerSignup => s !== null);
