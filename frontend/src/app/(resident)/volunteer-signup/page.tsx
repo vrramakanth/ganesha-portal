@@ -150,7 +150,7 @@ export default function VolunteerSignupPage() {
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
-      <PageHeader title="I Want to Volunteer" />
+      <PageHeader title="Join Seva" />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
@@ -191,7 +191,7 @@ export default function VolunteerSignupPage() {
           <label className="text-sm font-medium">How would you like to help?</label>
           <p className="text-xs text-muted">
             Dates below are your preference — final days and sessions will be confirmed based on how many
-            volunteers sign up.
+            people sign up for Seva.
           </p>
 
           {commitments.map((c) => {

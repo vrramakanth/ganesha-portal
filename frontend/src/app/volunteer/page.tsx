@@ -19,7 +19,7 @@ export default function VolunteerDashboardPage() {
     { href: "/volunteer/donations", label: "Review Payments" },
     { href: "/volunteer/dinner/counter", label: "Dinner Counter" },
     { href: "/volunteer/events", label: "Events" },
-    ...(volunteer?.isSuperAdmin ? [{ href: "/volunteer/volunteers", label: "Volunteers" }] : []),
+    ...(volunteer?.isSuperAdmin ? [{ href: "/volunteer/volunteers", label: "Seva" }] : []),
     { href: "/volunteer/reports", label: "Reports" },
   ];
 
@@ -37,7 +37,7 @@ export default function VolunteerDashboardPage() {
             <StatTile value={String(data.donationCount)} label="Donations" />
             <StatTile value={data.mealsRegistered.toLocaleString()} label="Meals Registered" />
             <StatTile value={data.mealsServed.toLocaleString()} label="Meals Served" />
-            <StatTile value={String(data.volunteerCount)} label="Volunteers" />
+            <StatTile value={String(data.volunteerCount)} label="Seva Sign-Ups" />
           </div>
 
           <section className="space-y-2">

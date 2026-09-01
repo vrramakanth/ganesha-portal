@@ -88,7 +88,7 @@ export default function MorePage() {
         href="/volunteer-signup"
         className="w-full rounded-xl bg-maroon py-4 text-center text-sm font-semibold text-white active:bg-maroon-dark transition-colors"
       >
-        I Want to Volunteer
+        Join Seva
       </Link>
 
       <section className="space-y-2">

@@ -12,7 +12,7 @@ export default function VolunteerNav() {
     { href: "/volunteer/events", label: "Events", matchPrefix: true },
     { href: "/volunteer/dinner", label: "Dinner", matchPrefix: true },
     ...(volunteer?.isSuperAdmin
-      ? [{ href: "/volunteer/volunteers", label: "Volunteers", matchPrefix: true }]
+      ? [{ href: "/volunteer/volunteers", label: "Seva", matchPrefix: true }]
       : []),
     { href: "/volunteer/more", label: "More", matchPrefix: true },
   ] as const;

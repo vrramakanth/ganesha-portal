@@ -137,8 +137,8 @@ export default function MyStuffPage() {
             )}
           </Section>
 
-          <Section title="My Volunteer Status">
-            {volunteerStatus.length === 0 && <Empty>You haven&apos;t signed up to volunteer yet.</Empty>}
+          <Section title="My Seva Status">
+            {volunteerStatus.length === 0 && <Empty>You haven&apos;t signed up for Seva yet.</Empty>}
             {volunteerStatus.map((v) => (
               <Row key={v.volunteer_id}>
                 <div>

@@ -136,7 +136,7 @@ export default function VolunteersPage() {
       await api.volunteer.activateVolunteer(idToken as string, volunteerId);
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Could not activate volunteer.");
+      setError(err instanceof ApiClientError ? err.message : "Could not activate.");
     } finally {
       setBusyId(null);
     }
@@ -167,7 +167,7 @@ export default function VolunteersPage() {
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
-      <PageHeader title="Volunteers" backHref="/volunteer" backLabel="← Dashboard" />
+      <PageHeader title="Seva" backHref="/volunteer" backLabel="← Dashboard" />
 
       {loading && <p className="text-sm text-muted">Loading…</p>}
       {loadError && <p className="text-sm text-red-600">{loadError}</p>}
