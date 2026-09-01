@@ -5,15 +5,13 @@ import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { parseFestivalDateRange } from "@/lib/date";
+import { VOLUNTEER_AREAS } from "@/lib/volunteerAreas";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 
-const AREA_OPTIONS = [
-  { label: "Decorate Idol/Pooja/Aarti", note: "Expected time: 45 mins" },
-  { label: "Bhog/Prasadam/Food", note: null as string | null },
-];
+const AREA_OPTIONS = VOLUNTEER_AREAS;
 
 const SESSIONS = ["Morning", "Evening"] as const;
 type Session = (typeof SESSIONS)[number];
