@@ -229,6 +229,11 @@ export const api = {
         "volunteer.volunteers.approveArea",
         { idToken, volunteerId, area }
       ),
+    declineVolunteerArea: (idToken: string, volunteerId: string, area: string) =>
+      apiPost<{ volunteerId: string; area: string; remainingAreas: string[] }>(
+        "volunteer.volunteers.declineArea",
+        { idToken, volunteerId, area }
+      ),
     createAnnouncement: (
       idToken: string,
       payload: { title: string; message: string; expiresAt?: string; relatedEventId?: string }

@@ -116,6 +116,50 @@ function approveVolunteerArea(volunteer, volunteerId, area) {
   });
 }
 
+/** Removes one area from a volunteer's request outright rather than
+ *  leaving it sitting as a pending entry — used when an admin asks the
+ *  volunteer to reconsider (different date/session) so there's exactly
+ *  one open request per area at a time instead of stale ones piling up
+ *  once the admin's already reached out. If the volunteer wants to try
+ *  again they sign up fresh; nothing here notifies them, the frontend
+ *  handles that via WhatsApp. Leaves the row itself intact (with the
+ *  area stripped) rather than deleting it, so the audit trail and any
+ *  other area they applied for are preserved. */
+function declineVolunteerArea(volunteer, volunteerId, area) {
+  requireSuperAdmin(volunteer);
+  requireFields({ volunteerId, area }, ["volunteerId", "area"]);
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.VOLUNTEERS);
+    const rowIndex = findRowIndexById(sheet, "volunteer_id", volunteerId);
+    if (rowIndex === -1) throw new ApiError("Unknown volunteer", 404);
+    const before = getRowObject(sheet, rowIndex);
+
+    const remainingAreas = splitList(before.areas).filter((a) => a !== area);
+    const remainingApproved = splitList(before.approved_areas).filter((a) => a !== area);
+    const remainingAvailability = String(before.availability || "")
+      .split(";")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .filter((segment) => {
+        const match = segment.match(/^(.+?):/);
+        return !(match && match[1].trim() === area);
+      })
+      .join("; ");
+    const status = remainingAreas.length > 0 && remainingAreas.every((a) => remainingApproved.includes(a))
+      ? "ACTIVE"
+      : "PENDING";
+
+    updateRowFields(sheet, rowIndex, {
+      areas: remainingAreas.join(","),
+      approved_areas: remainingApproved.join(","),
+      availability: remainingAvailability,
+      status,
+    });
+    logAudit(volunteer.email, "Declined volunteer area", "Volunteer", volunteerId, `${before.status} (${area})`, status);
+    return { volunteerId, area, remainingAreas };
+  });
+}
+
 function activateVolunteer(volunteer, volunteerId) {
   requireSuperAdmin(volunteer);
   return withLock(() => {

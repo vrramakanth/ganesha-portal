@@ -47,6 +47,7 @@ const ROUTES = {
   "volunteer.volunteers.list": { auth: true, handler: (p, v) => listVolunteers(v) },
   "volunteer.volunteers.activate": { auth: true, handler: (p, v) => activateVolunteer(v, p.volunteerId) },
   "volunteer.volunteers.approveArea": { auth: true, handler: (p, v) => approveVolunteerArea(v, p.volunteerId, p.area) },
+  "volunteer.volunteers.declineArea": { auth: true, handler: (p, v) => declineVolunteerArea(v, p.volunteerId, p.area) },
   "volunteer.announcements.create": { auth: true, handler: (p, v) => createAnnouncement(v, p) },
   "volunteer.announcements.deactivate": { auth: true, handler: (p, v) => deactivateAnnouncement(v, p.announcementId) },
   "volunteer.reports.export": { auth: true, handler: (p, v) => exportReportCsv(v, p.reportKey) },

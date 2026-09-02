@@ -27,6 +27,15 @@ function formatPicks(picks: VolunteerSignup[]): string {
   return picks.map((p) => `${p.dates.join(", ")} — ${p.sessions.join(", ")}`).join("; ");
 }
 
+/** Flattens picks into one entry per exact date+session, so each can be
+ *  checked against "Signed Up" individually — a request spanning two
+ *  dates might clash on only one of them. */
+function pickSlots(picks: VolunteerSignup[]): { date: string; session: string }[] {
+  const slots: { date: string; session: string }[] = [];
+  picks.forEach((p) => p.dates.forEach((date) => p.sessions.forEach((session) => slots.push({ date, session }))));
+  return slots;
+}
+
 function slotSort(a: Slot, b: Slot) {
   const dayA = parseInt(a.date, 10) || 0;
   const dayB = parseInt(b.date, 10) || 0;
@@ -76,7 +85,7 @@ function activeCountFor(activeSlots: Slot[], date: string, session: string): num
 
 function rescheduleMessage(v: VolunteerRegistration, area: string, picks: VolunteerSignup[]): string {
   const when = picks.length > 0 ? formatPicks(picks) : "your preferred date";
-  return `Hi ${v.name}, thanks so much for signing up to help with "${area}" for Ganesha Chathurthi (${when})! We already have enough hands for that slot — would a different date or session work for you? Let us know and we'll sort it out. 🙏`;
+  return `Hi ${v.name}, thanks so much for signing up to help with "${area}" for Ganesha Chathurthi (${when})! We already have enough hands for that slot. If a different date or session works for you, please sign up again on the app with your new preference — otherwise no action needed. 🙏`;
 }
 
 export default function VolunteersPage() {
@@ -84,8 +93,9 @@ export default function VolunteersPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [askingId, setAskingId] = useState<string | null>(null);
+  const [asking, setAsking] = useState<{ volunteerId: string; area: string } | null>(null);
   const [draft, setDraft] = useState("");
+  const [declining, setDeclining] = useState(false);
 
   const { data, loading, error: loadError } = useAsync(
     () => api.volunteer.volunteersList(idToken as string),
@@ -112,7 +122,11 @@ export default function VolunteersPage() {
   );
 
   const otherSignups = useMemo(
-    () => volunteers.filter((v) => volunteerAreaList(v).every((a) => !AREA_LABELS.includes(a))),
+    () =>
+      volunteers.filter((v) => {
+        const areas = volunteerAreaList(v);
+        return areas.length > 0 && areas.every((a) => !AREA_LABELS.includes(a));
+      }),
     [volunteers]
   );
 
@@ -143,13 +157,28 @@ export default function VolunteersPage() {
   }
 
   function startAsk(v: VolunteerRegistration, area: string) {
-    setAskingId(v.volunteer_id);
+    setAsking({ volunteerId: v.volunteer_id, area });
     setDraft(rescheduleMessage(v, area, picksForArea(v, area)));
   }
 
-  function sendAsk(v: VolunteerRegistration) {
-    window.open(`https://wa.me/91${v.mobile}?text=${encodeURIComponent(draft)}`, "_blank");
-    setAskingId(null);
+  /** Declining removes this area from their request first (so it stops
+   *  showing up as a pending entry — no stale duplicates once the admin
+   *  has already reached out), then opens WhatsApp with the reschedule
+   *  message. If the WhatsApp step fails to open for some reason the
+   *  decline has still gone through; nothing here is reversible. */
+  async function sendAsk(v: VolunteerRegistration, area: string) {
+    setError(null);
+    setDeclining(true);
+    try {
+      await api.volunteer.declineVolunteerArea(idToken as string, v.volunteer_id, area);
+      window.open(`https://wa.me/91${v.mobile}?text=${encodeURIComponent(draft)}`, "_blank");
+      setAsking(null);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Could not decline.");
+    } finally {
+      setDeclining(false);
+    }
   }
 
   return (
@@ -214,9 +243,8 @@ export default function VolunteersPage() {
                     {pending.length === 0 && <p className="px-4 py-3 text-sm text-muted">No pending requests.</p>}
                     {pending.map((v) => {
                       const picks = picksForArea(v, area);
-                      const clash = picks.some((p) =>
-                        p.dates.some((d) => p.sessions.some((s) => activeCountFor(active, d, s) > 0))
-                      );
+                      const slots = pickSlots(picks);
+                      const isAsking = asking?.volunteerId === v.volunteer_id && asking?.area === area;
                       return (
                         <div key={v.volunteer_id} className="px-4 py-3 space-y-2">
                           <div className="flex items-start justify-between gap-2">
@@ -224,17 +252,31 @@ export default function VolunteersPage() {
                               <p className="font-semibold text-sm">
                                 {v.name} <span className="font-normal text-muted">({v.block}-{v.flat_number})</span>
                               </p>
-                              <p className="text-xs text-muted">{formatPicks(picks)}</p>
-                              {clash && (
-                                <p className="text-xs font-semibold text-saffron-dark mt-0.5">
-                                  ⚠ Overlaps with someone already confirmed
-                                </p>
+                              {slots.length === 0 ? (
+                                <p className="text-xs text-muted">date/session not specified</p>
+                              ) : (
+                                slots.map((slot, i) => {
+                                  const count = activeCountFor(active, slot.date, slot.session);
+                                  return (
+                                    <p
+                                      key={i}
+                                      className={`text-xs ${count > 0 ? "font-semibold text-saffron-dark" : "text-muted"}`}
+                                    >
+                                      {slot.date} — {slot.session}
+                                      {count > 0 &&
+                                        ` · ${count} volunteer${count === 1 ? "" : "s"} already signed up`}
+                                    </p>
+                                  );
+                                })
                               )}
                             </div>
                           </div>
 
-                          {askingId === v.volunteer_id ? (
+                          {isAsking ? (
                             <div className="space-y-2">
+                              <p className="text-xs font-semibold text-saffron-dark">
+                                This will decline the request and remove it from the list.
+                              </p>
                               <textarea
                                 value={draft}
                                 onChange={(e) => setDraft(e.target.value)}
@@ -244,15 +286,17 @@ export default function VolunteersPage() {
                               <div className="flex gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => sendAsk(v)}
-                                  className="flex-1 rounded-lg bg-saffron py-2 text-center text-xs font-semibold text-white"
+                                  disabled={declining}
+                                  onClick={() => sendAsk(v, area)}
+                                  className="flex-1 rounded-lg bg-saffron py-2 text-center text-xs font-semibold text-white disabled:opacity-60"
                                 >
-                                  Send via WhatsApp
+                                  {declining ? "Declining…" : "Decline & Send via WhatsApp"}
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => setAskingId(null)}
-                                  className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted"
+                                  disabled={declining}
+                                  onClick={() => setAsking(null)}
+                                  className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted disabled:opacity-60"
                                 >
                                   Cancel
                                 </button>
@@ -273,7 +317,7 @@ export default function VolunteersPage() {
                                 onClick={() => startAsk(v, area)}
                                 className="flex-1 rounded-lg border border-border py-2 text-center text-xs font-semibold text-maroon"
                               >
-                                Ask for different date
+                                Decline & Ask to Reconsider
                               </button>
                             </div>
                           )}
