@@ -53,6 +53,7 @@ const ROUTES = {
   "volunteer.reports.export": { auth: true, handler: (p, v) => exportReportCsv(v, p.reportKey) },
   "volunteer.config.list": { auth: true, handler: (p, v) => listConfig(v) },
   "volunteer.config.update": { auth: true, handler: (p, v) => updateConfig(v, p.updates) },
+  "volunteer.backup.run": { auth: true, handler: (p, v) => runBackupNow(v) },
   "volunteer.auditLog.list": { auth: true, handler: (p, v) => listAuditLog(v) },
   "volunteer.bugs.list": { auth: true, handler: (p, v) => listBugs(v) },
   "volunteer.bugs.updateStatus": { auth: true, handler: (p, v) => updateBugStatus(v, p.bugId, p.status) },

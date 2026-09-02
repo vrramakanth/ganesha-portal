@@ -13,6 +13,9 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [backingUp, setBackingUp] = useState(false);
+  const [backupError, setBackupError] = useState<string | null>(null);
+  const [backupResult, setBackupResult] = useState<{ name: string; url: string; created: boolean } | null>(null);
 
   const { data: config, loading, error: loadError } = useAsync(
     () => api.volunteer.listConfig(idToken as string),
@@ -33,6 +36,20 @@ export default function SettingsPage() {
       setError(err instanceof ApiClientError ? err.message : "Could not save changes.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleBackup() {
+    setBackupError(null);
+    setBackupResult(null);
+    setBackingUp(true);
+    try {
+      const result = await api.volunteer.runBackup(idToken as string);
+      setBackupResult(result);
+    } catch (err) {
+      setBackupError(err instanceof ApiClientError ? err.message : "Could not run backup.");
+    } finally {
+      setBackingUp(false);
     }
   }
 
@@ -68,6 +85,30 @@ export default function SettingsPage() {
       >
         {saving ? "Saving…" : "Save Changes"}
       </button>
+
+      <div className="space-y-2 border-t border-border pt-6">
+        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Backup</h2>
+        <p className="text-xs text-muted">
+          A copy of the whole spreadsheet runs automatically every day around 8 AM IST. Use this to
+          run one right now instead of waiting.
+        </p>
+        <button
+          onClick={handleBackup}
+          disabled={backingUp}
+          className="w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon disabled:opacity-60"
+        >
+          {backingUp ? "Backing up…" : "Backup Now"}
+        </button>
+        {backupError && <p className="text-sm text-red-600">{backupError}</p>}
+        {backupResult && (
+          <p className="text-sm text-green-700">
+            {backupResult.created ? "Backed up: " : "Already backed up today: "}
+            <a href={backupResult.url} target="_blank" rel="noopener noreferrer" className="underline">
+              {backupResult.name}
+            </a>
+          </p>
+        )}
+      </div>
     </div>
   );
 }

@@ -248,6 +248,8 @@ export const api = {
     listConfig: (idToken: string) => apiGet<ConfigEntry[]>("volunteer.config.list", { idToken }),
     updateConfig: (idToken: string, updates: Record<string, string>) =>
       apiPost<ConfigEntry[]>("volunteer.config.update", { idToken, updates }),
+    runBackup: (idToken: string) =>
+      apiPost<{ name: string; url: string; created: boolean }>("volunteer.backup.run", { idToken }),
     auditLog: (idToken: string) => apiGet<AuditLogEntry[]>("volunteer.auditLog.list", { idToken }),
     bugsList: (idToken: string) => apiGet<BugReport[]>("volunteer.bugs.list", { idToken }),
     updateBugStatus: (idToken: string, bugId: string, status: "OPEN" | "CLOSED") =>

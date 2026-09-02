@@ -50,3 +50,13 @@ function removeBackupTrigger() {
     .filter((t) => t.getHandlerFunction() === "backupSpreadsheet")
     .forEach((t) => ScriptApp.deleteTrigger(t));
 }
+
+/** "Backup Now" button on the admin Settings page — same backup as the
+ *  daily trigger, just on demand, so an admin can confirm it's working
+ *  without waiting for 8 AM. */
+function runBackupNow(volunteer) {
+  requirePermission(volunteer, "Operations");
+  const result = backupSpreadsheet();
+  logAudit(volunteer.email, "Ran manual backup", "Spreadsheet", result.name, "", result.url);
+  return result;
+}
