@@ -88,6 +88,12 @@ function rescheduleMessage(v: VolunteerRegistration, area: string, picks: Volunt
   return `Hi ${v.name}, thanks so much for signing up to help with "${area}" for Ganesha Chathurthi (${when})! We already have enough hands for that slot. If a different date or session works for you, please sign up again on the app with your new preference — otherwise no action needed. 🙏`;
 }
 
+function confirmationMessage(v: VolunteerRegistration, area: string, picks: VolunteerSignup[], guidelines: string): string {
+  const when = picks.length > 0 ? formatPicks(picks) : "your preferred date";
+  const guidelinesBlock = guidelines ? `\n\nA few guidelines to keep in mind:\n${guidelines}` : "";
+  return `Hi ${v.name}! You're confirmed for Seva — "${area}" on ${when}. Thank you for helping with Ganesha Chathurthi 2026!${guidelinesBlock}\n\nSee you there! 🙏`;
+}
+
 export default function VolunteersPage() {
   const { idToken } = useVolunteerAuth();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -96,6 +102,8 @@ export default function VolunteersPage() {
   const [asking, setAsking] = useState<{ volunteerId: string; area: string } | null>(null);
   const [draft, setDraft] = useState("");
   const [declining, setDeclining] = useState(false);
+  const [confirmation, setConfirmation] = useState<{ mobile: string; message: string } | null>(null);
+  const [confirmDraft, setConfirmDraft] = useState("");
 
   const { data, loading, error: loadError } = useAsync(
     () => api.volunteer.volunteersList(idToken as string),
@@ -143,17 +151,31 @@ export default function VolunteersPage() {
     }
   }
 
-  async function approveArea(volunteerId: string, area: string) {
+  /** Approving takes effect immediately regardless of whether a
+   *  confirmation gets sent — the WhatsApp step below is a courtesy on
+   *  top, not a gate. Shown as a page-level panel rather than inline on
+   *  the request row, since that row moves out of "Requests" into
+   *  "Signed Up" the moment the list refreshes. */
+  async function approveArea(v: VolunteerRegistration, area: string) {
     setError(null);
-    setBusyId(volunteerId);
+    setBusyId(v.volunteer_id);
     try {
-      await api.volunteer.approveVolunteerArea(idToken as string, volunteerId, area);
+      const result = await api.volunteer.approveVolunteerArea(idToken as string, v.volunteer_id, area);
+      const message = confirmationMessage(v, area, picksForArea(v, area), result.guidelines);
+      setConfirmation({ mobile: v.mobile, message });
+      setConfirmDraft(message);
       setRefreshKey((k) => k + 1);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not approve.");
     } finally {
       setBusyId(null);
     }
+  }
+
+  function sendConfirmation() {
+    if (!confirmation) return;
+    window.open(`https://wa.me/91${confirmation.mobile}?text=${encodeURIComponent(confirmDraft)}`, "_blank");
+    setConfirmation(null);
   }
 
   function startAsk(v: VolunteerRegistration, area: string) {
@@ -192,6 +214,34 @@ export default function VolunteersPage() {
       {data && (
         <>
           <StatTile value={String(data.registered)} label="Registered" />
+
+          {confirmation && (
+            <section className="space-y-2 rounded-xl border border-maroon/30 bg-maroon/5 p-4">
+              <p className="text-sm font-semibold text-maroon">Send them a confirmation?</p>
+              <textarea
+                value={confirmDraft}
+                onChange={(e) => setConfirmDraft(e.target.value)}
+                rows={5}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={sendConfirmation}
+                  className="flex-1 rounded-lg bg-maroon py-2 text-center text-xs font-semibold text-white"
+                >
+                  Send via WhatsApp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmation(null)}
+                  className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted"
+                >
+                  Skip
+                </button>
+              </div>
+            </section>
+          )}
 
           {bothAreas.length > 0 && (
             <section className="space-y-2">
@@ -307,7 +357,7 @@ export default function VolunteersPage() {
                               <button
                                 type="button"
                                 disabled={busyId === v.volunteer_id}
-                                onClick={() => approveArea(v.volunteer_id, area)}
+                                onClick={() => approveArea(v, area)}
                                 className="flex-1 rounded-lg bg-maroon py-2 text-center text-xs font-semibold text-white disabled:opacity-60"
                               >
                                 Approve

@@ -225,7 +225,7 @@ export const api = {
     activateVolunteer: (idToken: string, volunteerId: string) =>
       apiPost<{ volunteerId: string; status: string }>("volunteer.volunteers.activate", { idToken, volunteerId }),
     approveVolunteerArea: (idToken: string, volunteerId: string, area: string) =>
-      apiPost<{ volunteerId: string; area: string; approvedAreas: string[]; status: string }>(
+      apiPost<{ volunteerId: string; area: string; approvedAreas: string[]; status: string; guidelines: string }>(
         "volunteer.volunteers.approveArea",
         { idToken, volunteerId, area }
       ),

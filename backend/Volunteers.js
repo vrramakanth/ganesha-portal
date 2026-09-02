@@ -84,6 +84,46 @@ function listVolunteers(volunteer) {
   };
 }
 
+/** Config keys for the per-area guidelines sent along with the
+ *  post-approval confirmation (spec §43 — operational text should be
+ *  editable without a code change). Bhog/Prasadam defaults to a note
+ *  about it being an offering to God, since satvik prep (no garlic/
+ *  onion) is a real, easy-to-miss expectation. */
+const SEVA_GUIDELINE_CONFIG_KEYS = {
+  "Decorate Idol/Pooja/Aarti": "seva_guidelines_decorate",
+  "Bhog/Prasadam/Food": "seva_guidelines_bhog",
+};
+
+const SEVA_GUIDELINE_DEFAULTS = {
+  "Decorate Idol/Pooja/Aarti":
+    "Please arrive a few minutes early and coordinate with other volunteers to check if everything needed is intact.",
+  "Bhog/Prasadam/Food":
+    "This is prepared as an offering to God, a traditional sattvic food, kindly avoid garlic, onion and non-vegetarian ingredients, use fresh ingredients, and keep the cooking area clean.",
+};
+
+/** Guideline text for an area, editable by an admin via Settings once
+ *  it exists as a Configuration row — seeded with a sensible default
+ *  the first time it's needed so it's visible there right away instead
+ *  of requiring someone to add the row manually. Returns "" for an
+ *  area with no guideline key. */
+function getSevaGuidelines(area) {
+  const key = SEVA_GUIDELINE_CONFIG_KEYS[area];
+  if (!key) return "";
+  const existing = getConfig(key, "");
+  if (existing) return existing;
+  const fallback = SEVA_GUIDELINE_DEFAULTS[area] || "";
+  if (fallback) setConfig(key, fallback);
+  return fallback;
+}
+
+/** Makes sure both areas' guideline Configuration rows exist (with
+ *  defaults) so they show up in Settings for an admin to review/edit
+ *  before any approval has actually happened — called from listConfig()
+ *  rather than waiting for the first approveVolunteerArea() call. */
+function seedSevaGuidelineDefaults() {
+  Object.keys(SEVA_GUIDELINE_CONFIG_KEYS).forEach((area) => getSevaGuidelines(area));
+}
+
 /** Approves one area of a volunteer's application, independent of any
  *  other area they also applied for — a volunteer who signed up for
  *  both Decorate and Bhog/Prasadam might have a conflict in only one of
@@ -112,7 +152,7 @@ function approveVolunteerArea(volunteer, volunteerId, area) {
 
     updateRowFields(sheet, rowIndex, { approved_areas: Array.from(approved).join(","), status });
     logAudit(volunteer.email, "Approved volunteer area", "Volunteer", volunteerId, `${before.status} (${area})`, status);
-    return { volunteerId, area, approvedAreas: Array.from(approved), status };
+    return { volunteerId, area, approvedAreas: Array.from(approved), status, guidelines: getSevaGuidelines(area) };
   });
 }
 

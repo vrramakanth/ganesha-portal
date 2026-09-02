@@ -71,9 +71,12 @@ function setConfig(key, value) {
 }
 
 /** Festival configuration (spec §43) — lets volunteers change operational
- *  values without a code change. */
+ *  values without a code change. Seeds the per-area Seva guideline rows
+ *  (Volunteers.js) with defaults on first read so they're visible here
+ *  to edit even before anyone's been approved yet. */
 function listConfig(volunteer) {
   requirePermission(volunteer, "Operations");
+  seedSevaGuidelineDefaults();
   return rowsToObjects(getSheet(SHEETS.CONFIGURATION));
 }
 
