@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
@@ -74,6 +75,10 @@ export default function VolunteerDonationsPage() {
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="Donations" subtitle="Collections and payment review" />
+
+      <Link href="/volunteer/donations/screenshots" className="text-xs font-medium text-maroon underline -mt-4">
+        Attach Missing Screenshots
+      </Link>
 
       {loading && <p className="text-sm text-muted">Loading…</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}

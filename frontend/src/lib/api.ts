@@ -177,6 +177,13 @@ export const api = {
         transactionId,
         notes,
       }),
+    attachPaymentScreenshot: (idToken: string, transactionId: string, screenshot: string, mimeType: string) =>
+      apiPost<{ transactionId: string; screenshotUrl: string }>("volunteer.payment.attachScreenshot", {
+        idToken,
+        transactionId,
+        screenshot,
+        mimeType,
+      }),
     createEvent: (
       idToken: string,
       payload: {

@@ -91,6 +91,32 @@ function submitPaymentReference({ transactionId, reference, screenshot, mimeType
   });
 }
 
+/** Backfills a screenshot for a transaction an admin already moved to
+ *  MANUAL_REVIEW (or beyond) by hand — the resident sent it directly
+ *  over WhatsApp instead of through the app's own upload step. Reuses
+ *  the same Drive folder/helper as submitPaymentReference() so it shows
+ *  up identically on the Needs Review list. Deliberately touches only
+ *  payment_screenshot_url (plus updated_at) — never status, amount, or
+ *  receipt fields, so it can't affect collection totals or reissue a
+ *  receipt; this is pure reconciliation, not a payment action. */
+function attachPaymentScreenshot(volunteer, transactionId, screenshot, mimeType) {
+  requirePermission(volunteer, "Finance");
+  requireFields({ transactionId, screenshot }, ["transactionId", "screenshot"]);
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.TRANSACTIONS);
+    const rowIndex = findRowIndexById(sheet, "transaction_id", transactionId);
+    if (rowIndex === -1) throw new ApiError("Unknown transaction", 404);
+
+    ensureColumn(sheet, "payment_screenshot_url");
+    const url = savePaymentScreenshot(screenshot, mimeType);
+    if (!url) throw new ApiError("Could not save screenshot — please try again", 500);
+
+    updateRowFields(sheet, rowIndex, { payment_screenshot_url: url, updated_at: new Date() });
+    logAudit(volunteer.email, "Attached payment screenshot", "Transaction", transactionId, "", url);
+    return { transactionId, screenshotUrl: url };
+  });
+}
+
 /** Lets a resident back out of their own still-pending donation (the
  *  "Cancel" option on the QR/reference screen) so it doesn't sit around
  *  as an orphaned PAYMENT_PENDING row forever. */
