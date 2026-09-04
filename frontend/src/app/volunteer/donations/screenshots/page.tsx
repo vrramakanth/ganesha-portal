@@ -21,9 +21,16 @@ const STATUS_TONE: Record<string, BadgeTone> = {
  *  FAILED (nothing to reconcile). */
 const RELEVANT_STATUSES = ["MANUAL_REVIEW", "SUCCESS", "VERIFIED_SUCCESS"];
 
+/** flat_number (and occasionally block) can come back as a genuine
+ *  number rather than a string — Google Sheets auto-converts a
+ *  numeric-looking cell like "023" to 23 unless that column is
+ *  formatted as plain text, which is easy to end up with on a row
+ *  edited by hand directly in the sheet. String() first so this never
+ *  crashes on a real but non-string value. */
 function sortByFlat(a: Transaction, b: Transaction) {
-  if (a.block !== b.block) return a.block.localeCompare(b.block);
-  return a.flat_number.localeCompare(b.flat_number);
+  const blockCompare = String(a.block).localeCompare(String(b.block));
+  if (blockCompare !== 0) return blockCompare;
+  return String(a.flat_number).localeCompare(String(b.flat_number));
 }
 
 export default function AttachScreenshotsPage() {
