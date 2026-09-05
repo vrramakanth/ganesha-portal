@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import { formatCurrency } from "@/lib/date";
+import { fileToBase64 } from "@/lib/file";
 import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
@@ -27,6 +28,8 @@ export default function VolunteerDonationsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [actioning, setActioning] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const { data: transactions, loading, error } = useAsync(
     () => api.volunteer.transactions(idToken as string),
@@ -72,6 +75,21 @@ export default function VolunteerDonationsPage() {
     }
   }
 
+  async function handleAttachScreenshot(transactionId: string, file: File | undefined) {
+    if (!file) return;
+    setActionError(null);
+    setUploadingId(transactionId);
+    try {
+      const base64 = await fileToBase64(file);
+      await api.volunteer.attachPaymentScreenshot(idToken as string, transactionId, base64, file.type || "image/jpeg");
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not upload screenshot.");
+    } finally {
+      setUploadingId(null);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="Donations" subtitle="Collections and payment review" />
@@ -114,7 +132,7 @@ export default function VolunteerDonationsPage() {
                     {t.payment_reference && (
                       <p className="text-xs text-muted">Ref: {t.payment_reference}</p>
                     )}
-                    {t.payment_screenshot_url && (
+                    {t.payment_screenshot_url ? (
                       <a
                         href={t.payment_screenshot_url}
                         target="_blank"
@@ -123,6 +141,26 @@ export default function VolunteerDonationsPage() {
                       >
                         View Screenshot
                       </a>
+                    ) : (
+                      <>
+                        <input
+                          ref={(el) => {
+                            fileInputRefs.current[t.transaction_id] = el;
+                          }}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleAttachScreenshot(t.transaction_id, e.target.files?.[0])}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          disabled={uploadingId === t.transaction_id}
+                          onClick={() => fileInputRefs.current[t.transaction_id]?.click()}
+                          className="inline-block text-xs font-semibold text-maroon disabled:opacity-60"
+                        >
+                          {uploadingId === t.transaction_id ? "Uploading…" : "Upload Screenshot"}
+                        </button>
+                      </>
                     )}
                     <div className="flex gap-2">
                       <button
