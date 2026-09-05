@@ -170,7 +170,9 @@ export default function VolunteerDonationsPage() {
               {Object.entries(byBlock).length === 0 && (
                 <p className="px-4 py-3 text-sm text-muted">No collections yet.</p>
               )}
-              {Object.entries(byBlock).map(([block, amount]) => (
+              {Object.entries(byBlock)
+                .sort(([a], [b]) => String(a).localeCompare(String(b)))
+                .map(([block, amount]) => (
                 <div key={block} className="px-4 py-3 flex items-center justify-between text-sm">
                   <p>{block}</p>
                   <p className="font-semibold">{formatCurrency(amount)}</p>
