@@ -16,7 +16,7 @@ export default function AuditLogPage() {
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader
         title="Audit Log"
-        subtitle="Sensitive volunteer actions"
+        subtitle="Sensitive organizer actions"
         backHref="/volunteer/more"
         backLabel="← More"
       />
