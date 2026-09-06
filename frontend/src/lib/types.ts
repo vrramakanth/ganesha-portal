@@ -225,6 +225,8 @@ export type Expense = {
   spender_name: string;
   spender_mobile: string;
   upi_id: string;
+  status: string;
+  admin_notes?: string;
   recorded_by: string;
   created_at: string;
 };

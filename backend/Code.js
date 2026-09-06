@@ -77,6 +77,8 @@ const ROUTES = {
       }),
   },
   "volunteer.expenses.list": { auth: true, handler: (p, v) => listExpenses(v) },
+  "volunteer.expenses.approve": { auth: true, handler: (p, v) => approveExpense(v, p.expenseId) },
+  "volunteer.expenses.reject": { auth: true, handler: (p, v) => rejectExpense(v, p.expenseId, p.notes) },
   "volunteer.expenses.settlementSummary": { auth: true, handler: (p, v) => getExpenseSettlementSummary(v) },
 };
 

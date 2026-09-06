@@ -292,6 +292,10 @@ export const api = {
       }
     ) => apiPost<Expense>("volunteer.expenses.record", { idToken, ...payload }),
     expensesList: (idToken: string) => apiGet<Expense[]>("volunteer.expenses.list", { idToken }),
+    approveExpense: (idToken: string, expenseId: string) =>
+      apiPost<{ expenseId: string; status: string }>("volunteer.expenses.approve", { idToken, expenseId }),
+    rejectExpense: (idToken: string, expenseId: string, notes?: string) =>
+      apiPost<{ expenseId: string; status: string }>("volunteer.expenses.reject", { idToken, expenseId, notes }),
     expensesSettlementSummary: (idToken: string) =>
       apiGet<ExpenseSettlement[]>("volunteer.expenses.settlementSummary", { idToken }),
   },

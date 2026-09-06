@@ -63,7 +63,9 @@ export default function MyStuffPage() {
   }
 
   const [donations, registrations, dinnerTokens, volunteerStatus, expenses] = data ?? [[], [], [], [], []];
-  const totalSpent = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const totalSpent = expenses
+    .filter((e) => e.status === "APPROVED")
+    .reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
@@ -173,7 +175,7 @@ export default function MyStuffPage() {
             {expenses.length === 0 && <Empty>No expenses recorded yet.</Empty>}
             {expenses.length > 0 && (
               <div className="px-4 py-3 flex items-center justify-between bg-saffron/5">
-                <p className="text-sm font-medium">Total spent</p>
+                <p className="text-sm font-medium">Total spent (approved)</p>
                 <p className="font-semibold text-maroon">{formatCurrency(totalSpent)}</p>
               </div>
             )}
@@ -190,6 +192,10 @@ export default function MyStuffPage() {
                       Receipt
                     </a>
                   )}
+                  <StatusBadge
+                    label={e.status}
+                    tone={e.status === "APPROVED" ? "success" : e.status === "REJECTED" ? "danger" : "warning"}
+                  />
                 </div>
               </Row>
             ))}

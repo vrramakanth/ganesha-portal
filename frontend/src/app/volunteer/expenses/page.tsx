@@ -9,6 +9,13 @@ import { formatCurrency } from "@/lib/date";
 import { fileToBase64 } from "@/lib/file";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
+import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
+
+const STATUS_TONE: Record<string, BadgeTone> = {
+  APPROVED: "success",
+  PENDING: "warning",
+  REJECTED: "danger",
+};
 
 function today() {
   return new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd, matches <input type="date">
@@ -39,6 +46,8 @@ export default function RecordExpensePage() {
   const [saved, setSaved] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [copiedFor, setCopiedFor] = useState<string | null>(null);
+  const [actioning, setActioning] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Pre-fills who's spending from this browser's saved profile (same
   // trick used on Donate/Dinner/Seva) — the common case is logging your
@@ -108,6 +117,32 @@ export default function RecordExpensePage() {
       setError(err instanceof ApiClientError ? err.message : "Could not record expense.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleApprove(expenseId: string) {
+    setActionError(null);
+    setActioning(expenseId);
+    try {
+      await api.volunteer.approveExpense(idToken as string, expenseId);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not approve expense.");
+    } finally {
+      setActioning(null);
+    }
+  }
+
+  async function handleReject(expenseId: string) {
+    setActionError(null);
+    setActioning(expenseId);
+    try {
+      await api.volunteer.rejectExpense(idToken as string, expenseId);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not reject expense.");
+    } finally {
+      setActioning(null);
     }
   }
 
@@ -222,6 +257,60 @@ export default function RecordExpensePage() {
 
       {canViewList && (
         <>
+          {actionError && <p className="text-sm text-red-600">{actionError}</p>}
+
+          {(() => {
+            const pending = expenses?.filter((e) => e.status === "PENDING") ?? [];
+            return (
+              pending.length > 0 && (
+                <section className="space-y-2">
+                  <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Needs Review</h2>
+                  <div className="rounded-xl border border-border bg-card divide-y divide-border">
+                    {pending.map((e) => (
+                      <div key={e.expense_id} className="px-4 py-3 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-sm">{e.purpose}</p>
+                            <p className="text-xs text-muted">
+                              {e.date} · {e.spender_name || e.spender_mobile}
+                            </p>
+                          </div>
+                          <p className="font-semibold text-maroon shrink-0">{formatCurrency(Number(e.amount))}</p>
+                        </div>
+                        {e.screenshot_url && (
+                          <a
+                            href={e.screenshot_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block text-xs font-semibold text-maroon"
+                          >
+                            View Receipt
+                          </a>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            disabled={actioning === e.expense_id}
+                            onClick={() => handleApprove(e.expense_id)}
+                            className="flex-1 rounded-lg bg-maroon py-2 text-xs font-semibold text-white disabled:opacity-60 active:bg-maroon-dark transition-colors"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            disabled={actioning === e.expense_id}
+                            onClick={() => handleReject(e.expense_id)}
+                            className="flex-1 rounded-lg border border-border py-2 text-xs font-semibold text-foreground disabled:opacity-60"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )
+            );
+          })()}
+
           <section className="space-y-2">
             <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Reimbursement Summary</h2>
             <p className="text-xs text-muted">Total owed to each volunteer, so they can be settled in one go.</p>
@@ -283,6 +372,7 @@ export default function RecordExpensePage() {
                         Receipt
                       </a>
                     )}
+                    <StatusBadge label={e.status} tone={STATUS_TONE[e.status] ?? "neutral"} />
                   </div>
                 </div>
               ))}
