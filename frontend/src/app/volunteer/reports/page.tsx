@@ -6,14 +6,15 @@ import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import PageHeader from "@/components/PageHeader";
 
 const REPORTS = [
-  { key: "donations", label: "Donation report" },
-  { key: "registrations", label: "Event registrations" },
-  { key: "dinner", label: "Dinner entitlements" },
-  { key: "volunteers", label: "Seva" },
+  { key: "donations", label: "Donation report", permission: "Finance" },
+  { key: "registrations", label: "Event registrations", permission: "Events" },
+  { key: "dinner", label: "Dinner entitlements", permission: "Dinner" },
+  { key: "volunteers", label: "Seva", permission: "Operations" },
 ];
 
 export default function ReportsPage() {
-  const { idToken } = useVolunteerAuth();
+  const { idToken, volunteer } = useVolunteerAuth();
+  const reports = REPORTS.filter((r) => volunteer?.permissions.includes(r.permission));
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +44,7 @@ export default function ReportsPage() {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="rounded-xl border border-border bg-card divide-y divide-border">
-        {REPORTS.map((r) => (
+        {reports.map((r) => (
           <div key={r.key} className="px-4 py-3 flex items-center justify-between gap-2">
             <p className="text-sm">{r.label}</p>
             <button

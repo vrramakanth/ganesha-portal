@@ -16,10 +16,12 @@ export default function VolunteerDashboardPage() {
   );
 
   const quickActions = [
-    { href: "/volunteer/donations", label: "Review Payments" },
+    ...(volunteer?.permissions.includes("Finance")
+      ? [{ href: "/volunteer/donations", label: "Review Payments" }]
+      : []),
     { href: "/volunteer/dinner/counter", label: "Dinner Counter" },
     { href: "/volunteer/events", label: "Events" },
-    ...(volunteer?.isSuperAdmin ? [{ href: "/volunteer/volunteers", label: "Seva" }] : []),
+    ...(volunteer?.permissions.includes("Operations") ? [{ href: "/volunteer/volunteers", label: "Seva" }] : []),
     { href: "/volunteer/reports", label: "Reports" },
   ];
 
@@ -33,8 +35,8 @@ export default function VolunteerDashboardPage() {
       {data && (
         <>
           <div className="grid grid-cols-2 gap-3">
-            <StatTile value={formatCurrency(data.collected)} label="Collected" />
-            <StatTile value={String(data.donationCount)} label="Donations" />
+            {data.collected !== null && <StatTile value={formatCurrency(data.collected)} label="Collected" />}
+            {data.donationCount !== null && <StatTile value={String(data.donationCount)} label="Donations" />}
             <StatTile value={data.mealsRegistered.toLocaleString()} label="Meals Registered" />
             <StatTile value={data.mealsServed.toLocaleString()} label="Meals Served" />
             <StatTile value={String(data.volunteerCount)} label="Seva Sign-Ups" />

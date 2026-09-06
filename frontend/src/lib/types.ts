@@ -207,8 +207,8 @@ export type Transaction = {
 };
 
 export type VolunteerDashboard = {
-  collected: number;
-  donationCount: number;
+  collected: number | null;
+  donationCount: number | null;
   mealsRegistered: number;
   mealsServed: number;
   volunteerCount: number;

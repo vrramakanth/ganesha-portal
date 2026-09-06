@@ -53,8 +53,12 @@ function approvedAreasFor(v) {
   return v.status === "ACTIVE" ? splitList(v.areas) : [];
 }
 
+/** Viewing the roster only needs Operations — approving/declining/
+ *  activating stays super-admin-only below. Lets an Operations-only
+ *  admin (no Finance) see who's signed up for Seva without being able
+ *  to act on requests yet. */
 function listVolunteers(volunteer) {
-  requireSuperAdmin(volunteer);
+  requirePermission(volunteer, "Operations");
   const volunteers = rowsToObjects(getSheet(SHEETS.VOLUNTEERS));
 
   const requirementsJson = getConfig("volunteer_requirements", "{}");

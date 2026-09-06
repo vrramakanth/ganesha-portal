@@ -10,12 +10,23 @@
  * this and check permissions server-side (spec §6, §38).
  */
 
-/** Every volunteer permission area (spec §4.2). Any admin row with
- *  active=TRUE is granted all of these — the Admins sheet's `permissions`
- *  column is not enforced. There is only one public-facing Volunteer role;
- *  the allowlist controls who can sign in at all, not what they can do
- *  once in. */
+/** Every volunteer permission area (spec §4.2). There is only one
+ *  public-facing Volunteer role — what an admin can actually do once
+ *  signed in comes from their own Admins-sheet `permissions` cell
+ *  (comma-separated, e.g. "Operations,Events,Dinner,Content"), read in
+ *  permissionsForAdmin() below. A blank cell means every existing admin
+ *  from before this was enforced keeps full access, rather than being
+ *  silently locked out the moment this shipped. */
 const ALL_PERMISSIONS = ["Operations", "Events", "Dinner", "Finance", "Content"];
+
+function permissionsForAdmin(admin) {
+  const raw = String(admin.permissions || "").trim();
+  if (!raw) return ALL_PERMISSIONS;
+  return raw
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => ALL_PERMISSIONS.includes(p));
+}
 
 /** Comma-separated emails, configurable via the Configuration sheet's
  *  `super_admin_email` key, that alone may approve volunteer applications
@@ -78,7 +89,7 @@ function verifyVolunteerToken(idToken) {
   return {
     email: payload.email,
     name: admin.name,
-    permissions: ALL_PERMISSIONS,
+    permissions: permissionsForAdmin(admin),
     isSuperAdmin: getSuperAdminEmails().includes(payload.email.toLowerCase()),
   };
 }

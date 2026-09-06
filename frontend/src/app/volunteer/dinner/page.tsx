@@ -9,7 +9,8 @@ import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
 
 export default function VolunteerDinnerPage() {
-  const { idToken } = useVolunteerAuth();
+  const { idToken, volunteer } = useVolunteerAuth();
+  const hasFinance = volunteer?.permissions.includes("Finance") ?? false;
   const { data: events } = useAsync(() => api.events.list(), []);
   const dinnerDays = (events ?? []).filter((e) => e.category === "Dinner");
 
@@ -26,8 +27,8 @@ export default function VolunteerDinnerPage() {
   );
 
   const { data: needsReview } = useAsync(
-    () => api.volunteer.dinnerPayments(idToken as string),
-    [idToken, refreshKey]
+    () => (hasFinance ? api.volunteer.dinnerPayments(idToken as string) : Promise.resolve([])),
+    [idToken, hasFinance, refreshKey]
   );
 
   async function handleApprove(entitlementId: string) {

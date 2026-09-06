@@ -70,18 +70,40 @@ function setConfig(key, value) {
   }
 }
 
+/** Configuration keys that touch money — where it goes (upi_vpa,
+ *  upi_payee_name) or how much (donation_goal, min/maximum_donation).
+ *  An Operations-only admin (no Finance permission) can manage every
+ *  other operational setting, but never these — otherwise "no access
+ *  to finance info" would still let them redirect where donations pay
+ *  out to. */
+const FINANCE_ONLY_CONFIG_KEYS = [
+  "donation_goal",
+  "minimum_donation",
+  "maximum_donation",
+  "upi_vpa",
+  "upi_payee_name",
+];
+
 /** Festival configuration (spec §43) — lets volunteers change operational
  *  values without a code change. Seeds the per-area Seva guideline rows
  *  (Volunteers.js) with defaults on first read so they're visible here
- *  to edit even before anyone's been approved yet. */
+ *  to edit even before anyone's been approved yet. Rows in
+ *  FINANCE_ONLY_CONFIG_KEYS are left out entirely for an admin without
+ *  the Finance permission, rather than just hidden client-side. */
 function listConfig(volunteer) {
   requirePermission(volunteer, "Operations");
   seedSevaGuidelineDefaults();
-  return rowsToObjects(getSheet(SHEETS.CONFIGURATION));
+  const rows = rowsToObjects(getSheet(SHEETS.CONFIGURATION));
+  if (volunteer.permissions.includes("Finance")) return rows;
+  return rows.filter((r) => !FINANCE_ONLY_CONFIG_KEYS.includes(r.key));
 }
 
 function updateConfig(volunteer, updates) {
   requirePermission(volunteer, "Operations");
+  const keys = Object.keys(updates || {});
+  if (keys.some((k) => FINANCE_ONLY_CONFIG_KEYS.includes(k))) {
+    requirePermission(volunteer, "Finance");
+  }
   Object.entries(updates || {}).forEach(([key, value]) => {
     const before = getConfig(key, "");
     setConfig(key, value);

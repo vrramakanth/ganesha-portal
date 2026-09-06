@@ -1,6 +1,13 @@
 /** Volunteer dashboard summary and CSV exports (spec §27, §31). */
 
+/** collected/donationCount (and the payment-review alert counts) are
+ *  financial figures — null'd out for an admin without the Finance
+ *  permission rather than just hidden client-side, same principle as
+ *  the Configuration split above. Meals/volunteer counts and the
+ *  events-closing-today alert aren't financial, so every admin sees
+ *  those regardless. */
 function getVolunteerDashboard(volunteer) {
+  const hasFinance = volunteer.permissions.includes("Finance");
   const transactions = rowsToObjects(getSheet(SHEETS.TRANSACTIONS));
   const successful = transactions.filter((t) => SUCCESS_STATUSES.includes(t.status));
   const allEntitlements = rowsToObjects(getSheet(SHEETS.ENTITLEMENTS));
@@ -9,10 +16,12 @@ function getVolunteerDashboard(volunteer) {
   const events = rowsToObjects(getSheet(SHEETS.EVENTS));
 
   const alerts = [];
-  const needsReview = transactions.filter((t) => t.status === "MANUAL_REVIEW").length;
-  if (needsReview > 0) alerts.push(`${needsReview} payments need review`);
-  const dinnerNeedsReview = allEntitlements.filter((e) => e.status === ENTITLEMENT_STATUS.MANUAL_REVIEW).length;
-  if (dinnerNeedsReview > 0) alerts.push(`${dinnerNeedsReview} dinner payments need review`);
+  if (hasFinance) {
+    const needsReview = transactions.filter((t) => t.status === "MANUAL_REVIEW").length;
+    if (needsReview > 0) alerts.push(`${needsReview} payments need review`);
+    const dinnerNeedsReview = allEntitlements.filter((e) => e.status === ENTITLEMENT_STATUS.MANUAL_REVIEW).length;
+    if (dinnerNeedsReview > 0) alerts.push(`${dinnerNeedsReview} dinner payments need review`);
+  }
 
   const closingToday = events.filter((e) => {
     if (!e.registration_deadline) return false;
@@ -22,8 +31,8 @@ function getVolunteerDashboard(volunteer) {
   if (closingToday > 0) alerts.push(`${closingToday} events close registration today`);
 
   return {
-    collected: successful.reduce((sum, t) => sum + Number(t.amount || 0), 0),
-    donationCount: successful.length,
+    collected: hasFinance ? successful.reduce((sum, t) => sum + Number(t.amount || 0), 0) : null,
+    donationCount: hasFinance ? successful.length : null,
     mealsRegistered: entitlements.reduce((sum, e) => sum + Number(e.allocated_quantity || 0), 0),
     mealsServed: entitlements.reduce((sum, e) => sum + Number(e.redeemed_quantity || 0), 0),
     volunteerCount: volunteers.length,
@@ -56,9 +65,19 @@ function toCsv(rows) {
   return lines.join("\n");
 }
 
+/** Only the donations export is actually financial — the others are
+ *  operational rosters/logs, so requiring Finance for all of them (as
+ *  before) was needlessly broad. */
+const REPORT_PERMISSIONS = {
+  donations: "Finance",
+  registrations: "Events",
+  dinner: "Dinner",
+  volunteers: "Operations",
+};
+
 function exportReportCsv(volunteer, reportKey) {
-  requirePermission(volunteer, "Finance");
-  const builder = REPORT_BUILDERS[reportKey];
-  if (!builder) throw new ApiError(`Unknown report: ${reportKey}`, 400);
-  return { filename: `${reportKey}.csv`, csv: toCsv(builder()) };
+  const requiredPermission = REPORT_PERMISSIONS[reportKey];
+  if (!requiredPermission) throw new ApiError(`Unknown report: ${reportKey}`, 400);
+  requirePermission(volunteer, requiredPermission);
+  return { filename: `${reportKey}.csv`, csv: toCsv(REPORT_BUILDERS[reportKey]()) };
 }

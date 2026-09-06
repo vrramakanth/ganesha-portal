@@ -95,7 +95,8 @@ function confirmationMessage(v: VolunteerRegistration, area: string, picks: Volu
 }
 
 export default function VolunteersPage() {
-  const { idToken } = useVolunteerAuth();
+  const { idToken, volunteer } = useVolunteerAuth();
+  const canManage = volunteer?.isSuperAdmin ?? false;
   const [refreshKey, setRefreshKey] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -322,7 +323,9 @@ export default function VolunteersPage() {
                             </div>
                           </div>
 
-                          {isAsking ? (
+                          {!canManage ? (
+                            <p className="text-xs text-muted">Awaiting admin approval.</p>
+                          ) : isAsking ? (
                             <div className="space-y-2">
                               <p className="text-xs font-semibold text-saffron-dark">
                                 This will decline the request and remove it from the list.
@@ -397,7 +400,7 @@ export default function VolunteersPage() {
                         {v.block} · {v.flat_number} · {v.areas}
                       </p>
                     </div>
-                    {v.status !== "ACTIVE" && (
+                    {canManage && v.status !== "ACTIVE" && (
                       <button
                         disabled={busyId === v.volunteer_id}
                         onClick={() => activate(v.volunteer_id)}
