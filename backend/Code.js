@@ -28,6 +28,7 @@ const ROUTES = {
   "dinner.mine": { handler: (p) => listMyDinnerTokens(p.mobile) },
   "volunteers.register": { handler: (p) => registerVolunteer(p) },
   "volunteers.mine": { handler: (p) => listMyVolunteerStatus(p.mobile) },
+  "expenses.mine": { handler: (p) => listMyExpenses(p.mobile) },
 
   // --- Volunteer (requires idToken; some also require a permission) ---
   "auth.check": { auth: true, handler: (p, v) => v },
@@ -63,9 +64,20 @@ const ROUTES = {
   "volunteer.bugs.updateStatus": { auth: true, handler: (p, v) => updateBugStatus(v, p.bugId, p.status) },
   "volunteer.expenses.record": {
     auth: true,
-    handler: (p, v) => recordExpense(v, { date: p.date, amount: p.amount, purpose: p.purpose, screenshot: p.screenshot, mimeType: p.mimeType }),
+    handler: (p, v) =>
+      recordExpense(v, {
+        date: p.date,
+        amount: p.amount,
+        purpose: p.purpose,
+        screenshot: p.screenshot,
+        mimeType: p.mimeType,
+        spenderName: p.spenderName,
+        spenderMobile: p.spenderMobile,
+        upiId: p.upiId,
+      }),
   },
   "volunteer.expenses.list": { auth: true, handler: (p, v) => listExpenses(v) },
+  "volunteer.expenses.settlementSummary": { auth: true, handler: (p, v) => getExpenseSettlementSummary(v) },
 };
 
 function doGet(e) {

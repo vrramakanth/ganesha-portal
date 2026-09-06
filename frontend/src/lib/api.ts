@@ -15,6 +15,7 @@ import type {
   EventRecord,
   EventRegistration,
   Expense,
+  ExpenseSettlement,
   ExtractReferenceResult,
   FestivalInfo,
   MyDinnerToken,
@@ -162,6 +163,9 @@ export const api = {
     }) => apiPost<VolunteerRegistration>("volunteers.register", payload),
     mine: (mobile: string) => apiGet<VolunteerRegistration[]>("volunteers.mine", { mobile }),
   },
+  expenses: {
+    mine: (mobile: string) => apiGet<Expense[]>("expenses.mine", { mobile }),
+  },
   volunteer: {
     authCheck: (idToken: string) => apiGet<Volunteer>("auth.check", { idToken }),
     dashboard: (idToken: string) => apiGet<VolunteerDashboard>("volunteer.dashboard", { idToken }),
@@ -276,8 +280,19 @@ export const api = {
       apiPost<{ bugId: string; status: string }>("volunteer.bugs.updateStatus", { idToken, bugId, status }),
     recordExpense: (
       idToken: string,
-      payload: { date: string; amount: number; purpose: string; screenshot?: string; mimeType?: string }
+      payload: {
+        date: string;
+        amount: number;
+        purpose: string;
+        screenshot?: string;
+        mimeType?: string;
+        spenderName?: string;
+        spenderMobile: string;
+        upiId?: string;
+      }
     ) => apiPost<Expense>("volunteer.expenses.record", { idToken, ...payload }),
     expensesList: (idToken: string) => apiGet<Expense[]>("volunteer.expenses.list", { idToken }),
+    expensesSettlementSummary: (idToken: string) =>
+      apiGet<ExpenseSettlement[]>("volunteer.expenses.settlementSummary", { idToken }),
   },
 };

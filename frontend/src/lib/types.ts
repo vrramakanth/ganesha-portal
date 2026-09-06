@@ -222,8 +222,19 @@ export type Expense = {
   amount: number;
   purpose: string;
   screenshot_url: string;
+  spender_name: string;
+  spender_mobile: string;
+  upi_id: string;
   recorded_by: string;
   created_at: string;
+};
+
+export type ExpenseSettlement = {
+  spenderMobile: string;
+  spenderName: string;
+  upiId: string;
+  total: number;
+  count: number;
 };
 
 export type VolunteerRosterArea = { area: string; filled: number; required: number };

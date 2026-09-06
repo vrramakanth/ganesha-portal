@@ -30,6 +30,7 @@ export default function MyStuffPage() {
             api.registrations.mine(activeMobile),
             api.dinner.mine(activeMobile),
             api.volunteers.mine(activeMobile),
+            api.expenses.mine(activeMobile),
           ])
         : Promise.resolve(null),
     [activeMobile]
@@ -61,7 +62,8 @@ export default function MyStuffPage() {
     );
   }
 
-  const [donations, registrations, dinnerTokens, volunteerStatus] = data ?? [[], [], [], []];
+  const [donations, registrations, dinnerTokens, volunteerStatus, expenses] = data ?? [[], [], [], [], []];
+  const totalSpent = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
@@ -165,6 +167,32 @@ export default function MyStuffPage() {
                 );
               });
             })}
+          </Section>
+
+          <Section title="My Expenses">
+            {expenses.length === 0 && <Empty>No expenses recorded yet.</Empty>}
+            {expenses.length > 0 && (
+              <div className="px-4 py-3 flex items-center justify-between bg-saffron/5">
+                <p className="text-sm font-medium">Total spent</p>
+                <p className="font-semibold text-maroon">{formatCurrency(totalSpent)}</p>
+              </div>
+            )}
+            {expenses.map((e) => (
+              <Row key={e.expense_id}>
+                <div>
+                  <p className="font-semibold text-sm">{e.purpose}</p>
+                  <p className="text-xs text-muted">{e.date}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-maroon">{formatCurrency(Number(e.amount))}</p>
+                  {e.screenshot_url && (
+                    <a href={e.screenshot_url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-maroon">
+                      Receipt
+                    </a>
+                  )}
+                </div>
+              </Row>
+            ))}
           </Section>
         </>
       )}

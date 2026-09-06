@@ -7,10 +7,11 @@ export type ResidentProfile = {
   mobile: string;
   block: string;
   flatNumber: string;
+  upiId?: string;
 };
 
 const STORAGE_KEY = "gwg_resident_profile";
-const EMPTY: ResidentProfile = { name: "", mobile: "", block: "", flatNumber: "" };
+const EMPTY: ResidentProfile = { name: "", mobile: "", block: "", flatNumber: "", upiId: "" };
 
 /** Persists the resident's own details in this browser only (spec §6:
  *  don't ask for the same information repeatedly). Not a security
@@ -41,7 +42,11 @@ export function useResidentProfile() {
     }
   }, []);
 
-  const save = (next: ResidentProfile) => {
+  // Merges rather than replaces — callers that only pass
+  // {name, mobile, block, flatNumber} (most of them) shouldn't
+  // silently wipe out a upiId saved separately elsewhere.
+  const save = (patch: Partial<ResidentProfile>) => {
+    const next = { ...profile, ...patch };
     setProfile(next);
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
