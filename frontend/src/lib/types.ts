@@ -213,6 +213,17 @@ export type VolunteerDashboard = {
   mealsServed: number;
   volunteerCount: number;
   alerts: string[];
+  festivalSummary: { income: number; expenses: number; balance: number };
+};
+
+export type Expense = {
+  expense_id: string;
+  date: string;
+  amount: number;
+  purpose: string;
+  screenshot_url: string;
+  recorded_by: string;
+  created_at: string;
 };
 
 export type VolunteerRosterArea = { area: string; filled: number; required: number };

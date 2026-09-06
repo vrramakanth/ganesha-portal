@@ -61,6 +61,11 @@ const ROUTES = {
   "volunteer.auditLog.list": { auth: true, handler: (p, v) => listAuditLog(v) },
   "volunteer.bugs.list": { auth: true, handler: (p, v) => listBugs(v) },
   "volunteer.bugs.updateStatus": { auth: true, handler: (p, v) => updateBugStatus(v, p.bugId, p.status) },
+  "volunteer.expenses.record": {
+    auth: true,
+    handler: (p, v) => recordExpense(v, { date: p.date, amount: p.amount, purpose: p.purpose, screenshot: p.screenshot, mimeType: p.mimeType }),
+  },
+  "volunteer.expenses.list": { auth: true, handler: (p, v) => listExpenses(v) },
 };
 
 function doGet(e) {

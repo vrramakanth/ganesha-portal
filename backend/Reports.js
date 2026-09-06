@@ -30,13 +30,21 @@ function getVolunteerDashboard(volunteer) {
   }).length;
   if (closingToday > 0) alerts.push(`${closingToday} events close registration today`);
 
+  const income = successful.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const expenses = getExpensesTotal();
+
   return {
-    collected: hasFinance ? successful.reduce((sum, t) => sum + Number(t.amount || 0), 0) : null,
+    collected: hasFinance ? income : null,
     donationCount: hasFinance ? successful.length : null,
     mealsRegistered: entitlements.reduce((sum, e) => sum + Number(e.allocated_quantity || 0), 0),
     mealsServed: entitlements.reduce((sum, e) => sum + Number(e.redeemed_quantity || 0), 0),
     volunteerCount: volunteers.length,
     alerts,
+    // Top-line only, shown to every admin regardless of Finance
+    // permission — a simple income/expense/balance summary (spec §28)
+    // isn't the same sensitivity as the detailed Donations transaction
+    // list or Settings' payment config, both of which stay Finance-gated.
+    festivalSummary: { income, expenses, balance: income - expenses },
   };
 }
 

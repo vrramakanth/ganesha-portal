@@ -22,6 +22,7 @@ export default function VolunteerDashboardPage() {
     { href: "/volunteer/dinner/counter", label: "Dinner Counter" },
     { href: "/volunteer/events", label: "Events" },
     ...(volunteer?.permissions.includes("Operations") ? [{ href: "/volunteer/volunteers", label: "Seva" }] : []),
+    { href: "/volunteer/expenses", label: "Record Expense" },
     { href: "/volunteer/reports", label: "Reports" },
   ];
 
@@ -34,6 +35,15 @@ export default function VolunteerDashboardPage() {
 
       {data && (
         <>
+          <section className="space-y-2">
+            <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Festival Summary</h2>
+            <div className="grid grid-cols-3 gap-3">
+              <StatTile value={formatCurrency(data.festivalSummary.income)} label="Income" />
+              <StatTile value={formatCurrency(data.festivalSummary.expenses)} label="Expenses" />
+              <StatTile value={formatCurrency(data.festivalSummary.balance)} label="Balance" />
+            </div>
+          </section>
+
           <div className="grid grid-cols-2 gap-3">
             {data.collected !== null && <StatTile value={formatCurrency(data.collected)} label="Collected" />}
             {data.donationCount !== null && <StatTile value={String(data.donationCount)} label="Donations" />}

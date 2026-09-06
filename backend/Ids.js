@@ -68,3 +68,8 @@ function generateBugId() {
   const seq = nextSequence("counter_bug");
   return `GWG-BUG-${pad(seq, 4)}`;
 }
+
+function generateExpenseId() {
+  const seq = nextSequence("counter_expense");
+  return `GWG-EXP-${pad(seq, 4)}`;
+}

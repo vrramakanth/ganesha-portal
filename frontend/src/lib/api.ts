@@ -14,6 +14,7 @@ import type {
   EntitlementRow,
   EventRecord,
   EventRegistration,
+  Expense,
   ExtractReferenceResult,
   FestivalInfo,
   MyDinnerToken,
@@ -164,7 +165,19 @@ export const api = {
   volunteer: {
     authCheck: (idToken: string) => apiGet<Volunteer>("auth.check", { idToken }),
     dashboard: (idToken: string) => apiGet<VolunteerDashboard>("volunteer.dashboard", { idToken }),
-    transactions: (idToken: string) => apiGet<Transaction[]>("volunteer.transactions", { idToken }),
+    // Dedupes by transaction_id defensively — a duplicate row in the
+    // Transactions sheet (e.g. from a manual edit) would otherwise
+    // double-count into totals and break React's list keys everywhere
+    // this feeds. Doesn't fix the underlying sheet, just the app's view.
+    transactions: async (idToken: string) => {
+      const rows = await apiGet<Transaction[]>("volunteer.transactions", { idToken });
+      const seen = new Set<string>();
+      return rows.filter((t) => {
+        if (seen.has(t.transaction_id)) return false;
+        seen.add(t.transaction_id);
+        return true;
+      });
+    },
     verifyPayment: (idToken: string, transactionId: string, notes?: string) =>
       apiPost<{ transactionId: string; status: string; receiptUrl: string }>("volunteer.payment.verify", {
         idToken,
@@ -261,5 +274,10 @@ export const api = {
     bugsList: (idToken: string) => apiGet<BugReport[]>("volunteer.bugs.list", { idToken }),
     updateBugStatus: (idToken: string, bugId: string, status: "OPEN" | "CLOSED") =>
       apiPost<{ bugId: string; status: string }>("volunteer.bugs.updateStatus", { idToken, bugId, status }),
+    recordExpense: (
+      idToken: string,
+      payload: { date: string; amount: number; purpose: string; screenshot?: string; mimeType?: string }
+    ) => apiPost<Expense>("volunteer.expenses.record", { idToken, ...payload }),
+    expensesList: (idToken: string) => apiGet<Expense[]>("volunteer.expenses.list", { idToken }),
   },
 };
