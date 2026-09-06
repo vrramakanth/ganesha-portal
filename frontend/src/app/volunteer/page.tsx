@@ -23,6 +23,9 @@ export default function VolunteerDashboardPage() {
     { href: "/volunteer/events", label: "Events" },
     ...(volunteer?.permissions.includes("Operations") ? [{ href: "/volunteer/volunteers", label: "Seva" }] : []),
     { href: "/volunteer/expenses", label: "Record Expense" },
+    ...(volunteer?.permissions.includes("Finance")
+      ? [{ href: "/volunteer/expenses/review", label: "Review Expenses" }]
+      : []),
     { href: "/volunteer/reports", label: "Reports" },
   ];
 

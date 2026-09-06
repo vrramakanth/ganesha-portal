@@ -1,35 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
-import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import { useResidentProfile } from "@/lib/useResidentProfile";
-import { formatCurrency } from "@/lib/date";
 import { fileToBase64 } from "@/lib/file";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
-import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
-
-const STATUS_TONE: Record<string, BadgeTone> = {
-  APPROVED: "success",
-  PENDING: "warning",
-  REJECTED: "danger",
-};
 
 function today() {
   return new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd, matches <input type="date">
 }
 
-/** Recording is open to any signed-in admin, not just Finance — the
- *  point is that whoever's holding the receipt right now can log it in
- *  a couple of taps instead of routing it through someone else. The
- *  itemized list and settlement summary below are Finance-only, though
- *  — the aggregate total is public (Dashboard's Festival Summary), but
- *  line-item detail (what was bought, by whom) is a Finance concern. */
+/** Open to any signed-in admin, not just Finance — the point is that
+ *  whoever's holding the receipt right now can log it in a couple of
+ *  taps instead of routing it through someone else. Reviewing what's
+ *  been recorded (approve/reject, reimbursement summary, full list) is
+ *  a separate Finance-only page — see /volunteer/expenses/review. */
 export default function RecordExpensePage() {
   const { idToken, volunteer } = useVolunteerAuth();
-  const canViewList = volunteer?.permissions.includes("Finance") ?? false;
+  const canReview = volunteer?.permissions.includes("Finance") ?? false;
   const { profile, saveProfile, loaded } = useResidentProfile();
 
   const [date, setDate] = useState(today());
@@ -44,10 +35,6 @@ export default function RecordExpensePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [copiedFor, setCopiedFor] = useState<string | null>(null);
-  const [actioning, setActioning] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   // Pre-fills who's spending from this browser's saved profile (same
   // trick used on Donate/Dinner/Seva) — the common case is logging your
@@ -60,16 +47,6 @@ export default function RecordExpensePage() {
     setUpiId((prev) => prev || profile.upiId || "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
-
-  const { data: expenses, loading } = useAsync(
-    () => (canViewList ? api.volunteer.expensesList(idToken as string) : Promise.resolve(null)),
-    [idToken, canViewList, refreshKey]
-  );
-
-  const { data: settlement, loading: loadingSettlement } = useAsync(
-    () => (canViewList ? api.volunteer.expensesSettlementSummary(idToken as string) : Promise.resolve(null)),
-    [idToken, canViewList, refreshKey]
-  );
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -112,7 +89,6 @@ export default function RecordExpensePage() {
       setPurpose("");
       setScreenshot(null);
       setSaved(true);
-      setRefreshKey((k) => k + 1);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not record expense.");
     } finally {
@@ -120,45 +96,15 @@ export default function RecordExpensePage() {
     }
   }
 
-  async function handleApprove(expenseId: string) {
-    setActionError(null);
-    setActioning(expenseId);
-    try {
-      await api.volunteer.approveExpense(idToken as string, expenseId);
-      setRefreshKey((k) => k + 1);
-    } catch (err) {
-      setActionError(err instanceof ApiClientError ? err.message : "Could not approve expense.");
-    } finally {
-      setActioning(null);
-    }
-  }
-
-  async function handleReject(expenseId: string) {
-    setActionError(null);
-    setActioning(expenseId);
-    try {
-      await api.volunteer.rejectExpense(idToken as string, expenseId);
-      setRefreshKey((k) => k + 1);
-    } catch (err) {
-      setActionError(err instanceof ApiClientError ? err.message : "Could not reject expense.");
-    } finally {
-      setActioning(null);
-    }
-  }
-
-  async function copyUpiId(id: string) {
-    try {
-      await navigator.clipboard.writeText(id);
-      setCopiedFor(id);
-      setTimeout(() => setCopiedFor(null), 2000);
-    } catch {
-      // ignore — clipboard access blocked, nothing to fall back to here
-    }
-  }
-
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="Record Expense" backHref="/volunteer" backLabel="← Dashboard" />
+
+      {canReview && (
+        <Link href="/volunteer/expenses/review" className="text-xs font-medium text-maroon underline -mt-4">
+          Review Expenses →
+        </Link>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
@@ -254,132 +200,6 @@ export default function RecordExpensePage() {
           {submitting ? "Saving…" : "Record Expense"}
         </button>
       </form>
-
-      {canViewList && (
-        <>
-          {actionError && <p className="text-sm text-red-600">{actionError}</p>}
-
-          {(() => {
-            const pending = expenses?.filter((e) => e.status === "PENDING") ?? [];
-            return (
-              pending.length > 0 && (
-                <section className="space-y-2">
-                  <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Needs Review</h2>
-                  <div className="rounded-xl border border-border bg-card divide-y divide-border">
-                    {pending.map((e) => (
-                      <div key={e.expense_id} className="px-4 py-3 space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-semibold text-sm">{e.purpose}</p>
-                            <p className="text-xs text-muted">
-                              {e.date} · {e.spender_name || e.spender_mobile}
-                            </p>
-                          </div>
-                          <p className="font-semibold text-maroon shrink-0">{formatCurrency(Number(e.amount))}</p>
-                        </div>
-                        {e.screenshot_url && (
-                          <a
-                            href={e.screenshot_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block text-xs font-semibold text-maroon"
-                          >
-                            View Receipt
-                          </a>
-                        )}
-                        <div className="flex gap-2">
-                          <button
-                            disabled={actioning === e.expense_id}
-                            onClick={() => handleApprove(e.expense_id)}
-                            className="flex-1 rounded-lg bg-maroon py-2 text-xs font-semibold text-white disabled:opacity-60 active:bg-maroon-dark transition-colors"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            disabled={actioning === e.expense_id}
-                            onClick={() => handleReject(e.expense_id)}
-                            className="flex-1 rounded-lg border border-border py-2 text-xs font-semibold text-foreground disabled:opacity-60"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )
-            );
-          })()}
-
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Reimbursement Summary</h2>
-            <p className="text-xs text-muted">Total owed to each volunteer, so they can be settled in one go.</p>
-            <div className="rounded-xl border border-border bg-card divide-y divide-border">
-              {loadingSettlement && <p className="px-4 py-3 text-sm text-muted">Loading…</p>}
-              {!loadingSettlement && settlement?.length === 0 && (
-                <p className="px-4 py-3 text-sm text-muted">Nothing to settle yet.</p>
-              )}
-              {settlement?.map((s) => (
-                <div key={s.spenderMobile} className="px-4 py-3 flex items-center justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-sm">{s.spenderName || s.spenderMobile}</p>
-                    <p className="text-xs text-muted">
-                      {s.spenderMobile} · {s.count} expense{s.count === 1 ? "" : "s"}
-                      {s.upiId ? ` · ${s.upiId}` : " · no UPI ID on file"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <p className="font-semibold text-maroon">{formatCurrency(s.total)}</p>
-                    {s.upiId && (
-                      <button
-                        type="button"
-                        onClick={() => copyUpiId(s.upiId)}
-                        className="text-xs font-semibold text-maroon underline"
-                      >
-                        {copiedFor === s.upiId ? "Copied ✓" : "Copy UPI"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Recent Expenses</h2>
-            <div className="rounded-xl border border-border bg-card divide-y divide-border">
-              {loading && <p className="px-4 py-3 text-sm text-muted">Loading…</p>}
-              {!loading && expenses?.length === 0 && (
-                <p className="px-4 py-3 text-sm text-muted">No expenses recorded yet.</p>
-              )}
-              {expenses?.map((e) => (
-                <div key={e.expense_id} className="px-4 py-3 flex items-center justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-sm">{e.purpose}</p>
-                    <p className="text-xs text-muted">
-                      {e.date} · {e.spender_name || e.spender_mobile}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-maroon">{formatCurrency(Number(e.amount))}</p>
-                    {e.screenshot_url && (
-                      <a
-                        href={e.screenshot_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-semibold text-maroon underline"
-                      >
-                        Receipt
-                      </a>
-                    )}
-                    <StatusBadge label={e.status} tone={STATUS_TONE[e.status] ?? "neutral"} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </>
-      )}
     </div>
   );
 }
