@@ -39,6 +39,35 @@ function getEvent(eventId) {
   return event;
 }
 
+const EVENT_STATUSES = ["DRAFT", "OPEN", "FULL", "CLOSED", "CANCELLED", "COMPLETED"];
+
+/** Publish/Close/Cancel on the admin Events page all funnel through
+ *  here — a created event otherwise stays DRAFT (and so invisible to
+ *  residents, per listEvents' status !== "DRAFT" filter on the
+ *  frontend) forever, with no in-app way to change that (spec §14's
+ *  status lifecycle existed on paper but had no way to actually move
+ *  through it). CANCELLED/COMPLETED are treated as terminal — nothing
+ *  meaningful to do with an event that's already been called off or
+ *  has already happened. */
+function updateEventStatus(volunteer, eventId, status) {
+  requirePermission(volunteer, "Events");
+  if (!EVENT_STATUSES.includes(status)) throw new ApiError(`Invalid status: ${status}`, 400);
+
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.EVENTS);
+    const rowIndex = findRowIndexById(sheet, "event_id", eventId);
+    if (rowIndex === -1) throw new ApiError("Unknown event", 404);
+    const before = getRowObject(sheet, rowIndex);
+    if (before.status === "CANCELLED" || before.status === "COMPLETED") {
+      throw new ApiError(`Cannot change status of a ${before.status.toLowerCase()} event`, 400);
+    }
+
+    updateRowFields(sheet, rowIndex, { status });
+    logAudit(volunteer.email, "Updated event status", "Event", eventId, before.status, status);
+    return { eventId, status };
+  });
+}
+
 function countRegistrations(eventId) {
   return rowsToObjects(getSheet(SHEETS.EVENT_REGISTRATIONS)).filter(
     (r) => r.event_id === eventId && r.status !== "CANCELLED"

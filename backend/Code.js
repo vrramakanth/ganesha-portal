@@ -41,6 +41,7 @@ const ROUTES = {
     handler: (p, v) => attachPaymentScreenshot(v, p.transactionId, p.screenshot, p.mimeType),
   },
   "volunteer.events.create": { auth: true, handler: (p, v) => createEvent(v, p) },
+  "volunteer.events.updateStatus": { auth: true, handler: (p, v) => updateEventStatus(v, p.eventId, p.status) },
   "volunteer.events.registrations": { auth: true, handler: (p, v) => listRegistrationsForEvent(v, p.eventId) },
   "volunteer.events.checkin": { auth: true, handler: (p, v) => checkInRegistration(v, p.registrationId) },
   "volunteer.dinner.dashboard": { auth: true, handler: (p) => getDinnerDashboard(p.eventId) },

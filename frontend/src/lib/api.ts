@@ -218,6 +218,8 @@ export const api = {
         tokenCode?: string;
       }
     ) => apiPost<EventRecord>("volunteer.events.create", { idToken, ...payload }),
+    updateEventStatus: (idToken: string, eventId: string, status: string) =>
+      apiPost<{ eventId: string; status: string }>("volunteer.events.updateStatus", { idToken, eventId, status }),
     eventRegistrations: (idToken: string, eventId: string) =>
       apiGet<EventRegistration[]>("volunteer.events.registrations", { idToken, eventId }),
     checkIn: (idToken: string, registrationId: string) =>

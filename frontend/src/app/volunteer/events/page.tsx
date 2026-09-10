@@ -25,6 +25,8 @@ export default function VolunteerEventsPage() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [actioning, setActioning] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const { data: events, loading, error: loadError } = useAsync(() => api.events.list(), [refreshKey]);
   const canCreate = volunteer?.permissions.includes("Events");
@@ -51,6 +53,19 @@ export default function VolunteerEventsPage() {
       setError(err instanceof ApiClientError ? err.message : "Could not create event.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleStatusChange(eventId: string, status: string) {
+    setActionError(null);
+    setActioning(eventId);
+    try {
+      await api.volunteer.updateEventStatus(idToken as string, eventId, status);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not update event.");
+    } finally {
+      setActioning(null);
     }
   }
 
@@ -100,6 +115,7 @@ export default function VolunteerEventsPage() {
 
       {loading && <p className="text-sm text-muted">Loading events…</p>}
       {loadError && <p className="text-sm text-red-600">{loadError}</p>}
+      {actionError && <p className="text-sm text-red-600">{actionError}</p>}
 
       <div className="rounded-xl border border-border bg-card divide-y divide-border">
         {(events ?? []).length === 0 && !loading && (
@@ -116,7 +132,34 @@ export default function VolunteerEventsPage() {
               </div>
               <StatusBadge label={event.status} tone={STATUS_TONE[event.status] ?? "neutral"} />
             </div>
-            <div className="flex items-center justify-end">
+            <div className="flex items-center justify-end gap-2 flex-wrap">
+              {canCreate && (event.status === "DRAFT" || event.status === "CLOSED") && (
+                <button
+                  disabled={actioning === event.event_id}
+                  onClick={() => handleStatusChange(event.event_id, "OPEN")}
+                  className="rounded-lg bg-maroon px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                >
+                  Publish
+                </button>
+              )}
+              {canCreate && (event.status === "OPEN" || event.status === "FULL") && (
+                <button
+                  disabled={actioning === event.event_id}
+                  onClick={() => handleStatusChange(event.event_id, "CLOSED")}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground disabled:opacity-60"
+                >
+                  Close
+                </button>
+              )}
+              {canCreate && event.status !== "CANCELLED" && event.status !== "COMPLETED" && (
+                <button
+                  disabled={actioning === event.event_id}
+                  onClick={() => handleStatusChange(event.event_id, "CANCELLED")}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+              )}
               <Link
                 href={`/volunteer/events/checkin?event=${event.event_id}`}
                 className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-maroon"
