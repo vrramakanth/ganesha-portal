@@ -53,13 +53,36 @@ function getSpreadsheetId() {
   );
 }
 
+const CONFIG_CACHE_KEY = "configuration_rows";
+const CONFIG_CACHE_SECONDS = 300; // 5 min, same as public stats
+
+/** SpreadsheetApp.openById() cost scales with the whole file's size, not
+ *  just the sheet being read — and getConfig() used to call it fresh on
+ *  every single invocation. Several call sites read multiple keys per
+ *  request (getFestivalInfo: 9, createDonation: 2, generateReceipt: 2,
+ *  the Seva guideline seeding: 2), so as the spreadsheet has grown from
+ *  real use this week, each of those requests was paying that full-open
+ *  cost multiple times over. Caching the whole Configuration sheet here
+ *  — the lowest common layer — fixes all of those at once instead of
+ *  needing a separate cache at each call site. */
+function getConfigRows_() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(CONFIG_CACHE_KEY);
+  if (cached) return JSON.parse(cached);
+  const rows = rowsToObjects(getSheet(SHEETS.CONFIGURATION));
+  cache.put(CONFIG_CACHE_KEY, JSON.stringify(rows), CONFIG_CACHE_SECONDS);
+  return rows;
+}
+
 /** Reads a value from the Configuration sheet (key/value rows). */
 function getConfig(key, fallback) {
-  const rows = rowsToObjects(getSheet(SHEETS.CONFIGURATION));
+  const rows = getConfigRows_();
   const row = rows.find((r) => r.key === key);
   return row ? row.value : fallback;
 }
 
+/** Invalidated on every write below, so an admin's change takes effect
+ *  on the very next read rather than waiting out the cache TTL. */
 function setConfig(key, value) {
   const sheet = getSheet(SHEETS.CONFIGURATION);
   const rowIndex = findRowIndexById(sheet, "key", key);
@@ -68,6 +91,7 @@ function setConfig(key, value) {
   } else {
     updateRowFields(sheet, rowIndex, { value });
   }
+  CacheService.getScriptCache().remove(CONFIG_CACHE_KEY);
 }
 
 /** Configuration keys that touch money — where it goes (upi_vpa,
@@ -93,7 +117,7 @@ const FINANCE_ONLY_CONFIG_KEYS = [
 function listConfig(volunteer) {
   requirePermission(volunteer, "Operations");
   seedSevaGuidelineDefaults();
-  const rows = rowsToObjects(getSheet(SHEETS.CONFIGURATION));
+  const rows = getConfigRows_();
   if (volunteer.permissions.includes("Finance")) return rows;
   return rows.filter((r) => !FINANCE_ONLY_CONFIG_KEYS.includes(r.key));
 }
