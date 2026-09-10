@@ -100,6 +100,7 @@ export const api = {
       mobile: string;
       parentName?: string;
       parentMobile?: string;
+      subCategory?: string;
     }) => apiPost<EventRegistration>("events.register", payload),
   },
   stats: {

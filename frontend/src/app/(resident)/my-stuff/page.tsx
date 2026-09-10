@@ -113,7 +113,10 @@ export default function MyStuffPage() {
               <Row key={r.registration_id}>
                 <div>
                   <p className="font-semibold text-sm">{r.participant_name}</p>
-                  <p className="text-xs text-muted">{r.registration_id}</p>
+                  <p className="text-xs text-muted">
+                    {r.sub_category ? `${r.sub_category} · ` : ""}
+                    {r.registration_id}
+                  </p>
                 </div>
                 <StatusBadge label={r.check_in_at ? "CHECKED IN" : r.status} tone={r.check_in_at ? "success" : "info"} />
               </Row>

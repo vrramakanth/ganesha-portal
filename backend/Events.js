@@ -74,12 +74,18 @@ function countRegistrations(eventId) {
   ).length;
 }
 
+/** Fixed nomination types for a Cultural event — a single "Cultural
+ *  Program" event takes nominations across several performance types,
+ *  so this is a property of each registration, not of the event
+ *  itself. */
+const CULTURAL_SUB_CATEGORIES = ["Dance", "Vocal", "Instrument", "Recitation", "Other"];
+
 /** `mobile` is the registering resident's own contact — it's how "My
  *  Registrations" looks results up (spec §6: no OTP session yet, so
  *  mobile doubles as the identity key everywhere). `parentName`/
  *  `parentMobile` are kept separate and optional, for the children's-event
  *  form fields in spec §15 — they're display-only, not used for lookup. */
-function registerForEvent({ eventId, participantName, participantAge, block, flatNumber, mobile, parentName, parentMobile }) {
+function registerForEvent({ eventId, participantName, participantAge, block, flatNumber, mobile, parentName, parentMobile, subCategory }) {
   requireFields({ eventId, participantName, block, flatNumber, mobile }, [
     "eventId",
     "participantName",
@@ -97,8 +103,14 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
   }
   validateBlock(block);
 
+  if (event.category === "Cultural" && !CULTURAL_SUB_CATEGORIES.includes(subCategory)) {
+    throw new ApiError(`Pick a performance type: ${CULTURAL_SUB_CATEGORIES.join(", ")}`, 400);
+  }
+
   const resident = upsertResident({ name: participantName, mobile, block, flatNumber });
 
+  const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+  ensureColumn(sheet, "sub_category");
   const registration = {
     registration_id: generateRegistrationId(),
     event_id: eventId,
@@ -110,11 +122,12 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
     mobile,
     parent_name: parentName || "",
     parent_mobile: parentMobile || "",
+    sub_category: event.category === "Cultural" ? subCategory : "",
     status: "CONFIRMED",
     check_in_at: "",
     created_at: new Date(),
   };
-  appendObject(getSheet(SHEETS.EVENT_REGISTRATIONS), registration);
+  appendObject(sheet, registration);
   return registration;
 }
 

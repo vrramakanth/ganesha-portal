@@ -42,3 +42,18 @@ body {
 .animate-marquee {
   animation: marquee linear infinite;
 }
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 0 transparent;
+  }
+  50% {
+    opacity: 0.65;
+    text-shadow: 0 0 8px var(--saffron);
+  }
+}
+
+.animate-twinkle {
+  animation: twinkle 1.6s ease-in-out infinite;
+}

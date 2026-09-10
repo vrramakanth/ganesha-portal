@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
@@ -12,6 +11,11 @@ import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 
+/** A single "Cultural" event takes nominations across several
+ *  performance types, so this is a choice on the registration, not a
+ *  property of the event. */
+const CULTURAL_SUB_CATEGORIES = ["Dance", "Vocal", "Instrument", "Recitation", "Other"];
+
 export default function EventDetailClient({ eventId }: { eventId: string }) {
   const { data: events, loading, error } = useAsync(() => api.events.list(), []);
   const event = (events ?? []).find((e) => e.event_id === eventId);
@@ -19,6 +23,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
 
   const [participantName, setParticipantName] = useState("");
   const [participantAge, setParticipantAge] = useState("");
+  const [subCategory, setSubCategory] = useState("");
   const [mobile, setMobile] = useState("");
   const [block, setBlock] = useState("");
   const [flatNumber, setFlatNumber] = useState("");
@@ -45,12 +50,17 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   const fields = { participantName, mobile, block, flatNumber };
 
   const canRegister = event.status === "OPEN" && Number(event.fee || 0) === 0;
+  const isCultural = event.category === "Cultural";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
     if (!/^[6-9]\d{9}$/.test(fields.mobile)) {
       setSubmitError("Enter a valid 10-digit mobile number.");
+      return;
+    }
+    if (isCultural && !subCategory) {
+      setSubmitError("Pick a performance type.");
       return;
     }
     setSubmitting(true);
@@ -62,6 +72,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         block: fields.block,
         flatNumber: fields.flatNumber,
         mobile: fields.mobile,
+        subCategory: isCultural ? subCategory : undefined,
       });
       saveProfile({ name: fields.participantName, mobile: fields.mobile, block: fields.block, flatNumber: fields.flatNumber });
       setRegistration(result);
@@ -76,11 +87,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
     return (
       <div className="flex flex-col gap-6 px-5 pt-8 items-center text-center">
         <PageHeader title="You're registered!" subtitle={event.name} backHref="/events" backLabel="← Events" />
-        <div className="rounded-xl border border-border bg-card p-6">
-          <QRCodeSVG value={registration.registration_id} size={180} />
-        </div>
         <p className="text-sm text-muted">Registration ID: {registration.registration_id}</p>
-        <p className="text-sm text-muted">Show this QR at the event entrance for check-in.</p>
       </div>
     );
   }
@@ -117,6 +124,26 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
               className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
             />
           </div>
+          {isCultural && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Performance Type</label>
+              <select
+                required
+                value={subCategory}
+                onChange={(e) => setSubCategory(e.target.value)}
+                className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
+              >
+                <option value="" disabled>
+                  Choose one
+                </option>
+                {CULTURAL_SUB_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {event.age_group && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Age</label>

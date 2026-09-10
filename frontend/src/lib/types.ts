@@ -96,6 +96,7 @@ export type EventRegistration = {
   mobile: string;
   parent_name: string;
   parent_mobile: string;
+  sub_category?: string;
   status: string;
   check_in_at: string;
   created_at: string;

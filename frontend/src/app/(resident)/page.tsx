@@ -71,18 +71,29 @@ export default function Home() {
           <p className="text-sm text-muted">No upcoming events yet.</p>
         )}
         <div className="space-y-2">
-          {upcoming.map((event) => (
-            <div
-              key={event.event_id}
-              className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3"
-            >
-              <div>
-                <p className="text-xs font-medium text-saffron">{formatEventWhen(event.date)}</p>
-                <p className="font-semibold">{event.name}</p>
-              </div>
-              <p className="text-sm text-muted">{formatEventTime(event.start_time)}</p>
-            </div>
-          ))}
+          {upcoming.map((event) => {
+            const canRegister = event.status === "OPEN" && Number(event.fee || 0) === 0;
+            return (
+              <Link
+                key={event.event_id}
+                href={`/events/${event.event_id}`}
+                className="block rounded-xl border border-border bg-card px-4 py-3 active:bg-background transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-saffron">{formatEventWhen(event.date)}</p>
+                    <p className="font-semibold">{event.name}</p>
+                  </div>
+                  <p className="text-sm text-muted">{formatEventTime(event.start_time)}</p>
+                </div>
+                {canRegister && (
+                  <p className="animate-twinkle mt-1 text-xs font-bold text-saffron">
+                    ✨ Register now →
+                  </p>
+                )}
+              </Link>
+            );
+          })}
         </div>
         <Link
           href="/events"
