@@ -4,7 +4,16 @@
  *  event actually offers lives on that event's own sub_categories field
  *  (comma-separated); this constant is only the full set to choose from,
  *  and the fallback when an event hasn't set that field yet. */
-export const CULTURAL_SUB_CATEGORIES = ["Dance", "Vocal", "Instrument", "Recitation", "Other"];
+export const CULTURAL_SUB_CATEGORIES = ["Dance", "Vocal/Singing", "Instrument", "Recitation", "Other"];
+
+/** Renamed option labels — a value already saved on an event's
+ *  sub_categories under an old name still needs to keep matching (and
+ *  show as checked in the edit form) after the rename, without requiring
+ *  every existing event to be re-saved by hand. */
+const SUB_CATEGORY_ALIASES: Record<string, string> = { Vocal: "Vocal/Singing" };
+function normalizeSubCategory(name: string): string {
+  return SUB_CATEGORY_ALIASES[name] || name;
+}
 
 /** Parses an event's raw sub_categories field with no fallback — "" stays
  *  []. Used to seed the admin edit form's checkboxes with exactly what's
@@ -13,7 +22,7 @@ export const CULTURAL_SUB_CATEGORIES = ["Dance", "Vocal", "Instrument", "Recitat
 export function parseSubCategories(subCategories?: string): string[] {
   return String(subCategories || "")
     .split(",")
-    .map((s) => s.trim())
+    .map((s) => normalizeSubCategory(s.trim()))
     .filter(Boolean);
 }
 

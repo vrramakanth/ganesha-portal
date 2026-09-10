@@ -6,14 +6,23 @@
  *  menu an organizer picks from per-event (via sub_categories below), not
  *  a set every Cultural event must offer — a Bhajan event and a general
  *  Cultural Program don't need the same options. */
-const CULTURAL_SUB_CATEGORIES = ["Dance", "Vocal", "Instrument", "Recitation", "Other"];
+const CULTURAL_SUB_CATEGORIES = ["Dance", "Vocal/Singing", "Instrument", "Recitation", "Other"];
+
+/** Renamed option labels — a value already saved on an event's
+ *  sub_categories (or on a past registration's sub_category) under an
+ *  old name still needs to keep matching after the rename, without
+ *  requiring every existing event to be re-saved by hand. */
+const SUB_CATEGORY_ALIASES = { Vocal: "Vocal/Singing" };
+function normalizeSubCategory(name) {
+  return SUB_CATEGORY_ALIASES[name] || name;
+}
 
 /** Comma-joins a validated subset of CULTURAL_SUB_CATEGORIES for storage,
  *  or "" for a non-Cultural event — used by both create and edit so the
  *  column always reflects the current category. */
 function buildSubCategories(category, subCategories) {
   if (category !== "Cultural") return "";
-  const list = Array.isArray(subCategories) ? subCategories : [];
+  const list = (Array.isArray(subCategories) ? subCategories : []).map(normalizeSubCategory);
   const invalid = list.filter((c) => !CULTURAL_SUB_CATEGORIES.includes(c));
   if (invalid.length) throw new ApiError(`Invalid sub-category: ${invalid.join(", ")}`, 400);
   return list.join(",");
@@ -160,13 +169,14 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
   }
   validateBlock(block);
 
+  const normalizedSubCategory = normalizeSubCategory(subCategory);
   if (event.category === "Cultural") {
     const allowed = String(event.sub_categories || "")
       .split(",")
-      .map((s) => s.trim())
+      .map((s) => normalizeSubCategory(s.trim()))
       .filter(Boolean);
     const options = allowed.length ? allowed : CULTURAL_SUB_CATEGORIES;
-    if (!options.includes(subCategory)) {
+    if (!options.includes(normalizedSubCategory)) {
       throw new ApiError(`Pick a performance type: ${options.join(", ")}`, 400);
     }
   }
@@ -186,7 +196,7 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
     mobile,
     parent_name: parentName || "",
     parent_mobile: parentMobile || "",
-    sub_category: event.category === "Cultural" ? subCategory : "",
+    sub_category: event.category === "Cultural" ? normalizedSubCategory : "",
     status: "CONFIRMED",
     check_in_at: "",
     created_at: new Date(),
