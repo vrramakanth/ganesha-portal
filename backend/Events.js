@@ -2,13 +2,35 @@
  *  (spec §48) — only free events can be registered for here; a paid event
  *  should stay DRAFT until that flow exists. */
 
+/** Fixed nomination types offered for Cultural events. This is the master
+ *  menu an organizer picks from per-event (via sub_categories below), not
+ *  a set every Cultural event must offer — a Bhajan event and a general
+ *  Cultural Program don't need the same options. */
+const CULTURAL_SUB_CATEGORIES = ["Dance", "Vocal", "Instrument", "Recitation", "Other"];
+
+/** Comma-joins a validated subset of CULTURAL_SUB_CATEGORIES for storage,
+ *  or "" for a non-Cultural event — used by both create and edit so the
+ *  column always reflects the current category. */
+function buildSubCategories(category, subCategories) {
+  if (category !== "Cultural") return "";
+  const list = Array.isArray(subCategories) ? subCategories : [];
+  const invalid = list.filter((c) => !CULTURAL_SUB_CATEGORIES.includes(c));
+  if (invalid.length) throw new ApiError(`Invalid sub-category: ${invalid.join(", ")}`, 400);
+  return list.join(",");
+}
+
 function listEvents() {
-  return rowsToObjects(getSheet(SHEETS.EVENTS));
+  const sheet = getSheet(SHEETS.EVENTS);
+  ensureColumn(sheet, "sub_categories");
+  return rowsToObjects(sheet);
 }
 
 function createEvent(volunteer, payload) {
   requirePermission(volunteer, "Events");
   requireFields(payload, ["name", "date", "startTime", "location", "category"]);
+
+  const sheet = getSheet(SHEETS.EVENTS);
+  ensureColumn(sheet, "sub_categories");
 
   const event = {
     event_id: `EVT-${Utilities.getUuid().slice(0, 8)}`,
@@ -27,14 +49,55 @@ function createEvent(volunteer, payload) {
     status: payload.status || "DRAFT",
     contact_volunteer: volunteer.email,
     token_code: payload.tokenCode || "",
+    sub_categories: buildSubCategories(payload.category, payload.subCategories),
   };
-  appendObject(getSheet(SHEETS.EVENTS), event);
+  appendObject(sheet, event);
   logAudit(volunteer.email, "Created event", "Event", event.event_id, "", event.name);
   return event;
 }
 
+/** Edits an existing event's details — the "Publish/Close/Cancel" buttons
+ *  remain the only way to change status, so this deliberately never
+ *  touches it, to keep lifecycle transitions on a single path. Lets an
+ *  organizer fix a mistake (e.g. a Cultural event published with the
+ *  wrong sub-categories) without deleting and recreating the event and
+ *  losing its existing registrations. */
+function updateEvent(volunteer, eventId, payload) {
+  requirePermission(volunteer, "Events");
+  requireFields(payload, ["name", "date", "startTime", "location", "category"]);
+
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.EVENTS);
+    ensureColumn(sheet, "sub_categories");
+    const rowIndex = findRowIndexById(sheet, "event_id", eventId);
+    if (rowIndex === -1) throw new ApiError("Unknown event", 404);
+    const before = getRowObject(sheet, rowIndex);
+
+    const fields = {
+      name: payload.name,
+      description: payload.description || "",
+      date: payload.date,
+      start_time: payload.startTime,
+      end_time: payload.endTime || "",
+      location: payload.location,
+      category: payload.category,
+      age_group: payload.ageGroup || "",
+      capacity: payload.capacity || "",
+      registration_required: payload.registrationRequired ? "TRUE" : "FALSE",
+      registration_deadline: payload.registrationDeadline || "",
+      fee: payload.fee || 0,
+      sub_categories: buildSubCategories(payload.category, payload.subCategories),
+    };
+    updateRowFields(sheet, rowIndex, fields);
+    logAudit(volunteer.email, "Edited event", "Event", eventId, before.name, fields.name);
+    return Object.assign({}, before, fields, { event_id: eventId });
+  });
+}
+
 function getEvent(eventId) {
-  const event = rowsToObjects(getSheet(SHEETS.EVENTS)).find((e) => e.event_id === eventId);
+  const sheet = getSheet(SHEETS.EVENTS);
+  ensureColumn(sheet, "sub_categories");
+  const event = rowsToObjects(sheet).find((e) => e.event_id === eventId);
   if (!event) throw new ApiError("Unknown event", 404);
   return event;
 }
@@ -74,12 +137,6 @@ function countRegistrations(eventId) {
   ).length;
 }
 
-/** Fixed nomination types for a Cultural event — a single "Cultural
- *  Program" event takes nominations across several performance types,
- *  so this is a property of each registration, not of the event
- *  itself. */
-const CULTURAL_SUB_CATEGORIES = ["Dance", "Vocal", "Instrument", "Recitation", "Other"];
-
 /** `mobile` is the registering resident's own contact — it's how "My
  *  Registrations" looks results up (spec §6: no OTP session yet, so
  *  mobile doubles as the identity key everywhere). `parentName`/
@@ -103,8 +160,15 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
   }
   validateBlock(block);
 
-  if (event.category === "Cultural" && !CULTURAL_SUB_CATEGORIES.includes(subCategory)) {
-    throw new ApiError(`Pick a performance type: ${CULTURAL_SUB_CATEGORIES.join(", ")}`, 400);
+  if (event.category === "Cultural") {
+    const allowed = String(event.sub_categories || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const options = allowed.length ? allowed : CULTURAL_SUB_CATEGORIES;
+    if (!options.includes(subCategory)) {
+      throw new ApiError(`Pick a performance type: ${options.join(", ")}`, 400);
+    }
   }
 
   const resident = upsertResident({ name: participantName, mobile, block, flatNumber });

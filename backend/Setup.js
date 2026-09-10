@@ -17,7 +17,7 @@ const SHEET_SCHEMAS = {
   [SHEETS.EVENTS]: [
     "event_id", "name", "description", "date", "start_time", "end_time", "location", "category",
     "age_group", "capacity", "registration_required", "registration_deadline", "fee", "status",
-    "contact_volunteer", "token_code",
+    "contact_volunteer", "token_code", "sub_categories",
   ],
   [SHEETS.EVENT_REGISTRATIONS]: [
     "registration_id", "event_id", "resident_id", "participant_name", "participant_age", "block",

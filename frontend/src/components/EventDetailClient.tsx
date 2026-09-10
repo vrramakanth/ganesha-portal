@@ -5,16 +5,12 @@ import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatEventDate, formatEventTime } from "@/lib/date";
+import { eventSubCategories } from "@/lib/culturalSubCategories";
 import type { EventRegistration } from "@/lib/types";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
-
-/** A single "Cultural" event takes nominations across several
- *  performance types, so this is a choice on the registration, not a
- *  property of the event. */
-const CULTURAL_SUB_CATEGORIES = ["Dance", "Vocal", "Instrument", "Recitation", "Other"];
 
 export default function EventDetailClient({ eventId }: { eventId: string }) {
   const { data: events, loading, error } = useAsync(() => api.events.list(), []);
@@ -136,7 +132,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
                 <option value="" disabled>
                   Choose one
                 </option>
-                {CULTURAL_SUB_CATEGORIES.map((c) => (
+                {eventSubCategories(event.sub_categories).map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>

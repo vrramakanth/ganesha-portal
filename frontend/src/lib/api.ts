@@ -217,8 +217,26 @@ export const api = {
         fee?: number;
         status?: string;
         tokenCode?: string;
+        subCategories?: string[];
       }
     ) => apiPost<EventRecord>("volunteer.events.create", { idToken, ...payload }),
+    updateEvent: (
+      idToken: string,
+      eventId: string,
+      payload: {
+        name: string;
+        description?: string;
+        date: string;
+        startTime: string;
+        endTime?: string;
+        location: string;
+        category: string;
+        ageGroup?: string;
+        capacity?: number;
+        fee?: number;
+        subCategories?: string[];
+      }
+    ) => apiPost<EventRecord>("volunteer.events.update", { idToken, eventId, ...payload }),
     updateEventStatus: (idToken: string, eventId: string, status: string) =>
       apiPost<{ eventId: string; status: string }>("volunteer.events.updateStatus", { idToken, eventId, status }),
     eventRegistrations: (idToken: string, eventId: string) =>

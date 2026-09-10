@@ -45,6 +45,24 @@ export function formatEventTime(timeStr: string): string {
     .toUpperCase();
 }
 
+/** "2026-09-18", for prefilling an <input type="date"> when editing an
+ *  event — same Asia/Kolkata rule as formatEventDate, just machine-shaped. */
+export function toDateInputValue(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+
+/** "17:30", for prefilling an <input type="time"> when editing an event —
+ *  same historical-offset correction as formatEventTime, just 24-hour and
+ *  machine-shaped instead of "5:30 PM". */
+export function toTimeInputValue(timeStr: string): string {
+  return new Date(timeStr).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Kolkata",
+  });
+}
+
 const MONTH_INDEX: Record<string, number> = {
   jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
   jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,

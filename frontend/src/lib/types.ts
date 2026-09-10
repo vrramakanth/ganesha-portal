@@ -41,6 +41,7 @@ export type EventRecord = {
   status: "DRAFT" | "OPEN" | "FULL" | "CLOSED" | "CANCELLED" | "COMPLETED";
   contact_volunteer: string;
   token_code: string;
+  sub_categories?: string;
 };
 
 export type PublicStats = {
