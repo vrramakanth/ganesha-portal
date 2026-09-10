@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
-import { formatCurrency, formatEventWhen } from "@/lib/date";
+import { formatCurrency, formatEventWhen, formatEventTime } from "@/lib/date";
 
 export default function Home() {
   const { data, loading, error } = useAsync(
@@ -80,7 +80,7 @@ export default function Home() {
                 <p className="text-xs font-medium text-saffron">{formatEventWhen(event.date)}</p>
                 <p className="font-semibold">{event.name}</p>
               </div>
-              <p className="text-sm text-muted">{event.start_time}</p>
+              <p className="text-sm text-muted">{formatEventTime(event.start_time)}</p>
             </div>
           ))}
         </div>

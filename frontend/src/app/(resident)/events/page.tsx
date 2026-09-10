@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
+import { formatEventDate, formatEventTime } from "@/lib/date";
 import StatusBadge from "@/components/StatusBadge";
 
 const STATUS_TONE = {
@@ -40,7 +41,7 @@ export default function EventsPage() {
               <StatusBadge label={event.status} tone={STATUS_TONE[event.status]} />
             </div>
             <p className="text-sm text-muted">
-              {event.date} · {event.start_time} · {event.location}
+              {formatEventDate(event.date)} · {formatEventTime(event.start_time)} · {event.location}
             </p>
           </Link>
         ))}

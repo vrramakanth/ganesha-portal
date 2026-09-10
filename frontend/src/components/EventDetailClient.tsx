@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
+import { formatEventDate, formatEventTime } from "@/lib/date";
 import type { EventRegistration } from "@/lib/types";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
@@ -88,7 +89,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader
         title={event.name}
-        subtitle={`${event.date} · ${event.start_time} · ${event.location}`}
+        subtitle={`${formatEventDate(event.date)} · ${formatEventTime(event.start_time)} · ${event.location}`}
         backHref="/events"
         backLabel="← Events"
       />

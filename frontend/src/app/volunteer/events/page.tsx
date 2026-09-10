@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
+import { formatEventDate, formatEventTime } from "@/lib/date";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
 
@@ -127,7 +128,7 @@ export default function VolunteerEventsPage() {
               <div>
                 <p className="font-semibold">{event.name}</p>
                 <p className="text-xs text-muted">
-                  {event.date} · {event.start_time} · {event.location}
+                  {formatEventDate(event.date)} · {formatEventTime(event.start_time)} · {event.location}
                 </p>
               </div>
               <StatusBadge label={event.status} tone={STATUS_TONE[event.status] ?? "neutral"} />

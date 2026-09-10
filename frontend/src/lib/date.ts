@@ -16,6 +16,29 @@ export function formatCurrency(amount: number): string {
   return `₹${Math.round(amount).toLocaleString("en-IN")}`;
 }
 
+/** A plain "18 Sep 2026" — same local-timezone conversion as
+ *  formatEventWhen above (not forced to UTC), since a date-only value
+ *  round-trips through Sheets as midnight in the spreadsheet's own
+ *  timezone, not UTC. */
+export function formatEventDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/** Time-only cells (start_time/end_time) come back as a Date on Sheets'
+ *  classic Dec-30-1899 epoch, with the wall-clock hour/minute encoded
+ *  directly in the UTC fields — Apps Script doesn't apply the
+ *  spreadsheet's timezone to a pure time-of-day value the way it does
+ *  for a real date. Reading local hours/minutes here would drift by
+ *  the browser's UTC offset, so this reads UTC fields on purpose. */
+export function formatEventTime(timeStr: string): string {
+  const d = new Date(timeStr);
+  const hours24 = d.getUTCHours();
+  const minutes = d.getUTCMinutes();
+  const ampm = hours24 >= 12 ? "PM" : "AM";
+  const hours = hours24 % 12 || 12;
+  return `${hours}:${String(minutes).padStart(2, "0")} ${ampm}`;
+}
+
 const MONTH_INDEX: Record<string, number> = {
   jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
   jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
