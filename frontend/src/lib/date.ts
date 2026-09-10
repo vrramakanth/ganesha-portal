@@ -16,27 +16,33 @@ export function formatCurrency(amount: number): string {
   return `₹${Math.round(amount).toLocaleString("en-IN")}`;
 }
 
-/** A plain "18 Sep 2026" — same local-timezone conversion as
- *  formatEventWhen above (not forced to UTC), since a date-only value
- *  round-trips through Sheets as midnight in the spreadsheet's own
- *  timezone, not UTC. */
+/** A plain "18 Sep 2026". Forced to Asia/Kolkata rather than the
+ *  viewer's own device timezone, since this app is Brigade-Woods-only
+ *  regardless of where someone happens to be checking it from. */
 export function formatEventDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(dateStr).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  });
 }
 
-/** Time-only cells (start_time/end_time) come back as a Date on Sheets'
- *  classic Dec-30-1899 epoch, with the wall-clock hour/minute encoded
- *  directly in the UTC fields — Apps Script doesn't apply the
- *  spreadsheet's timezone to a pure time-of-day value the way it does
- *  for a real date. Reading local hours/minutes here would drift by
- *  the browser's UTC offset, so this reads UTC fields on purpose. */
+/** Time-only cells (start_time/end_time) round-trip through Sheets on
+ *  its classic Dec-30-1899 epoch date. The IANA tz database's
+ *  Asia/Kolkata offset for 1899 is the pre-1906 historical +5:21:10
+ *  ("Madras local mean time"), not the modern +5:30 — so naively
+ *  reading UTC hours/minutes (or converting with today's +5:30 by
+ *  hand) is off by ~9 minutes. Letting Intl apply Asia/Kolkata's own
+ *  (historically correct) rule for that literal date reverses the
+ *  exact same quirk Apps Script applied when writing it, and matches
+ *  what Sheets itself displays for the cell. */
 export function formatEventTime(timeStr: string): string {
-  const d = new Date(timeStr);
-  const hours24 = d.getUTCHours();
-  const minutes = d.getUTCMinutes();
-  const ampm = hours24 >= 12 ? "PM" : "AM";
-  const hours = hours24 % 12 || 12;
-  return `${hours}:${String(minutes).padStart(2, "0")} ${ampm}`;
+  // en-IN renders am/pm lowercase; uppercase for a cleaner look (a
+  // no-op on the digits/colon, so safe to apply to the whole string).
+  return new Date(timeStr)
+    .toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" })
+    .toUpperCase();
 }
 
 const MONTH_INDEX: Record<string, number> = {
