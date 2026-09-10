@@ -120,7 +120,7 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
 
 function listRegistrationsByMobile(mobile) {
   requireFields({ mobile }, ["mobile"]);
-  return rowsToObjects(getSheet(SHEETS.EVENT_REGISTRATIONS)).filter((r) => r.mobile === mobile);
+  return rowsToObjects(getSheet(SHEETS.EVENT_REGISTRATIONS)).filter((r) => String(r.mobile) === String(mobile));
 }
 
 function listRegistrationsForEvent(volunteer, eventId) {
