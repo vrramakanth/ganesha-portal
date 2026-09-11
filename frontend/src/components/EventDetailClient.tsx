@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
@@ -16,6 +16,24 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 
 const MAX_SONG_BYTES = 10 * 1024 * 1024; // 10MB — comfortably covers a full song at typical MP3 bitrates
 
+type Song = { base64: string; mimeType: string; name: string };
+
+type Performance = {
+  key: string;
+  subCategory: string;
+  comments: string;
+  song: Song | null;
+  songError: string | null;
+};
+
+function newPerformance(): Performance {
+  return { key: Math.random().toString(36).slice(2), subCategory: "", comments: "", song: null, songError: null };
+}
+
+type SubmitOutcome =
+  | { performance: Performance; registration: EventRegistration; error?: undefined }
+  | { performance: Performance; registration?: undefined; error: string };
+
 export default function EventDetailClient({ eventId }: { eventId: string }) {
   const { data: events, loading, error } = useAsync(() => api.events.list(), []);
   const event = (events ?? []).find((e) => e.event_id === eventId);
@@ -23,16 +41,18 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
 
   const [participantName, setParticipantName] = useState("");
   const [participantAge, setParticipantAge] = useState("");
-  const [subCategory, setSubCategory] = useState("");
   const [mobile, setMobile] = useState("");
   const [block, setBlock] = useState("");
   const [flatNumber, setFlatNumber] = useState("");
-  const [song, setSong] = useState<{ base64: string; mimeType: string; name: string } | null>(null);
-  const [songError, setSongError] = useState<string | null>(null);
-  const songInputRef = useRef<HTMLInputElement>(null);
+  // A resident nominating for more than one performance type in the same
+  // Cultural event (e.g. both Dance and Vocal) fills in their shared
+  // details once, then adds a block per performance — each becomes its
+  // own registration on submit, same as registering separately would,
+  // just without re-typing name/mobile/block/flat each time.
+  const [performances, setPerformances] = useState<Performance[]>([newPerformance()]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [registration, setRegistration] = useState<EventRegistration | null>(null);
+  const [outcomes, setOutcomes] = useState<SubmitOutcome[] | null>(null);
 
   // One-time hydration from the saved profile once it loads — see Donate
   // page for why: without this, fields || profile.x can never be cleared
@@ -55,19 +75,31 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   const canRegister = event.status === "OPEN" && Number(event.fee || 0) === 0;
   const isCultural = event.category === "Cultural";
 
-  async function handleSongFile(file: File | undefined) {
-    setSongError(null);
+  function updatePerformance(key: string, patch: Partial<Performance>) {
+    setPerformances((prev) => prev.map((p) => (p.key === key ? { ...p, ...patch } : p)));
+  }
+
+  function addPerformance() {
+    setPerformances((prev) => [...prev, newPerformance()]);
+  }
+
+  function removePerformance(key: string) {
+    setPerformances((prev) => (prev.length > 1 ? prev.filter((p) => p.key !== key) : prev));
+  }
+
+  async function handleSongFile(key: string, file: File | undefined) {
+    updatePerformance(key, { songError: null });
     if (!file) return;
     if (!/\.mp3$/i.test(file.name) && file.type !== "audio/mpeg") {
-      setSongError("Please choose an MP3 file.");
+      updatePerformance(key, { songError: "Please choose an MP3 file." });
       return;
     }
     if (file.size > MAX_SONG_BYTES) {
-      setSongError("Song file is too large — please keep it under 10MB.");
+      updatePerformance(key, { songError: "Song file is too large — please keep it under 10MB." });
       return;
     }
     const base64 = await fileToBase64(file);
-    setSong({ base64, mimeType: file.type || "audio/mpeg", name: file.name });
+    updatePerformance(key, { song: { base64, mimeType: file.type || "audio/mpeg", name: file.name } });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -77,45 +109,81 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       setSubmitError("Enter a valid 10-digit mobile number.");
       return;
     }
-    if (isCultural && !subCategory) {
-      setSubmitError("Pick a performance type.");
+    if (isCultural && performances.some((p) => !p.subCategory)) {
+      setSubmitError("Pick a performance type for each entry.");
       return;
     }
     setSubmitting(true);
-    try {
-      const result = await api.events.register({
-        eventId,
-        participantName: fields.participantName,
-        participantAge,
-        block: fields.block,
-        flatNumber: fields.flatNumber,
-        mobile: fields.mobile,
-        subCategory: isCultural ? subCategory : undefined,
-        song: isCultural ? song?.base64 : undefined,
-        songMimeType: isCultural ? song?.mimeType : undefined,
-      });
-      saveProfile({ name: fields.participantName, mobile: fields.mobile, block: fields.block, flatNumber: fields.flatNumber });
-      setRegistration(result);
-    } catch (err) {
-      setSubmitError(err instanceof ApiClientError ? err.message : "Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
+    // Registered one at a time, not in parallel — each nomination should
+    // fail independently (e.g. one performance type closes mid-submit)
+    // without losing the ones that already succeeded.
+    const results: SubmitOutcome[] = [];
+    for (const performance of performances) {
+      try {
+        const registration = await api.events.register({
+          eventId,
+          participantName: fields.participantName,
+          participantAge,
+          block: fields.block,
+          flatNumber: fields.flatNumber,
+          mobile: fields.mobile,
+          subCategory: isCultural ? performance.subCategory : undefined,
+          song: isCultural ? performance.song?.base64 : undefined,
+          songMimeType: isCultural ? performance.song?.mimeType : undefined,
+          comments: isCultural ? performance.comments.trim() || undefined : undefined,
+        });
+        results.push({ performance, registration });
+      } catch (err) {
+        results.push({
+          performance,
+          error: err instanceof ApiClientError ? err.message : "Something went wrong. Please try again.",
+        });
+      }
     }
+    saveProfile({ name: fields.participantName, mobile: fields.mobile, block: fields.block, flatNumber: fields.flatNumber });
+    setOutcomes(results);
+    setSubmitting(false);
   }
 
-  if (registration) {
+  if (outcomes) {
+    const succeeded = outcomes.filter(
+      (o): o is Extract<SubmitOutcome, { registration: EventRegistration }> => o.registration !== undefined
+    );
+    const failed = outcomes.filter((o): o is Extract<SubmitOutcome, { error: string }> => o.error !== undefined);
     return (
       <div className="flex flex-col gap-6 px-5 pt-8 items-center text-center">
-        <PageHeader title="Nomination submitted!" subtitle={event.name} backHref="/events" backLabel="← Events" />
-        <p className="text-sm text-muted">
-          A volunteer will review it shortly — check My Stuff for updates.
-        </p>
-        {isCultural && (
+        <PageHeader
+          title={succeeded.length > 0 ? "Nomination submitted!" : "Something went wrong"}
+          subtitle={event.name}
+          backHref="/events"
+          backLabel="← Events"
+        />
+        {succeeded.length > 0 && (
           <p className="text-sm text-muted">
-            Need to add or change the song? You can do that from My Stuff any time before the event.
+            A volunteer will review it shortly — check My Stuff for updates.
           </p>
         )}
-        <p className="text-sm text-muted">Registration ID: {registration.registration_id}</p>
+        <div className="w-full space-y-2">
+          {succeeded.map((o, i) => (
+            <div key={o.registration.registration_id} className="rounded-xl border border-border bg-card p-3 text-left">
+              <p className="text-sm font-semibold">
+                {o.performance.subCategory || `Entry ${i + 1}`}
+              </p>
+              <p className="text-xs text-muted">Registration ID: {o.registration.registration_id}</p>
+            </div>
+          ))}
+          {failed.map((o, i) => (
+            <div key={i} className="rounded-xl border border-red-200 bg-red-50 p-3 text-left">
+              <p className="text-sm font-semibold text-red-700">{o.performance.subCategory || "Entry"} — not submitted</p>
+              <p className="text-xs text-red-600">{o.error}</p>
+            </div>
+          ))}
+        </div>
+        {isCultural && succeeded.length > 0 && (
+          <p className="text-sm text-muted">
+            Need to add or change a song? You can do that from My Stuff any time before the event.
+          </p>
+        )}
       </div>
     );
   }
@@ -152,26 +220,75 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
               className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
             />
           </div>
+
+          {isCultural &&
+            performances.map((performance, i) => (
+              <div key={performance.key} className="space-y-4 rounded-xl border border-border p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wide">
+                    Performance {i + 1}
+                  </p>
+                  {performances.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removePerformance(performance.key)}
+                      className="text-xs font-semibold text-red-600"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Performance Type</label>
+                  <select
+                    required
+                    value={performance.subCategory}
+                    onChange={(e) => updatePerformance(performance.key, { subCategory: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
+                  >
+                    <option value="" disabled>
+                      Choose one
+                    </option>
+                    {eventSubCategories(event.sub_categories).map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Comments</label>
+                  <textarea
+                    value={performance.comments}
+                    onChange={(e) => updatePerformance(performance.key, { comments: e.target.value })}
+                    rows={3}
+                    className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
+                  />
+                  <p className="text-xs text-muted">Add any details about your performance that you&apos;d like to share.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Song (MP3, optional)</label>
+                  <input
+                    type="file"
+                    accept="audio/mpeg,.mp3"
+                    onChange={(e) => handleSongFile(performance.key, e.target.files?.[0])}
+                    className="block w-full text-sm"
+                  />
+                  {performance.songError && <p className="text-xs text-red-600">{performance.songError}</p>}
+                  <p className="text-xs text-muted">Not ready yet? You can add or change this later from My Stuff.</p>
+                </div>
+              </div>
+            ))}
           {isCultural && (
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Performance Type</label>
-              <select
-                required
-                value={subCategory}
-                onChange={(e) => setSubCategory(e.target.value)}
-                className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
-              >
-                <option value="" disabled>
-                  Choose one
-                </option>
-                {eventSubCategories(event.sub_categories).map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <button
+              type="button"
+              onClick={addPerformance}
+              className="w-full rounded-xl border border-dashed border-border py-3 text-center text-sm font-semibold text-maroon"
+            >
+              + Add Another Performance
+            </button>
           )}
+
           {(event.age_group || isCultural) && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Age</label>
@@ -181,27 +298,6 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
                 className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
               />
               {isCultural && <p className="text-xs text-muted">For adults, enter 18+</p>}
-            </div>
-          )}
-          {isCultural && (
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Song (MP3, optional)</label>
-              <input
-                ref={songInputRef}
-                type="file"
-                accept="audio/mpeg,.mp3"
-                onChange={(e) => handleSongFile(e.target.files?.[0])}
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => songInputRef.current?.click()}
-                className="w-full rounded-lg border border-border bg-card py-3 text-center text-sm font-semibold text-maroon"
-              >
-                {song ? `Song Attached ✓ (${song.name})` : "Attach Song"}
-              </button>
-              {songError && <p className="text-xs text-red-600">{songError}</p>}
-              <p className="text-xs text-muted">Not ready yet? You can add or change this later from My Stuff.</p>
             </div>
           )}
           <div className="space-y-1.5">
@@ -224,7 +320,11 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
             disabled={submitting}
             className="w-full rounded-xl bg-saffron py-4 text-center text-sm font-semibold text-white disabled:opacity-60 active:bg-saffron-dark transition-colors"
           >
-            {submitting ? "Registering…" : "Register"}
+            {submitting
+              ? "Registering…"
+              : performances.length > 1
+                ? `Register ${performances.length} Performances`
+                : "Register"}
           </button>
         </form>
       )}

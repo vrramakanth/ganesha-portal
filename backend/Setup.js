@@ -21,8 +21,8 @@ const SHEET_SCHEMAS = {
   ],
   [SHEETS.EVENT_REGISTRATIONS]: [
     "registration_id", "event_id", "resident_id", "participant_name", "participant_age", "block",
-    "flat_number", "mobile", "parent_name", "parent_mobile", "sub_category", "song_url", "status",
-    "reviewed_by", "reviewed_at", "rejection_reason", "check_in_at", "created_at",
+    "flat_number", "mobile", "parent_name", "parent_mobile", "sub_category", "song_url", "comments",
+    "status", "reviewed_by", "reviewed_at", "rejection_reason", "check_in_at", "created_at",
   ],
   [SHEETS.ENTITLEMENTS]: [
     "entitlement_id", "event_id", "resident_id", "token_id", "allocated_quantity",

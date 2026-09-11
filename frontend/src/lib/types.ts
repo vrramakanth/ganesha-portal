@@ -99,6 +99,7 @@ export type EventRegistration = {
   parent_mobile: string;
   sub_category?: string;
   song_url?: string;
+  comments?: string;
   status: string;
   reviewed_by?: string;
   reviewed_at?: string;

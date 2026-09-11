@@ -207,6 +207,7 @@ export default function EventRegistrationsPage() {
                   🎵 Play song
                 </a>
               )}
+              {r.comments && <p className="text-xs text-muted italic">“{r.comments}”</p>}
             </div>
             {canReview && (
               <div className="flex gap-2">

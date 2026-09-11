@@ -103,6 +103,7 @@ export const api = {
       subCategory?: string;
       song?: string;
       songMimeType?: string;
+      comments?: string;
     }) => apiPost<EventRegistration>("events.register", payload),
     updateSong: (registrationId: string, mobile: string, song: string, songMimeType: string) =>
       apiPost<{ registrationId: string; songUrl: string }>("events.registrations.updateSong", {

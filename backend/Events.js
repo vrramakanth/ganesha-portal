@@ -204,7 +204,7 @@ function countRegistrations(eventId) {
  *  mobile doubles as the identity key everywhere). `parentName`/
  *  `parentMobile` are kept separate and optional, for the children's-event
  *  form fields in spec §15 — they're display-only, not used for lookup. */
-function registerForEvent({ eventId, participantName, participantAge, block, flatNumber, mobile, parentName, parentMobile, subCategory, song, songMimeType }) {
+function registerForEvent({ eventId, participantName, participantAge, block, flatNumber, mobile, parentName, parentMobile, subCategory, song, songMimeType, comments }) {
   requireFields({ eventId, participantName, block, flatNumber, mobile }, [
     "eventId",
     "participantName",
@@ -239,6 +239,7 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
   const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
   ensureColumn(sheet, "sub_category");
   ensureColumn(sheet, "song_url");
+  ensureColumn(sheet, "comments");
   ensureColumn(sheet, "reviewed_by");
   ensureColumn(sheet, "reviewed_at");
   ensureColumn(sheet, "rejection_reason");
@@ -257,6 +258,7 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
     parent_mobile: parentMobile || "",
     sub_category: event.category === "Cultural" ? normalizedSubCategory : "",
     song_url: songUrl,
+    comments: event.category === "Cultural" ? (comments || "") : "",
     status: "PENDING_REVIEW",
     reviewed_by: "",
     reviewed_at: "",
@@ -306,6 +308,7 @@ function listPendingRegistrations(volunteer) {
   requirePermission(volunteer, "Events");
   const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
   ensureColumn(sheet, "song_url");
+  ensureColumn(sheet, "comments");
   return rowsToObjects(sheet).filter((r) => r.status === "PENDING_REVIEW");
 }
 
@@ -318,6 +321,7 @@ function listAllRegistrations(volunteer) {
   requirePermission(volunteer, "Events");
   const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
   ensureColumn(sheet, "song_url");
+  ensureColumn(sheet, "comments");
   return rowsToObjects(sheet);
 }
 
@@ -372,6 +376,7 @@ function listRegistrationsByMobile(mobile) {
   requireFields({ mobile }, ["mobile"]);
   const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
   ensureColumn(sheet, "song_url");
+  ensureColumn(sheet, "comments");
   return rowsToObjects(sheet).filter((r) => String(r.mobile) === String(mobile));
 }
 
@@ -379,6 +384,7 @@ function listRegistrationsForEvent(volunteer, eventId) {
   requirePermission(volunteer, "Events");
   const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
   ensureColumn(sheet, "song_url");
+  ensureColumn(sheet, "comments");
   return rowsToObjects(sheet).filter((r) => r.event_id === eventId);
 }
 
