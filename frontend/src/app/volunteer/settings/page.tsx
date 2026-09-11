@@ -5,6 +5,7 @@ import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import PageHeader from "@/components/PageHeader";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function SettingsPage() {
   const { idToken } = useVolunteerAuth();
@@ -57,7 +58,7 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="Settings" subtitle="Festival configuration" backHref="/volunteer/more" backLabel="← More" />
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {loading && <LoadingIndicator />}
       {loadError && <p className="text-sm text-red-600">{loadError}</p>}
 
       {config && (

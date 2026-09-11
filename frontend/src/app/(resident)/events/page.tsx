@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { formatEventDate, formatEventTime } from "@/lib/date";
 import StatusBadge from "@/components/StatusBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 const STATUS_TONE = {
   OPEN: "success",
@@ -23,7 +24,7 @@ export default function EventsPage() {
     <div className="flex flex-col gap-6 px-5 pt-8">
       <h1 className="text-xl font-bold">Events</h1>
 
-      {loading && <p className="text-sm text-muted">Loading events…</p>}
+      {loading && <LoadingIndicator label="Loading events…" />}
       {error && <p className="text-sm text-red-600">{error}</p>}
       {!loading && visible.length === 0 && (
         <p className="text-sm text-muted">No events published yet.</p>

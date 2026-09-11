@@ -10,6 +10,7 @@ import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 import PaymentReferenceStep from "@/components/PaymentReferenceStep";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 type Step = "form" | "registering" | "reference" | "submitted" | "cancelled" | "success";
 
@@ -174,7 +175,7 @@ export default function DinnerPage() {
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="Community Dinner" />
 
-      {loading && <p className="text-sm text-muted">Loading dinner days…</p>}
+      {loading && <LoadingIndicator label="Loading dinner days…" />}
       {eventsError && <p className="text-sm text-red-600">{eventsError}</p>}
       {!loading && dinnerDays.length === 0 && (
         <p className="text-sm text-muted">Dinner registration is not open yet.</p>

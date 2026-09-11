@@ -9,6 +9,7 @@ import { fileToBase64 } from "@/lib/file";
 import type { Transaction } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   SUCCESS: "success",
@@ -82,7 +83,7 @@ export default function AttachScreenshotsPage() {
         backLabel="← Donations"
       />
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {loading && <LoadingIndicator />}
       {loadError && <p className="text-sm text-red-600">{loadError}</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
 

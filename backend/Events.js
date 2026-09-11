@@ -28,10 +28,33 @@ function buildSubCategories(category, subCategories) {
   return list.join(",");
 }
 
-function listEvents() {
+const EVENTS_CACHE_KEY = "events_rows";
+const EVENTS_CACHE_SECONDS = 30; // short — capacity/status changes should show up quickly
+
+/** ensureColumn only runs on an actual cache miss — it only ever needs to
+ *  touch the sheet once (the column either already exists or gets added
+ *  here), so there's no reason to pay that extra sheet touch on every
+ *  cached read too. */
+function getEventRows_() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(EVENTS_CACHE_KEY);
+  if (cached) return JSON.parse(cached);
   const sheet = getSheet(SHEETS.EVENTS);
   ensureColumn(sheet, "sub_categories");
-  return rowsToObjects(sheet);
+  const rows = rowsToObjects(sheet);
+  cache.put(EVENTS_CACHE_KEY, JSON.stringify(rows), EVENTS_CACHE_SECONDS);
+  return rows;
+}
+
+/** Every event write (create/edit/status change) calls this immediately,
+ *  so the TTL above is only a ceiling for anything that might miss an
+ *  invalidation call — normal reads always see the latest write. */
+function invalidateEventsCache() {
+  CacheService.getScriptCache().remove(EVENTS_CACHE_KEY);
+}
+
+function listEvents() {
+  return getEventRows_();
 }
 
 function createEvent(volunteer, payload) {
@@ -61,6 +84,7 @@ function createEvent(volunteer, payload) {
     sub_categories: buildSubCategories(payload.category, payload.subCategories),
   };
   appendObject(sheet, event);
+  invalidateEventsCache();
   logAudit(volunteer.email, "Created event", "Event", event.event_id, "", event.name);
   return event;
 }
@@ -98,15 +122,14 @@ function updateEvent(volunteer, eventId, payload) {
       sub_categories: buildSubCategories(payload.category, payload.subCategories),
     };
     updateRowFields(sheet, rowIndex, fields);
+    invalidateEventsCache();
     logAudit(volunteer.email, "Edited event", "Event", eventId, before.name, fields.name);
     return Object.assign({}, before, fields, { event_id: eventId });
   });
 }
 
 function getEvent(eventId) {
-  const sheet = getSheet(SHEETS.EVENTS);
-  ensureColumn(sheet, "sub_categories");
-  const event = rowsToObjects(sheet).find((e) => e.event_id === eventId);
+  const event = getEventRows_().find((e) => e.event_id === eventId);
   if (!event) throw new ApiError("Unknown event", 404);
   return event;
 }
@@ -135,6 +158,7 @@ function updateEventStatus(volunteer, eventId, status) {
     }
 
     updateRowFields(sheet, rowIndex, { status });
+    invalidateEventsCache();
     logAudit(volunteer.email, "Updated event status", "Event", eventId, before.status, status);
     return { eventId, status };
   });

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import PageHeader from "@/components/PageHeader";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function MorePage() {
   const { data, loading, error } = useAsync(
@@ -23,7 +24,7 @@ export default function MorePage() {
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="More" />
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {loading && <LoadingIndicator />}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {festival && (

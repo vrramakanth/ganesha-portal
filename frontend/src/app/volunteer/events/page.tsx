@@ -10,6 +10,7 @@ import { CULTURAL_SUB_CATEGORIES, parseSubCategories } from "@/lib/culturalSubCa
 import type { EventRecord } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   OPEN: "success",
@@ -266,7 +267,7 @@ export default function VolunteerEventsPage() {
         />
       )}
 
-      {loading && <p className="text-sm text-muted">Loading events…</p>}
+      {loading && <LoadingIndicator label="Loading events…" />}
       {loadError && <p className="text-sm text-red-600">{loadError}</p>}
       {actionError && <p className="text-sm text-red-600">{actionError}</p>}
 

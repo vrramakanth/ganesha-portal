@@ -1,7 +1,19 @@
 /** Generic helpers for treating a Sheet's header row as an object schema. */
 
+/** SpreadsheetApp.openById() cost scales with the whole file's size, not
+ *  just the sheet being read (see the identical note on getConfigRows_ in
+ *  Config.js) — and most handlers call getSheet() several times per
+ *  request (once per sheet touched, sometimes the same sheet twice).
+ *  Memoized per script execution: each Web App request is one fresh,
+ *  single-threaded execution with no state shared across requests, so
+ *  this only ever avoids redundant opens within a single request, never
+ *  serves a stale handle across requests. */
+let cachedSpreadsheet_ = null;
 function getSpreadsheet() {
-  return SpreadsheetApp.openById(getSpreadsheetId());
+  if (!cachedSpreadsheet_) {
+    cachedSpreadsheet_ = SpreadsheetApp.openById(getSpreadsheetId());
+  }
+  return cachedSpreadsheet_;
 }
 
 function getSheet(name) {

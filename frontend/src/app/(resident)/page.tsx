@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { formatCurrency, formatEventWhen, formatEventTime } from "@/lib/date";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function Home() {
   const { data, loading, error } = useAsync(
@@ -53,7 +54,7 @@ export default function Home() {
         {error ? (
           <p className="text-sm text-muted py-2">Unable to load collection totals.</p>
         ) : loading || !stats ? (
-          <p className="text-sm text-muted py-2">Loading collection totals…</p>
+          <LoadingIndicator label="Loading collection totals…" className="py-2 justify-center" />
         ) : (
           <>
             <p className="text-3xl font-bold text-maroon">{formatCurrency(stats.totalCollected)}</p>

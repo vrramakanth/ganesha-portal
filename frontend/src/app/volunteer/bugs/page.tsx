@@ -6,6 +6,7 @@ import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function VolunteerBugsPage() {
   const { idToken } = useVolunteerAuth();
@@ -44,7 +45,7 @@ export default function VolunteerBugsPage() {
         backLabel="← More"
       />
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {loading && <LoadingIndicator />}
       {error && <p className="text-sm text-red-600">{error}</p>}
       {actionError && <p className="text-sm text-red-600">{actionError}</p>}
 

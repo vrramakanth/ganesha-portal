@@ -7,6 +7,7 @@ import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import { formatCurrency } from "@/lib/date";
 import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function VolunteerDashboardPage() {
   const { idToken, volunteer } = useVolunteerAuth();
@@ -33,7 +34,7 @@ export default function VolunteerDashboardPage() {
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="Festival Dashboard" />
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {loading && <LoadingIndicator />}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {data && (

@@ -8,6 +8,7 @@ import { formatCurrency } from "@/lib/date";
 import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   APPROVED: "success",
@@ -83,7 +84,7 @@ export default function ReviewExpensesPage() {
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="Review Expenses" subtitle="Approvals and reimbursement" backHref="/volunteer" backLabel="← Dashboard" />
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {loading && <LoadingIndicator />}
       {error && <p className="text-sm text-red-600">{error}</p>}
       {actionError && <p className="text-sm text-red-600">{actionError}</p>}
 
@@ -147,7 +148,7 @@ export default function ReviewExpensesPage() {
             <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Reimbursement Summary</h2>
             <p className="text-xs text-muted">Total owed to each volunteer, so they can be settled in one go.</p>
             <div className="rounded-xl border border-border bg-card divide-y divide-border">
-              {loadingSettlement && <p className="px-4 py-3 text-sm text-muted">Loading…</p>}
+              {loadingSettlement && <LoadingIndicator className="px-4 py-3" />}
               {!loadingSettlement && settlement?.length === 0 && (
                 <p className="px-4 py-3 text-sm text-muted">Nothing to settle yet.</p>
               )}

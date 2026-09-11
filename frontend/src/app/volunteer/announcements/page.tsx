@@ -6,6 +6,7 @@ import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function AnnouncementsPage() {
   const { idToken } = useVolunteerAuth();
@@ -75,7 +76,7 @@ export default function AnnouncementsPage() {
         </form>
       )}
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {loading && <LoadingIndicator />}
       {loadError && <p className="text-sm text-red-600">{loadError}</p>}
 
       <div className="rounded-xl border border-border bg-card divide-y divide-border">

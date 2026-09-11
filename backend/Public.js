@@ -24,10 +24,21 @@ function getFestivalInfo() {
   return info;
 }
 
+const BLOCKS_CACHE_KEY = "blocks_rows";
+const BLOCKS_CACHE_SECONDS = 300; // 5 min — blocks are effectively static, edited only via the Apps Script editor
+
+/** Caches the raw rows, not the "active" filter result, so a block's
+ *  active flag still applies live on every call rather than baking a
+ *  point-in-time filter into the cache. There's no live write path for
+ *  Blocks today (only the editor-only resetBlocks()), so there's nothing
+ *  to invalidate this from — an editor-run change simply takes up to the
+ *  TTL to show up, which is fine for something this rare. */
 function listBlocks() {
-  return rowsToObjects(getSheet(SHEETS.BLOCKS)).filter(
-    (b) => String(b.active).toUpperCase() === "TRUE"
-  );
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(BLOCKS_CACHE_KEY);
+  const rows = cached ? JSON.parse(cached) : rowsToObjects(getSheet(SHEETS.BLOCKS));
+  if (!cached) cache.put(BLOCKS_CACHE_KEY, JSON.stringify(rows), BLOCKS_CACHE_SECONDS);
+  return rows.filter((b) => String(b.active).toUpperCase() === "TRUE");
 }
 
 /** Aggregate-only — never expose names, flats, amounts per resident, or

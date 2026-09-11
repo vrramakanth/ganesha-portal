@@ -8,6 +8,7 @@ import { VOLUNTEER_AREAS, parseVolunteerAvailability, isAreaApproved, type Volun
 import type { VolunteerRegistration } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 const SESSION_ORDER: Record<string, number> = { Morning: 0, Evening: 1 };
 const AREA_LABELS = VOLUNTEER_AREAS.map((a) => a.label);
@@ -208,7 +209,7 @@ export default function VolunteersPage() {
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="Seva" backHref="/volunteer" backLabel="← Dashboard" />
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {loading && <LoadingIndicator />}
       {loadError && <p className="text-sm text-red-600">{loadError}</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
 

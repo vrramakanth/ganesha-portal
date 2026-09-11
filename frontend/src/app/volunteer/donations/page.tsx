@@ -10,6 +10,7 @@ import { fileToBase64 } from "@/lib/file";
 import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   SUCCESS: "success",
@@ -98,7 +99,7 @@ export default function VolunteerDonationsPage() {
         Attach Missing Screenshots
       </Link>
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {loading && <LoadingIndicator />}
       {error && <p className="text-sm text-red-600">{error}</p>}
       {actionError && <p className="text-sm text-red-600">{actionError}</p>}
 

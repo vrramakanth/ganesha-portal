@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import PageHeader from "@/components/PageHeader";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function AuditLogPage() {
   const { idToken } = useVolunteerAuth();
@@ -21,7 +22,7 @@ export default function AuditLogPage() {
         backLabel="← More"
       />
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {loading && <LoadingIndicator />}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="rounded-xl border border-border bg-card divide-y divide-border">

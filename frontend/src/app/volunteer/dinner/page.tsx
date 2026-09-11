@@ -7,6 +7,7 @@ import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function VolunteerDinnerPage() {
   const { idToken, volunteer } = useVolunteerAuth();
@@ -139,7 +140,7 @@ export default function VolunteerDinnerPage() {
         </section>
       )}
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {loading && <LoadingIndicator />}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {dashboard && (

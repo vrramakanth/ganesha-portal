@@ -11,6 +11,7 @@ import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function EventDetailClient({ eventId }: { eventId: string }) {
   const { data: events, loading, error } = useAsync(() => api.events.list(), []);
@@ -39,7 +40,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
 
-  if (loading) return <p className="px-5 pt-8 text-sm text-muted">Loading event…</p>;
+  if (loading) return <LoadingIndicator label="Loading event…" className="px-5 pt-8" />;
   if (error) return <p className="px-5 pt-8 text-sm text-red-600">{error}</p>;
   if (!event) return <p className="px-5 pt-8 text-sm text-muted">Event not found.</p>;
 

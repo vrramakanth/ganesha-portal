@@ -10,6 +10,7 @@ import { parseVolunteerAvailability, isAreaApproved } from "@/lib/volunteerAreas
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function MyStuffPage() {
   const { profile, loaded } = useResidentProfile();
@@ -82,7 +83,7 @@ export default function MyStuffPage() {
         Look up a different number
       </button>
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {loading && <LoadingIndicator />}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {!loading && (
