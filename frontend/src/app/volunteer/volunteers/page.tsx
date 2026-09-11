@@ -174,12 +174,6 @@ export default function VolunteersPage() {
     }
   }
 
-  function sendConfirmation() {
-    if (!confirmation) return;
-    window.open(`https://wa.me/91${confirmation.mobile}?text=${encodeURIComponent(confirmDraft)}`, "_blank");
-    setConfirmation(null);
-  }
-
   function startAsk(v: VolunteerRegistration, area: string) {
     setAsking({ volunteerId: v.volunteer_id, area });
     setDraft(rescheduleMessage(v, area, picksForArea(v, area)));
@@ -187,15 +181,17 @@ export default function VolunteersPage() {
 
   /** Declining removes this area from their request first (so it stops
    *  showing up as a pending entry — no stale duplicates once the admin
-   *  has already reached out), then opens WhatsApp with the reschedule
-   *  message. If the WhatsApp step fails to open for some reason the
-   *  decline has still gone through; nothing here is reversible. */
+   *  has already reached out) and only then hands the reschedule message
+   *  to the same confirmation panel approveArea uses — the decline is
+   *  already saved by this point regardless of whether that message ever
+   *  gets sent. */
   async function sendAsk(v: VolunteerRegistration, area: string) {
     setError(null);
     setDeclining(true);
     try {
       await api.volunteer.declineVolunteerArea(idToken as string, v.volunteer_id, area);
-      window.open(`https://wa.me/91${v.mobile}?text=${encodeURIComponent(draft)}`, "_blank");
+      setConfirmation({ mobile: v.mobile, message: draft });
+      setConfirmDraft(draft);
       setAsking(null);
       setRefreshKey((k) => k + 1);
     } catch (err) {
@@ -219,7 +215,7 @@ export default function VolunteersPage() {
 
           {confirmation && (
             <section className="space-y-2 rounded-xl border border-maroon/30 bg-maroon/5 p-4">
-              <p className="text-sm font-semibold text-maroon">Send them a confirmation?</p>
+              <p className="text-sm font-semibold text-maroon">Send them a message?</p>
               <textarea
                 value={confirmDraft}
                 onChange={(e) => setConfirmDraft(e.target.value)}
@@ -227,13 +223,20 @@ export default function VolunteersPage() {
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
               />
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={sendConfirmation}
+                {/* A real link, not window.open() — an installed/PWA session
+                    can get stuck navigating in place if a script-triggered
+                    popup is blocked. A plain <a target="_blank"> is what
+                    browsers and app-shells reliably hand off to WhatsApp or
+                    the system browser, leaving this page untouched either way. */}
+                <a
+                  href={`https://wa.me/91${confirmation.mobile}?text=${encodeURIComponent(confirmDraft)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setConfirmation(null)}
                   className="flex-1 rounded-lg bg-maroon py-2 text-center text-xs font-semibold text-white"
                 >
                   Send via WhatsApp
-                </button>
+                </a>
                 <button
                   type="button"
                   onClick={() => setConfirmation(null)}
@@ -242,6 +245,9 @@ export default function VolunteersPage() {
                   Skip
                 </button>
               </div>
+              <p className="text-xs text-muted">
+                This is already saved — sending is optional. If they&apos;re not on WhatsApp, just skip.
+              </p>
             </section>
           )}
 
@@ -344,7 +350,7 @@ export default function VolunteersPage() {
                                   onClick={() => sendAsk(v, area)}
                                   className="flex-1 rounded-lg bg-saffron py-2 text-center text-xs font-semibold text-white disabled:opacity-60"
                                 >
-                                  {declining ? "Declining…" : "Decline & Send via WhatsApp"}
+                                  {declining ? "Declining…" : "Decline"}
                                 </button>
                                 <button
                                   type="button"

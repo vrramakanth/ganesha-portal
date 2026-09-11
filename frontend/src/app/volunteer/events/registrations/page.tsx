@@ -139,12 +139,6 @@ export default function EventRegistrationsPage() {
     }
   }
 
-  function sendConfirmation() {
-    if (!confirmation) return;
-    window.open(`https://wa.me/91${confirmation.mobile}?text=${encodeURIComponent(confirmDraft)}`, "_blank");
-    setConfirmation(null);
-  }
-
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="Event Nominations" subtitle="Review pending registrations" backHref="/volunteer/events" backLabel="← Events" />
@@ -163,13 +157,20 @@ export default function EventRegistrationsPage() {
             className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
           />
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={sendConfirmation}
+            {/* A real link, not window.open() — an installed/PWA session can
+                get stuck navigating in place if a script-triggered popup is
+                blocked. A plain <a target="_blank"> is what browsers and
+                app-shells reliably hand off to WhatsApp or the system
+                browser, leaving this page untouched either way. */}
+            <a
+              href={`https://wa.me/91${confirmation.mobile}?text=${encodeURIComponent(confirmDraft)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setConfirmation(null)}
               className="flex-1 rounded-lg bg-maroon py-2 text-center text-xs font-semibold text-white"
             >
               Send via WhatsApp
-            </button>
+            </a>
             <button
               type="button"
               onClick={() => setConfirmation(null)}
@@ -178,6 +179,10 @@ export default function EventRegistrationsPage() {
               Skip
             </button>
           </div>
+          <p className="text-xs text-muted">
+            The approval/rejection is already saved — sending this is optional. If they&apos;re not on WhatsApp, just
+            skip; they&apos;ll see their status in My Stuff either way.
+          </p>
         </section>
       )}
 
