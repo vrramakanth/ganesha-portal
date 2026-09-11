@@ -258,22 +258,53 @@ export default function EventRegistrationsPage() {
           {sortedReport.length === 0 && !loading && (
             <p className="px-4 py-3 text-sm text-muted">No one has registered for an event yet.</p>
           )}
-          {sortedReport.map((r) => (
-            <div key={r.registration_id} className="px-4 py-3 flex items-center justify-between gap-2">
-              <div>
-                <p className="font-semibold text-sm">{r.participant_name}</p>
+          {sortedReport.map((r) => {
+            const eventName = eventNameById.get(r.event_id) ?? r.event_id;
+            const followUpMessage = `Hi ${r.participant_name}, this is regarding your nomination for "${eventName}"${
+              r.sub_category ? ` (${r.sub_category})` : ""
+            } — `;
+            return (
+              <div key={r.registration_id} className="px-4 py-3 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-sm">{r.participant_name}</p>
+                  <StatusBadge label={STATUS_LABEL[r.status] ?? r.status} tone={STATUS_TONE[r.status] ?? "neutral"} />
+                </div>
                 <p className="text-xs text-muted">
-                  {eventNameById.get(r.event_id) ?? r.event_id}
+                  {eventName}
                   {r.sub_category ? ` · ${r.sub_category}` : ""}
                 </p>
                 <p className="text-xs text-muted">
                   Block {r.block}, Flat {r.flat_number} · {r.mobile}
                   {r.participant_age ? ` · Age ${r.participant_age}` : ""}
                 </p>
+                <div className="flex items-center gap-3">
+                  {/* Only Cultural nominations can have a song at all — for
+                      everything else this row would just be noise. */}
+                  {r.sub_category &&
+                    (r.song_url ? (
+                      <a
+                        href={r.song_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-maroon underline"
+                      >
+                        🎵 Play song
+                      </a>
+                    ) : (
+                      <p className="text-xs text-muted">No song uploaded</p>
+                    ))}
+                  <a
+                    href={`https://wa.me/91${r.mobile}?text=${encodeURIComponent(followUpMessage)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-semibold text-maroon underline"
+                  >
+                    💬 WhatsApp
+                  </a>
+                </div>
               </div>
-              <StatusBadge label={STATUS_LABEL[r.status] ?? r.status} tone={STATUS_TONE[r.status] ?? "neutral"} />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     </div>
