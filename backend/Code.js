@@ -46,6 +46,7 @@ const ROUTES = {
   "volunteer.events.updateStatus": { auth: true, handler: (p, v) => updateEventStatus(v, p.eventId, p.status) },
   "volunteer.events.registrations": { auth: true, handler: (p, v) => listRegistrationsForEvent(v, p.eventId) },
   "volunteer.events.registrations.pending": { auth: true, handler: (p, v) => listPendingRegistrations(v) },
+  "volunteer.events.registrations.all": { auth: true, handler: (p, v) => listAllRegistrations(v) },
   "volunteer.events.registrations.approve": { auth: true, handler: (p, v) => approveRegistration(v, p.registrationId) },
   "volunteer.events.registrations.reject": { auth: true, handler: (p, v) => rejectRegistration(v, p.registrationId, p.reason) },
   "volunteer.events.checkin": { auth: true, handler: (p, v) => checkInRegistration(v, p.registrationId) },

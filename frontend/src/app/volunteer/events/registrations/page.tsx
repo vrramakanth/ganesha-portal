@@ -6,7 +6,42 @@ import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import type { EventRegistration } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
+import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
+
+const STATUS_LABEL: Record<string, string> = {
+  PENDING_REVIEW: "Pending",
+  CONFIRMED: "Confirmed",
+  REJECTED: "Rejected",
+};
+const STATUS_TONE: Record<string, BadgeTone> = {
+  PENDING_REVIEW: "warning",
+  CONFIRMED: "success",
+  REJECTED: "danger",
+};
+
+function csvEscape(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+/** A curated, human-readable export — deliberately not the raw sheet
+ *  columns (resident_id, reviewed_by, timestamps, …), just what an
+ *  organizer actually wants to scan or print for event-day planning. */
+function buildReportCsv(registrations: EventRegistration[], eventNameById: Map<string, string>): string {
+  const headers = ["Event", "Participant", "Age", "Block", "Flat", "Mobile", "Type", "Status", "Song"];
+  const rows = registrations.map((r) => [
+    eventNameById.get(r.event_id) ?? r.event_id,
+    r.participant_name,
+    r.participant_age || "",
+    r.block,
+    r.flat_number,
+    r.mobile,
+    r.sub_category || "",
+    STATUS_LABEL[r.status] ?? r.status,
+    r.song_url ? "Yes" : "No",
+  ]);
+  return [headers, ...rows].map((row) => row.map((v) => csvEscape(String(v))).join(",")).join("\n");
+}
 
 function confirmationMessage(r: EventRegistration, eventName: string): string {
   const type = r.sub_category ? ` (${r.sub_category})` : "";
@@ -31,16 +66,41 @@ export default function EventRegistrationsPage() {
   const [confirmDraft, setConfirmDraft] = useState("");
 
   const { data, loading, error: loadError } = useAsync(
-    () => Promise.all([api.volunteer.pendingRegistrations(idToken as string), api.events.list()]),
+    () =>
+      Promise.all([
+        api.volunteer.pendingRegistrations(idToken as string),
+        api.volunteer.allRegistrations(idToken as string),
+        api.events.list(),
+      ]),
     [idToken, refreshKey]
   );
-  const [registrations, events] = data ?? [[], []];
+  const [registrations, allRegistrations, events] = data ?? [[], [], []];
 
   const eventNameById = useMemo(() => {
     const map = new Map<string, string>();
     events.forEach((e) => map.set(e.event_id, e.name));
     return map;
   }, [events]);
+
+  const sortedReport = useMemo(
+    () =>
+      [...allRegistrations].sort((a, b) => {
+        const eventCompare = (eventNameById.get(a.event_id) ?? "").localeCompare(eventNameById.get(b.event_id) ?? "");
+        return eventCompare !== 0 ? eventCompare : a.participant_name.localeCompare(b.participant_name);
+      }),
+    [allRegistrations, eventNameById]
+  );
+
+  function downloadReport() {
+    const csv = buildReportCsv(sortedReport, eventNameById);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "event-registrations.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   /** Approving takes effect immediately regardless of whether a
    *  confirmation gets sent — the WhatsApp step below is a courtesy on
@@ -171,6 +231,45 @@ export default function EventRegistrationsPage() {
           </div>
         ))}
       </div>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Participant Report</h2>
+            <p className="text-xs text-muted">{sortedReport.length} total nominations across every event</p>
+          </div>
+          <button
+            type="button"
+            onClick={downloadReport}
+            disabled={sortedReport.length === 0}
+            className="shrink-0 rounded-lg bg-saffron px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+          >
+            Download CSV
+          </button>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card divide-y divide-border">
+          {sortedReport.length === 0 && !loading && (
+            <p className="px-4 py-3 text-sm text-muted">No one has registered for an event yet.</p>
+          )}
+          {sortedReport.map((r) => (
+            <div key={r.registration_id} className="px-4 py-3 flex items-center justify-between gap-2">
+              <div>
+                <p className="font-semibold text-sm">{r.participant_name}</p>
+                <p className="text-xs text-muted">
+                  {eventNameById.get(r.event_id) ?? r.event_id}
+                  {r.sub_category ? ` · ${r.sub_category}` : ""}
+                </p>
+                <p className="text-xs text-muted">
+                  Block {r.block}, Flat {r.flat_number} · {r.mobile}
+                  {r.participant_age ? ` · Age ${r.participant_age}` : ""}
+                </p>
+              </div>
+              <StatusBadge label={STATUS_LABEL[r.status] ?? r.status} tone={STATUS_TONE[r.status] ?? "neutral"} />
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

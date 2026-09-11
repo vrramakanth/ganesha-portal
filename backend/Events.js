@@ -309,6 +309,18 @@ function listPendingRegistrations(volunteer) {
   return rowsToObjects(sheet).filter((r) => r.status === "PENDING_REVIEW");
 }
 
+/** The full roster across every event, for organizer planning/headcounts
+ *  — distinct from listPendingRegistrations above, which is specifically
+ *  the review queue. Includes every status (including REJECTED) rather
+ *  than filtering, so the report reflects the complete picture; the
+ *  frontend is what turns this into something quick to scan. */
+function listAllRegistrations(volunteer) {
+  requirePermission(volunteer, "Events");
+  const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+  ensureColumn(sheet, "song_url");
+  return rowsToObjects(sheet);
+}
+
 function approveRegistration(volunteer, registrationId) {
   requirePermission(volunteer, "Events");
   return withLock(() => {
