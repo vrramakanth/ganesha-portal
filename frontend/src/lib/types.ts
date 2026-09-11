@@ -98,7 +98,11 @@ export type EventRegistration = {
   parent_name: string;
   parent_mobile: string;
   sub_category?: string;
+  song_url?: string;
   status: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  rejection_reason?: string;
   check_in_at: string;
   created_at: string;
 };

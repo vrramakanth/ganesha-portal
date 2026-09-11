@@ -164,9 +164,38 @@ function updateEventStatus(volunteer, eventId, status) {
   });
 }
 
+const MAX_SONG_BASE64_LENGTH = 14 * 1024 * 1024; // ~10MB raw — comfortably covers a full song at typical MP3 bitrates
+
+function getCulturalSongsFolder() {
+  const rootName = getConfig("festival_name", "Ganesha Chathurthi 2026");
+  const root = getOrCreateFolder(DriveApp.getRootFolder(), rootName);
+  return getOrCreateFolder(root, "Cultural Songs");
+}
+
+/** Same fails-soft pattern as savePaymentScreenshot/saveExpenseScreenshot
+ *  — a Drive hiccup shouldn't block the nomination itself, since the song
+ *  can always be added or replaced later via updateRegistrationSong. */
+function saveSongFile(base64Audio, mimeType, fileName) {
+  if (!base64Audio) return "";
+  if (base64Audio.length > MAX_SONG_BASE64_LENGTH) {
+    throw new ApiError("Song file is too large — please keep it under 10MB", 400);
+  }
+  try {
+    const bytes = Utilities.base64Decode(base64Audio);
+    const blob = Utilities.newBlob(bytes, mimeType || "audio/mpeg", fileName || "song.mp3");
+    const file = getCulturalSongsFolder().createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return file.getUrl();
+  } catch (err) {
+    return "";
+  }
+}
+
+/** A rejected nomination frees its slot back up, same as a cancelled
+ *  one — only PENDING_REVIEW and CONFIRMED hold capacity. */
 function countRegistrations(eventId) {
   return rowsToObjects(getSheet(SHEETS.EVENT_REGISTRATIONS)).filter(
-    (r) => r.event_id === eventId && r.status !== "CANCELLED"
+    (r) => r.event_id === eventId && r.status !== "CANCELLED" && r.status !== "REJECTED"
   ).length;
 }
 
@@ -175,7 +204,7 @@ function countRegistrations(eventId) {
  *  mobile doubles as the identity key everywhere). `parentName`/
  *  `parentMobile` are kept separate and optional, for the children's-event
  *  form fields in spec §15 — they're display-only, not used for lookup. */
-function registerForEvent({ eventId, participantName, participantAge, block, flatNumber, mobile, parentName, parentMobile, subCategory }) {
+function registerForEvent({ eventId, participantName, participantAge, block, flatNumber, mobile, parentName, parentMobile, subCategory, song, songMimeType }) {
   requireFields({ eventId, participantName, block, flatNumber, mobile }, [
     "eventId",
     "participantName",
@@ -209,8 +238,14 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
 
   const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
   ensureColumn(sheet, "sub_category");
+  ensureColumn(sheet, "song_url");
+  ensureColumn(sheet, "reviewed_by");
+  ensureColumn(sheet, "reviewed_at");
+  ensureColumn(sheet, "rejection_reason");
+  const registrationId = generateRegistrationId();
+  const songUrl = event.category === "Cultural" ? saveSongFile(song, songMimeType, `${registrationId}.mp3`) : "";
   const registration = {
-    registration_id: generateRegistrationId(),
+    registration_id: registrationId,
     event_id: eventId,
     resident_id: resident.resident_id,
     participant_name: participantName,
@@ -221,7 +256,11 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
     parent_name: parentName || "",
     parent_mobile: parentMobile || "",
     sub_category: event.category === "Cultural" ? normalizedSubCategory : "",
-    status: "CONFIRMED",
+    song_url: songUrl,
+    status: "PENDING_REVIEW",
+    reviewed_by: "",
+    reviewed_at: "",
+    rejection_reason: "",
     check_in_at: "",
     created_at: new Date(),
   };
@@ -229,18 +268,113 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
   return registration;
 }
 
+/** Lets a resident come back and add or replace their song after
+ *  submitting — useful right up to the event, since they may not have
+ *  had the final recording ready at registration time. `mobile` doubles
+ *  as the ownership check (spec §6: no OTP session, so it's the identity
+ *  key everywhere) — same trust model as every other resident-facing
+ *  lookup in this app, not a new security bar. Blocked once a
+ *  registration is REJECTED/CANCELLED — nothing to prepare for anymore. */
+function updateRegistrationSong({ registrationId, mobile, song, songMimeType }) {
+  requireFields({ registrationId, mobile, song }, ["registrationId", "mobile", "song"]);
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+    ensureColumn(sheet, "song_url");
+    const rowIndex = findRowIndexById(sheet, "registration_id", registrationId);
+    if (rowIndex === -1) throw new ApiError("Unknown registration", 404);
+    const registration = getRowObject(sheet, rowIndex);
+    if (String(registration.mobile) !== String(mobile)) {
+      throw new ApiError("Unknown registration", 404);
+    }
+    if (registration.status === "REJECTED" || registration.status === "CANCELLED") {
+      throw new ApiError(`Cannot update the song for a ${registration.status.toLowerCase()} registration`, 400);
+    }
+
+    const songUrl = saveSongFile(song, songMimeType, `${registrationId}.mp3`);
+    if (!songUrl) throw new ApiError("Could not save the song — please try again", 500);
+    updateRowFields(sheet, rowIndex, { song_url: songUrl });
+    return { registrationId, songUrl };
+  });
+}
+
+/** Every nomination lands here first (spec §15 registration form, now
+ *  gated the same way donations are — Decision 4's "never trust a
+ *  client claim" applies just as well to "I'm eligible for this event"
+ *  as it does to payment). A volunteer's approve/reject is the only way
+ *  out of PENDING_REVIEW; check-in below refuses anything else. */
+function listPendingRegistrations(volunteer) {
+  requirePermission(volunteer, "Events");
+  const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+  ensureColumn(sheet, "song_url");
+  return rowsToObjects(sheet).filter((r) => r.status === "PENDING_REVIEW");
+}
+
+function approveRegistration(volunteer, registrationId) {
+  requirePermission(volunteer, "Events");
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+    ensureColumn(sheet, "reviewed_by");
+    ensureColumn(sheet, "reviewed_at");
+    ensureColumn(sheet, "rejection_reason");
+    const rowIndex = findRowIndexById(sheet, "registration_id", registrationId);
+    if (rowIndex === -1) throw new ApiError("Unknown registration", 404);
+    const before = getRowObject(sheet, rowIndex);
+    if (before.status !== "PENDING_REVIEW") {
+      throw new ApiError(`Cannot approve a registration that is ${before.status}`, 400);
+    }
+
+    const fields = { status: "CONFIRMED", reviewed_by: volunteer.email, reviewed_at: new Date() };
+    updateRowFields(sheet, rowIndex, fields);
+    logAudit(volunteer.email, "Approved event registration", "EventRegistration", registrationId, "PENDING_REVIEW", "CONFIRMED");
+    return Object.assign({}, before, fields, { registration_id: registrationId });
+  });
+}
+
+function rejectRegistration(volunteer, registrationId, reason) {
+  requirePermission(volunteer, "Events");
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+    ensureColumn(sheet, "reviewed_by");
+    ensureColumn(sheet, "reviewed_at");
+    ensureColumn(sheet, "rejection_reason");
+    const rowIndex = findRowIndexById(sheet, "registration_id", registrationId);
+    if (rowIndex === -1) throw new ApiError("Unknown registration", 404);
+    const before = getRowObject(sheet, rowIndex);
+    if (before.status !== "PENDING_REVIEW") {
+      throw new ApiError(`Cannot reject a registration that is ${before.status}`, 400);
+    }
+
+    const fields = {
+      status: "REJECTED",
+      reviewed_by: volunteer.email,
+      reviewed_at: new Date(),
+      rejection_reason: reason || "",
+    };
+    updateRowFields(sheet, rowIndex, fields);
+    logAudit(volunteer.email, "Rejected event registration", "EventRegistration", registrationId, "PENDING_REVIEW", "REJECTED");
+    return Object.assign({}, before, fields, { registration_id: registrationId });
+  });
+}
+
 function listRegistrationsByMobile(mobile) {
   requireFields({ mobile }, ["mobile"]);
-  return rowsToObjects(getSheet(SHEETS.EVENT_REGISTRATIONS)).filter((r) => String(r.mobile) === String(mobile));
+  const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+  ensureColumn(sheet, "song_url");
+  return rowsToObjects(sheet).filter((r) => String(r.mobile) === String(mobile));
 }
 
 function listRegistrationsForEvent(volunteer, eventId) {
   requirePermission(volunteer, "Events");
-  return rowsToObjects(getSheet(SHEETS.EVENT_REGISTRATIONS)).filter((r) => r.event_id === eventId);
+  const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+  ensureColumn(sheet, "song_url");
+  return rowsToObjects(sheet).filter((r) => r.event_id === eventId);
 }
 
 /** Idempotent — scanning an already-checked-in registration reports
- *  ALREADY_CHECKED_IN rather than erroring or double-counting (spec §16). */
+ *  ALREADY_CHECKED_IN rather than erroring or double-counting (spec §16).
+ *  A registration that was never approved (or was rejected) can't be
+ *  checked in at all — otherwise the review step would just be
+ *  cosmetic, bypassable by walking up to the door regardless. */
 function checkInRegistration(volunteer, registrationId) {
   requirePermission(volunteer, "Events");
   return withLock(() => {
@@ -248,6 +382,13 @@ function checkInRegistration(volunteer, registrationId) {
     const rowIndex = findRowIndexById(sheet, "registration_id", registrationId);
     if (rowIndex === -1) throw new ApiError("Unknown registration", 404);
     const registration = getRowObject(sheet, rowIndex);
+
+    if (registration.status === "REJECTED") {
+      throw new ApiError("This registration was rejected", 400);
+    }
+    if (registration.status === "PENDING_REVIEW") {
+      throw new ApiError("This registration hasn't been approved yet", 400);
+    }
 
     if (registration.check_in_at) {
       return { registrationId, alreadyCheckedIn: true, checkedInAt: registration.check_in_at };

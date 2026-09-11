@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { api } from "@/lib/api";
+import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatCurrency } from "@/lib/date";
+import { fileToBase64 } from "@/lib/file";
 import { parseVolunteerAvailability, isAreaApproved } from "@/lib/volunteerAreas";
+import type { EventRegistration } from "@/lib/types";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
+
+const MAX_SONG_BYTES = 10 * 1024 * 1024; // 10MB — comfortably covers a full song at typical MP3 bitrates
 
 export default function MyStuffPage() {
   const { profile, loaded } = useResidentProfile();
@@ -20,6 +24,7 @@ export default function MyStuffPage() {
   // explicitly asks to look up a different number — otherwise the saved
   // profile would just override an empty `mobile` right back.
   const [searchingNew, setSearchingNew] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const activeMobile = searchingNew ? null : mobile || (loaded && profile.mobile ? profile.mobile : null);
 
@@ -34,7 +39,7 @@ export default function MyStuffPage() {
             api.expenses.mine(activeMobile),
           ])
         : Promise.resolve(null),
-    [activeMobile]
+    [activeMobile, refreshKey]
   );
 
   if (!activeMobile) {
@@ -111,16 +116,24 @@ export default function MyStuffPage() {
           <Section title="My Event Registrations">
             {registrations.length === 0 && <Empty>No event registrations yet.</Empty>}
             {registrations.map((r) => (
-              <Row key={r.registration_id}>
-                <div>
-                  <p className="font-semibold text-sm">{r.participant_name}</p>
-                  <p className="text-xs text-muted">
-                    {r.sub_category ? `${r.sub_category} · ` : ""}
-                    {r.registration_id}
-                  </p>
+              <div key={r.registration_id} className="px-4 py-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-sm">{r.participant_name}</p>
+                    <p className="text-xs text-muted">
+                      {r.sub_category ? `${r.sub_category} · ` : ""}
+                      {r.registration_id}
+                    </p>
+                  </div>
+                  <StatusBadge
+                    label={r.check_in_at ? "CHECKED IN" : r.status === "PENDING_REVIEW" ? "PENDING" : r.status}
+                    tone={r.check_in_at ? "success" : statusTone(r.status)}
+                  />
                 </div>
-                <StatusBadge label={r.check_in_at ? "CHECKED IN" : r.status} tone={r.check_in_at ? "success" : "info"} />
-              </Row>
+                {r.sub_category && r.status !== "REJECTED" && r.status !== "CANCELLED" && (
+                  <SongUploader registration={r} mobile={activeMobile} onUpdated={() => setRefreshKey((k) => k + 1)} />
+                )}
+              </div>
             ))}
           </Section>
 
@@ -211,9 +224,9 @@ export default function MyStuffPage() {
 }
 
 function statusTone(status: string) {
-  if (status === "SUCCESS" || status === "VERIFIED_SUCCESS") return "success" as const;
-  if (status === "MANUAL_REVIEW" || status === "PAYMENT_PENDING") return "warning" as const;
-  if (status === "FAILED" || status === "EXPIRED" || status === "CANCELLED") return "danger" as const;
+  if (status === "SUCCESS" || status === "VERIFIED_SUCCESS" || status === "CONFIRMED") return "success" as const;
+  if (status === "MANUAL_REVIEW" || status === "PAYMENT_PENDING" || status === "PENDING_REVIEW") return "warning" as const;
+  if (status === "FAILED" || status === "EXPIRED" || status === "CANCELLED" || status === "REJECTED") return "danger" as const;
   return "neutral" as const;
 }
 
@@ -232,4 +245,78 @@ function Row({ children }: { children: React.ReactNode }) {
 
 function Empty({ children }: { children: React.ReactNode }) {
   return <p className="px-4 py-3 text-sm text-muted">{children}</p>;
+}
+
+/** Lets a resident add or replace their song right up until the event —
+ *  the nomination form makes it optional since the recording may not be
+ *  ready at registration time, so this is the way to fill it in (or swap
+ *  it) later without needing to re-register. */
+function SongUploader({
+  registration,
+  mobile,
+  onUpdated,
+}: {
+  registration: EventRegistration;
+  mobile: string;
+  onUpdated: () => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleFile(file: File | undefined) {
+    setError(null);
+    if (!file) return;
+    if (!/\.mp3$/i.test(file.name) && file.type !== "audio/mpeg") {
+      setError("Please choose an MP3 file.");
+      return;
+    }
+    if (file.size > MAX_SONG_BYTES) {
+      setError("Song file is too large — please keep it under 10MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const base64 = await fileToBase64(file);
+      await api.events.updateSong(registration.registration_id, mobile, base64, file.type || "audio/mpeg");
+      onUpdated();
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Could not upload the song.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="audio/mpeg,.mp3"
+        onChange={(e) => handleFile(e.target.files?.[0])}
+        className="hidden"
+      />
+      <div className="flex items-center gap-2">
+        {registration.song_url && (
+          <a
+            href={registration.song_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-semibold text-maroon underline"
+          >
+            🎵 Play song
+          </a>
+        )}
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={() => fileInputRef.current?.click()}
+          className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-maroon disabled:opacity-60"
+        >
+          {uploading ? "Uploading…" : registration.song_url ? "Change Song" : "Upload Song"}
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
+  );
 }

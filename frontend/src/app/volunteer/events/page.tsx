@@ -256,6 +256,15 @@ export default function VolunteerEventsPage() {
         )}
       </div>
 
+      {canCreate && (
+        <Link
+          href="/volunteer/events/registrations"
+          className="block w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon"
+        >
+          Review Nominations
+        </Link>
+      )}
+
       {showForm && (
         <EventForm
           key={editingEvent?.event_id ?? "new"}

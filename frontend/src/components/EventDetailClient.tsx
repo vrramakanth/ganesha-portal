@@ -1,17 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatEventDate, formatEventTime } from "@/lib/date";
 import { eventSubCategories } from "@/lib/culturalSubCategories";
+import { fileToBase64 } from "@/lib/file";
 import type { EventRegistration } from "@/lib/types";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
+
+const MAX_SONG_BYTES = 10 * 1024 * 1024; // 10MB — comfortably covers a full song at typical MP3 bitrates
 
 export default function EventDetailClient({ eventId }: { eventId: string }) {
   const { data: events, loading, error } = useAsync(() => api.events.list(), []);
@@ -24,6 +27,9 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   const [mobile, setMobile] = useState("");
   const [block, setBlock] = useState("");
   const [flatNumber, setFlatNumber] = useState("");
+  const [song, setSong] = useState<{ base64: string; mimeType: string; name: string } | null>(null);
+  const [songError, setSongError] = useState<string | null>(null);
+  const songInputRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [registration, setRegistration] = useState<EventRegistration | null>(null);
@@ -49,6 +55,21 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   const canRegister = event.status === "OPEN" && Number(event.fee || 0) === 0;
   const isCultural = event.category === "Cultural";
 
+  async function handleSongFile(file: File | undefined) {
+    setSongError(null);
+    if (!file) return;
+    if (!/\.mp3$/i.test(file.name) && file.type !== "audio/mpeg") {
+      setSongError("Please choose an MP3 file.");
+      return;
+    }
+    if (file.size > MAX_SONG_BYTES) {
+      setSongError("Song file is too large — please keep it under 10MB.");
+      return;
+    }
+    const base64 = await fileToBase64(file);
+    setSong({ base64, mimeType: file.type || "audio/mpeg", name: file.name });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
@@ -70,6 +91,8 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         flatNumber: fields.flatNumber,
         mobile: fields.mobile,
         subCategory: isCultural ? subCategory : undefined,
+        song: isCultural ? song?.base64 : undefined,
+        songMimeType: isCultural ? song?.mimeType : undefined,
       });
       saveProfile({ name: fields.participantName, mobile: fields.mobile, block: fields.block, flatNumber: fields.flatNumber });
       setRegistration(result);
@@ -83,7 +106,15 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   if (registration) {
     return (
       <div className="flex flex-col gap-6 px-5 pt-8 items-center text-center">
-        <PageHeader title="You're registered!" subtitle={event.name} backHref="/events" backLabel="← Events" />
+        <PageHeader title="Nomination submitted!" subtitle={event.name} backHref="/events" backLabel="← Events" />
+        <p className="text-sm text-muted">
+          A volunteer will review it shortly — check My Stuff for updates.
+        </p>
+        {isCultural && (
+          <p className="text-sm text-muted">
+            Need to add or change the song? You can do that from My Stuff any time before the event.
+          </p>
+        )}
         <p className="text-sm text-muted">Registration ID: {registration.registration_id}</p>
       </div>
     );
@@ -141,7 +172,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
               </select>
             </div>
           )}
-          {event.age_group && (
+          {(event.age_group || isCultural) && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Age</label>
               <input
@@ -149,6 +180,28 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
                 onChange={(e) => setParticipantAge(e.target.value)}
                 className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
               />
+              {isCultural && <p className="text-xs text-muted">For adults, enter 18+</p>}
+            </div>
+          )}
+          {isCultural && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Song (MP3, optional)</label>
+              <input
+                ref={songInputRef}
+                type="file"
+                accept="audio/mpeg,.mp3"
+                onChange={(e) => handleSongFile(e.target.files?.[0])}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => songInputRef.current?.click()}
+                className="w-full rounded-lg border border-border bg-card py-3 text-center text-sm font-semibold text-maroon"
+              >
+                {song ? `Song Attached ✓ (${song.name})` : "Attach Song"}
+              </button>
+              {songError && <p className="text-xs text-red-600">{songError}</p>}
+              <p className="text-xs text-muted">Not ready yet? You can add or change this later from My Stuff.</p>
             </div>
           )}
           <div className="space-y-1.5">

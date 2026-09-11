@@ -101,7 +101,16 @@ export const api = {
       parentName?: string;
       parentMobile?: string;
       subCategory?: string;
+      song?: string;
+      songMimeType?: string;
     }) => apiPost<EventRegistration>("events.register", payload),
+    updateSong: (registrationId: string, mobile: string, song: string, songMimeType: string) =>
+      apiPost<{ registrationId: string; songUrl: string }>("events.registrations.updateSong", {
+        registrationId,
+        mobile,
+        song,
+        songMimeType,
+      }),
   },
   stats: {
     public: () => apiGet<PublicStats>("stats.public"),
@@ -241,6 +250,12 @@ export const api = {
       apiPost<{ eventId: string; status: string }>("volunteer.events.updateStatus", { idToken, eventId, status }),
     eventRegistrations: (idToken: string, eventId: string) =>
       apiGet<EventRegistration[]>("volunteer.events.registrations", { idToken, eventId }),
+    pendingRegistrations: (idToken: string) =>
+      apiGet<EventRegistration[]>("volunteer.events.registrations.pending", { idToken }),
+    approveRegistration: (idToken: string, registrationId: string) =>
+      apiPost<EventRegistration>("volunteer.events.registrations.approve", { idToken, registrationId }),
+    rejectRegistration: (idToken: string, registrationId: string, reason?: string) =>
+      apiPost<EventRegistration>("volunteer.events.registrations.reject", { idToken, registrationId, reason }),
     checkIn: (idToken: string, registrationId: string) =>
       apiPost<{ registrationId: string; alreadyCheckedIn: boolean; checkedInAt: string }>(
         "volunteer.events.checkin",
