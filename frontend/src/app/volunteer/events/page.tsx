@@ -23,6 +23,30 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 
 const CATEGORIES = ["General", "Dinner", "Kids", "Cultural", "Sports"];
 
+/** A one-line hook per category so the broadcast reads like an invitation
+ *  from the community, not a calendar entry — the volunteer never has to
+ *  write this by hand. Falls back to the General line for anything else
+ *  (including categories added later). */
+const CATEGORY_INTRO: Record<string, string> = {
+  Dinner: "Come hungry, come together — a community feast awaits! 🍽️",
+  Kids: "Fun, games, and giggles for our little ones — don't miss it! 🎈",
+  Cultural: "An evening of music, dance, and community spirit! 🎶",
+  Sports: "Game on! Come cheer, compete, and have a blast. 🏆",
+  General: "Let's celebrate together as one Brigade Woods family! 🐘",
+};
+
+/** The numberless wa.me form opens WhatsApp's own chat picker instead of a
+ *  specific contact — the volunteer picks the Community broadcast/group
+ *  themselves and sends it. Built fresh from the event's own fields each
+ *  time, so this works on old events too, not just ones published after
+ *  this button existed. */
+function buildWhatsAppShareUrl(event: EventRecord): string {
+  const link = typeof window !== "undefined" ? `${window.location.origin}/events/${event.event_id}` : "";
+  const intro = CATEGORY_INTRO[event.category] ?? CATEGORY_INTRO.General;
+  const text = `🎊 *${event.name}* — Ganesha Chathurthi 2026\n\n${intro}\n\n🗓️ ${formatEventDate(event.date)} · ${formatEventTime(event.start_time)}\n📍 ${event.location}\n\nBring your family and friends — everyone's welcome! 🙏\nDetails & registration: ${link}`;
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
+
 type EventFormValues = {
   name: string;
   description: string;
@@ -331,6 +355,14 @@ export default function VolunteerEventsPage() {
                   Cancel
                 </button>
               )}
+              <a
+                href={buildWhatsAppShareUrl(event)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-maroon"
+              >
+                Share
+              </a>
               <Link
                 href={`/volunteer/events/checkin?event=${event.event_id}`}
                 className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-maroon"
