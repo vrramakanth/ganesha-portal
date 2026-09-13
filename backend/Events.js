@@ -172,6 +172,35 @@ function updateEventStatus(volunteer, eventId, status) {
   });
 }
 
+/** A deliberately anonymous "are you coming" tally — no mobile, no
+ *  identity, just a count, so it's a one-tap reaction rather than a form.
+ *  Kept entirely separate from the Event Registrations flow (§15), which
+ *  still exists for events that actually need structured signup. Not
+ *  audited, same reasoning as not collecting identity: there's no "who"
+ *  to log against. */
+function rsvpEvent(eventId, response) {
+  if (response !== "YES" && response !== "NO") {
+    throw new ApiError(`Invalid RSVP response: ${response}`, 400);
+  }
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.EVENTS);
+    ensureColumn(sheet, "rsvp_yes");
+    ensureColumn(sheet, "rsvp_no");
+    const rowIndex = findRowIndexById(sheet, "event_id", eventId);
+    if (rowIndex === -1) throw new ApiError("Unknown event", 404);
+    const before = getRowObject(sheet, rowIndex);
+    const field = response === "YES" ? "rsvp_yes" : "rsvp_no";
+    const updated = (Number(before[field]) || 0) + 1;
+    updateRowFields(sheet, rowIndex, { [field]: updated });
+    invalidateEventsCache();
+    return {
+      eventId,
+      rsvpYes: Number(field === "rsvp_yes" ? updated : before.rsvp_yes) || 0,
+      rsvpNo: Number(field === "rsvp_no" ? updated : before.rsvp_no) || 0,
+    };
+  });
+}
+
 const MAX_SONG_BASE64_LENGTH = 14 * 1024 * 1024; // ~10MB raw — comfortably covers a full song at typical MP3 bitrates
 
 function getCulturalSongsFolder() {

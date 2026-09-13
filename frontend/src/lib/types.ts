@@ -42,6 +42,8 @@ export type EventRecord = {
   contact_volunteer: string;
   token_code: string;
   sub_categories?: string;
+  rsvp_yes?: number | string;
+  rsvp_no?: number | string;
 };
 
 export type PublicStats = {

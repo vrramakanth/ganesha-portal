@@ -7,7 +7,7 @@ import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatEventDate, formatEventTime } from "@/lib/date";
 import { eventSubCategories } from "@/lib/culturalSubCategories";
 import { fileToBase64 } from "@/lib/file";
-import type { EventRegistration } from "@/lib/types";
+import type { EventRecord, EventRegistration } from "@/lib/types";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
@@ -28,6 +28,87 @@ type Performance = {
 
 function newPerformance(): Performance {
   return { key: Math.random().toString(36).slice(2), subCategory: "", comments: "", song: null, songError: null };
+}
+
+/** A deliberately anonymous "are you coming" reaction — no mobile, no
+ *  form, one tap. Kept separate from the full Registration form below,
+ *  which stays for events that actually need structured signup (Cultural
+ *  performances, capacity limits, etc). Remembered per-browser via
+ *  localStorage so a returning visitor sees their own answer instead of
+ *  the buttons again — best-effort only; a cleared/private browser just
+ *  shows the buttons again, which is a fine fallback for a low-stakes tally. */
+function RsvpSection({ event }: { event: EventRecord }) {
+  const storageKey = `gw_rsvp_${event.event_id}`;
+  const [loaded, setLoaded] = useState(false);
+  const [choice, setChoice] = useState<"YES" | "NO" | null>(null);
+  const [submitting, setSubmitting] = useState<"YES" | "NO" | null>(null);
+  const [rsvpError, setRsvpError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      if (saved === "YES" || saved === "NO") setChoice(saved);
+    } catch {
+      // localStorage can throw in private browsing — just show the buttons
+    }
+    setLoaded(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function respond(response: "YES" | "NO") {
+    setRsvpError(null);
+    setSubmitting(response);
+    try {
+      await api.events.rsvp(event.event_id, response);
+      setChoice(response);
+      try {
+        window.localStorage.setItem(storageKey, response);
+      } catch {
+        // best-effort only
+      }
+    } catch (err) {
+      setRsvpError(err instanceof ApiClientError ? err.message : "Could not save your response. Please try again.");
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
+  if (!loaded) return null;
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <p className="text-sm font-semibold">Are you coming?</p>
+      {choice ? (
+        <p className="text-sm text-muted">
+          {choice === "YES" ? "✅ You said you're coming — see you there!" : "You said you can't make it this time."}{" "}
+          <button type="button" onClick={() => setChoice(null)} className="font-semibold text-maroon underline">
+            Change response
+          </button>
+        </p>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={submitting !== null}
+            onClick={() => respond("YES")}
+            className="flex-1 rounded-xl bg-saffron py-3 text-sm font-semibold text-white disabled:opacity-60 active:bg-saffron-dark transition-colors"
+          >
+            {submitting === "YES" ? "…" : "✅ Yes, I'm coming!"}
+          </button>
+          <button
+            type="button"
+            disabled={submitting !== null}
+            onClick={() => respond("NO")}
+            className="flex-1 rounded-xl border border-border py-3 text-sm font-semibold text-foreground disabled:opacity-60"
+          >
+            {submitting === "NO" ? "…" : "Can't make it"}
+          </button>
+        </div>
+      )}
+      {rsvpError && <p className="text-xs text-red-600">{rsvpError}</p>}
+      <p className="text-xs text-muted">Just one tap, no sign-up needed.</p>
+    </div>
+  );
 }
 
 type SubmitOutcome =
@@ -198,7 +279,9 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       />
       {event.description && <p className="text-sm text-muted">{event.description}</p>}
 
-      {!canRegister && (
+      {event.status !== "CANCELLED" && event.status !== "COMPLETED" && <RsvpSection event={event} />}
+
+      {isCultural && !canRegister && (
         <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">
           {event.status !== "OPEN"
             ? "Registration is not currently open for this event."
@@ -206,8 +289,13 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         </p>
       )}
 
-      {canRegister && (
-        <form onSubmit={handleSubmit} className="space-y-4">
+      {isCultural && canRegister && (
+        <>
+          <div className="space-y-1 border-t border-border pt-4">
+            <p className="text-sm font-semibold">Want to register formally?</p>
+            <p className="text-xs text-muted">Needed to nominate a performance — separate from the quick RSVP above.</p>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Participant Name</label>
             <input
@@ -326,7 +414,8 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
                 ? `Register ${performances.length} Performances`
                 : "Register"}
           </button>
-        </form>
+          </form>
+        </>
       )}
     </div>
   );

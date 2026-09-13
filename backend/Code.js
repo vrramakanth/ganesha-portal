@@ -20,6 +20,7 @@ const ROUTES = {
   "donations.get": { handler: (p) => getDonation(p.transactionId) },
   "donations.mine": { handler: (p) => listDonationsByMobile(p.mobile) },
   "events.register": { handler: (p) => registerForEvent(p) },
+  "events.rsvp": { handler: (p) => rsvpEvent(p.eventId, p.response) },
   "events.registrations.updateSong": { handler: (p) => updateRegistrationSong(p) },
   "registrations.mine": { handler: (p) => listRegistrationsByMobile(p.mobile) },
   "dinner.register": { handler: (p) => registerDinner(p) },

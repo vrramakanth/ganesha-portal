@@ -112,6 +112,8 @@ export const api = {
         song,
         songMimeType,
       }),
+    rsvp: (eventId: string, response: "YES" | "NO") =>
+      apiPost<{ eventId: string; rsvpYes: number; rsvpNo: number }>("events.rsvp", { eventId, response }),
   },
   stats: {
     public: () => apiGet<PublicStats>("stats.public"),

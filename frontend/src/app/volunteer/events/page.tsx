@@ -43,7 +43,11 @@ const CATEGORY_INTRO: Record<string, string> = {
 function buildWhatsAppShareUrl(event: EventRecord): string {
   const link = typeof window !== "undefined" ? `${window.location.origin}/events/${event.event_id}` : "";
   const intro = CATEGORY_INTRO[event.category] ?? CATEGORY_INTRO.General;
-  const text = `🎊 *${event.name}* — Ganesha Chathurthi 2026\n\n${intro}\n\n🗓️ ${formatEventDate(event.date)} · ${formatEventTime(event.start_time)}\n📍 ${event.location}\n\nBring your family and friends — everyone's welcome! 🙏\nDetails & registration: ${link}`;
+  // Matches what the linked page actually offers: Cultural events have a
+  // formal nomination form, everything else is just the one-tap RSVP.
+  const cta =
+    event.category === "Cultural" ? "Details & nominate your performance" : "Details & RSVP — just one tap!";
+  const text = `🎊 *${event.name}* — Ganesha Utsav 2026\n\n${intro}\n\n🗓️ ${formatEventDate(event.date)} · ${formatEventTime(event.start_time)}\n📍 ${event.location}\n\nBring your family and friends — everyone's welcome! 🙏\n${cta}: ${link}`;
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
 
