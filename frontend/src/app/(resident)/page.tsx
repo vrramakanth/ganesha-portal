@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { formatCurrency, formatEventWhen, formatEventTime } from "@/lib/date";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import StatusBadge from "@/components/StatusBadge";
 
 export default function Home() {
   const { data, loading, error } = useAsync(
@@ -76,8 +77,13 @@ export default function Home() {
           <p className="text-sm text-muted">No upcoming events yet.</p>
         )}
         <div className="space-y-2">
-          {upcoming.map((event) => {
-            const canRegister = event.status === "OPEN" && Number(event.fee || 0) === 0;
+          {upcoming.map((event, index) => {
+            const isCultural = event.category === "Cultural";
+            const isFreeOpen = event.status === "OPEN" && Number(event.fee || 0) === 0;
+            // Only the very next event shows the attending count — showing
+            // it on every card made "upcoming" feel like a leaderboard
+            // instead of pointing at what's happening soonest.
+            const attending = index === 0 ? Number(event.rsvp_yes) || 0 : 0;
             return (
               <Link
                 key={event.event_id}
@@ -91,10 +97,19 @@ export default function Home() {
                   </div>
                   <p className="text-sm text-muted">{formatEventTime(event.start_time)}</p>
                 </div>
-                {canRegister && (
-                  <p className="animate-twinkle mt-1 text-xs font-bold text-saffron">
-                    ✨ Register now →
-                  </p>
+                {(attending > 0 || isFreeOpen) && (
+                  <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                    {attending > 0 && <StatusBadge label={`${attending} attending`} tone="success" />}
+                    {isFreeOpen && isCultural && (
+                      <>
+                        <p className="animate-twinkle text-xs font-bold text-saffron">Register to perform →</p>
+                        <p className="text-xs font-bold text-maroon">RSVP to attend →</p>
+                      </>
+                    )}
+                    {isFreeOpen && !isCultural && (
+                      <p className="animate-twinkle text-xs font-bold text-saffron">RSVP to attend →</p>
+                    )}
+                  </div>
                 )}
               </Link>
             );
