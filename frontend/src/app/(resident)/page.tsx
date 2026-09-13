@@ -16,7 +16,11 @@ export default function Home() {
   const [stats, events] = data ?? [null, null];
   const upcoming = (events ?? [])
     .filter((e) => e.status === "OPEN")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .sort((a, b) => {
+      const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+    })
     .slice(0, 2);
   const dinnerEvent = (events ?? []).find((e) => e.category === "Dinner" && e.status === "OPEN");
 

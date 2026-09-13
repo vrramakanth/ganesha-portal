@@ -42,6 +42,14 @@ function getEventRows_() {
   const sheet = getSheet(SHEETS.EVENTS);
   ensureColumn(sheet, "sub_categories");
   const rows = rowsToObjects(sheet);
+  // Sheet row order is whatever order events were created/edited in, not
+  // chronological — sort by date, then by start_time so same-day events
+  // (e.g. a morning and an evening event) display in the order they occur.
+  rows.sort((a, b) => {
+    const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+    if (dateDiff !== 0) return dateDiff;
+    return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+  });
   cache.put(EVENTS_CACHE_KEY, JSON.stringify(rows), EVENTS_CACHE_SECONDS);
   return rows;
 }
