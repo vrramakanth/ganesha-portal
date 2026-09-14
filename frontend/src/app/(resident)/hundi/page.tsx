@@ -7,7 +7,7 @@ import { formatCurrency } from "@/lib/date";
 import PageHeader from "@/components/PageHeader";
 import PaymentReferenceStep from "@/components/PaymentReferenceStep";
 
-const QUICK_AMOUNTS = [10, 50, 100, 500];
+const QUICK_AMOUNTS = [50, 100, 200, 500];
 
 type Step = "form" | "creating" | "reference" | "submitted";
 
