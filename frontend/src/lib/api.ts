@@ -17,6 +17,7 @@ import type {
   Expense,
   ExpenseSettlement,
   ExtractReferenceResult,
+  FeedbackReport,
   FestivalInfo,
   MyDinnerToken,
   PublicStats,
@@ -130,6 +131,11 @@ export const api = {
       reporterMobile?: string;
       pageUrl?: string;
     }) => apiPost<BugReport>("bugs.report", payload),
+  },
+  feedback: {
+    submit: (payload: { message: string; reporterName?: string; reporterMobile?: string; pageUrl?: string }) =>
+      apiPost<FeedbackReport>("feedback.submit", payload),
+    listPublished: () => apiGet<FeedbackReport[]>("feedback.listPublished"),
   },
   payments: {
     extractReference: (image: string, mimeType: string) =>
@@ -322,6 +328,13 @@ export const api = {
     bugsList: (idToken: string) => apiGet<BugReport[]>("volunteer.bugs.list", { idToken }),
     updateBugStatus: (idToken: string, bugId: string, status: "OPEN" | "CLOSED") =>
       apiPost<{ bugId: string; status: string }>("volunteer.bugs.updateStatus", { idToken, bugId, status }),
+    feedbackList: (idToken: string) => apiGet<FeedbackReport[]>("volunteer.feedback.list", { idToken }),
+    updateFeedbackStatus: (idToken: string, feedbackId: string, status: "PENDING" | "PUBLISHED" | "DECLINED") =>
+      apiPost<{ feedbackId: string; status: string }>("volunteer.feedback.updateStatus", {
+        idToken,
+        feedbackId,
+        status,
+      }),
     recordExpense: (
       idToken: string,
       payload: {

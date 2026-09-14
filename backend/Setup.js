@@ -56,6 +56,10 @@ const SHEET_SCHEMAS = {
     "bug_id", "description", "screenshot_url", "status", "reporter_name", "reporter_mobile",
     "page_url", "reported_at", "updated_at",
   ],
+  [SHEETS.FEEDBACK]: [
+    "feedback_id", "message", "reporter_name", "reporter_mobile", "page_url", "status",
+    "reviewed_by", "reviewed_at", "created_at", "updated_at",
+  ],
 };
 
 function setupSheets() {

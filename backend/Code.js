@@ -12,6 +12,8 @@ const ROUTES = {
   "announcements.list": { handler: () => listActiveAnnouncements() },
   "payments.extractReference": { handler: (p) => extractPaymentReference(p.image, p.mimeType) },
   "bugs.report": { handler: (p) => reportBug(p) },
+  "feedback.submit": { handler: (p) => submitFeedback(p) },
+  "feedback.listPublished": { handler: () => listPublishedFeedback() },
 
   // --- Resident ---
   "donations.create": { handler: (p) => createDonation(p) },
@@ -71,6 +73,8 @@ const ROUTES = {
   "volunteer.auditLog.list": { auth: true, handler: (p, v) => listAuditLog(v) },
   "volunteer.bugs.list": { auth: true, handler: (p, v) => listBugs(v) },
   "volunteer.bugs.updateStatus": { auth: true, handler: (p, v) => updateBugStatus(v, p.bugId, p.status) },
+  "volunteer.feedback.list": { auth: true, handler: (p, v) => listFeedback(v) },
+  "volunteer.feedback.updateStatus": { auth: true, handler: (p, v) => updateFeedbackStatus(v, p.feedbackId, p.status) },
   "volunteer.expenses.record": {
     auth: true,
     handler: (p, v) =>

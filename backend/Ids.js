@@ -73,3 +73,8 @@ function generateExpenseId() {
   const seq = nextSequence("counter_expense");
   return `GWG-EXP-${pad(seq, 4)}`;
 }
+
+function generateFeedbackId() {
+  const seq = nextSequence("counter_feedback");
+  return `GWG-FB-${pad(seq, 4)}`;
+}

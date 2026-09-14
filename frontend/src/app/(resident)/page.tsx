@@ -13,6 +13,10 @@ export default function Home() {
     () => Promise.all([api.stats.public(), api.events.list(), api.announcements.list()]),
     []
   );
+  // Fetched separately from the core stats/events/news above — a hiccup
+  // fetching feedback (or the endpoint not existing yet on an older
+  // deployed backend) shouldn't take down the rest of the Home page.
+  const { data: feedback } = useAsync(() => api.feedback.listPublished(), []);
 
   const [stats, events, announcements] = data ?? [null, null, null];
   const upcoming = (events ?? [])
@@ -162,6 +166,27 @@ export default function Home() {
           </Link>
         </section>
       )}
+
+      {feedback && feedback.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Community Voices</h2>
+          <div className="space-y-2">
+            {feedback.map((f) => (
+              <div key={f.feedback_id} className="rounded-xl border border-border bg-card px-4 py-3">
+                <p className="text-sm">&ldquo;{f.message}&rdquo;</p>
+                <p className="mt-1 text-xs text-muted">— {f.reporter_name || "A Brigade Woods resident"}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <Link
+        href="/feedback"
+        className="block w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon"
+      >
+        We&apos;d Love Your Feedback
+      </Link>
 
       <a
         href="/docs/user-guide.pdf"

@@ -83,6 +83,16 @@ export default function MorePage() {
           </div>
           <span className="text-muted">›</span>
         </Link>
+        <Link
+          href="/feedback"
+          className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3.5"
+        >
+          <div>
+            <p className="font-semibold text-sm">Share Your Feedback</p>
+            <p className="text-xs text-muted">Tell us what we could do differently or better</p>
+          </div>
+          <span className="text-muted">›</span>
+        </Link>
       </section>
 
       <Link

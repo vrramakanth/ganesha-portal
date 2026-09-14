@@ -302,3 +302,16 @@ export type BugReport = {
   reported_at: string;
   updated_at: string;
 };
+
+export type FeedbackReport = {
+  feedback_id: string;
+  message: string;
+  reporter_name: string;
+  reporter_mobile: string;
+  page_url: string;
+  status: "PENDING" | "PUBLISHED" | "DECLINED";
+  reviewed_by: string;
+  reviewed_at: string;
+  created_at: string;
+  updated_at: string;
+};
