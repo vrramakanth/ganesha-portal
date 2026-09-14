@@ -60,9 +60,9 @@ export default function Home() {
 
       <div className="rounded-xl border border-border bg-card p-5 text-center">
         {error ? (
-          <p className="text-sm text-muted py-2">Unable to load collection totals.</p>
+          <p className="text-sm text-muted py-2">Unable to load totals.</p>
         ) : loading || !stats ? (
-          <LoadingIndicator label="Loading collection totals…" className="py-2 justify-center" />
+          <LoadingIndicator label="Loading totals…" className="py-2 justify-center" />
         ) : (
           <>
             <div className="flex items-center justify-center gap-8">
