@@ -12,6 +12,15 @@ import StatTile from "@/components/StatTile";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
 
+/** A Hundi offering has no name/block/flat by design — show that plainly
+ *  instead of a blank name or a dangling " · · GWG-..." separator. */
+function donorLabel(t: { resident_name: string; source: string }): string {
+  return t.source === "HUNDI" ? "Anonymous (Hundi)" : t.resident_name;
+}
+function donorLocation(t: { block: string; flat_number: string; source: string }): string {
+  return t.source === "HUNDI" ? "" : `${t.block} · ${t.flat_number} · `;
+}
+
 const STATUS_TONE: Record<string, BadgeTone> = {
   SUCCESS: "success",
   VERIFIED_SUCCESS: "success",
@@ -45,7 +54,7 @@ export default function VolunteerDonationsPage() {
 
   const byBlock: Record<string, number> = {};
   rows
-    .filter((t) => t.status === "SUCCESS" || t.status === "VERIFIED_SUCCESS")
+    .filter((t) => (t.status === "SUCCESS" || t.status === "VERIFIED_SUCCESS") && t.block)
     .forEach((t) => {
       byBlock[t.block] = (byBlock[t.block] || 0) + Number(t.amount || 0);
     });
@@ -95,9 +104,14 @@ export default function VolunteerDonationsPage() {
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="Donations" subtitle="Collections and payment review" />
 
-      <Link href="/volunteer/donations/screenshots" className="text-xs font-medium text-maroon underline -mt-4">
-        Attach Missing Screenshots
-      </Link>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 -mt-4">
+        <Link href="/volunteer/donations/screenshots" className="text-xs font-medium text-maroon underline">
+          Attach Missing Screenshots
+        </Link>
+        <Link href="/volunteer/donations/hundi" className="text-xs font-medium text-maroon underline">
+          Hundi Collection
+        </Link>
+      </div>
 
       {loading && <LoadingIndicator />}
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -123,9 +137,9 @@ export default function VolunteerDonationsPage() {
                   <div key={t.transaction_id} className="px-4 py-3 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-semibold">{t.resident_name}</p>
+                        <p className="font-semibold">{donorLabel(t)}</p>
                         <p className="text-xs text-muted">
-                          {t.block} · {t.flat_number} · {t.transaction_id}
+                          {donorLocation(t)}{t.transaction_id}
                         </p>
                       </div>
                       <p className="font-semibold text-maroon shrink-0">{formatCurrency(Number(t.amount))}</p>
@@ -192,9 +206,9 @@ export default function VolunteerDonationsPage() {
               {rows.map((t) => (
                 <div key={t.transaction_id} className="px-4 py-3 flex items-center justify-between gap-2">
                   <div>
-                    <p className="font-semibold text-sm">{t.resident_name}</p>
+                    <p className="font-semibold text-sm">{donorLabel(t)}</p>
                     <p className="text-xs text-muted">
-                      {t.block} · {t.flat_number} · {formatCurrency(Number(t.amount))}
+                      {donorLocation(t)}{formatCurrency(Number(t.amount))}
                     </p>
                   </div>
                   <StatusBadge label={t.status.replace(/_/g, " ")} tone={STATUS_TONE[t.status] ?? "neutral"} />

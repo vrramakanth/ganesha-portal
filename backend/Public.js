@@ -61,10 +61,17 @@ function getPublicStats() {
   );
 
   const totalCollected = transactions.reduce((sum, t) => sum + Number(t.amount || 0), 0);
-  const families = new Set(transactions.map((t) => `${t.block}|${t.flat_number}`)).size;
+
+  // Anonymous eHundi offerings (source: "HUNDI") have no block/flat — they
+  // still count toward totalCollected above, but "families" and the
+  // block-wise breakdown only make sense for named givers, so they're
+  // excluded here rather than showing up as a bogus "|" family or a
+  // blank-labeled block.
+  const namedTransactions = transactions.filter((t) => t.block && t.flat_number);
+  const families = new Set(namedTransactions.map((t) => `${t.block}|${t.flat_number}`)).size;
 
   const byBlock = {};
-  transactions.forEach((t) => {
+  namedTransactions.forEach((t) => {
     byBlock[t.block] = (byBlock[t.block] || 0) + Number(t.amount || 0);
   });
 

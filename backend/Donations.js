@@ -55,6 +55,63 @@ function createDonation({ name, mobile, email, block, flatNumber, amount }) {
   });
 }
 
+/** The "eHundi" path — a no-questions-asked offering, same spirit as a
+ *  physical Hundi box: no name/mobile/block/flat collected, and no
+ *  minimum/maximum enforced. Decision 4 (a volunteer independently
+ *  verifies every payment before it counts) still applies exactly as it
+ *  does for a named donation — anonymity only removes whose name goes
+ *  on it, not the verification step. Marked via source: "HUNDI" so
+ *  verifyPaymentManual knows to skip issuing a receipt, and so
+ *  getPublicStats can exclude it from the block/families breakdown
+ *  while still counting the amount toward the public collection total. */
+/** Volunteer-operated only — this is the physical Hundi desk near the
+ *  pandal, not a self-service option on the resident's own Donate page.
+ *  A volunteer starts this on behalf of whoever's in front of them (or
+ *  for a cash/coin drop with no phone involved at all), so requiring
+ *  Finance here (same as verifyPaymentManual/rejectPayment) keeps every
+ *  donation-writing action behind the same permission, even though the
+ *  transaction itself stays anonymous. */
+function createHundiDonation(volunteer, { amount }) {
+  requirePermission(volunteer, "Finance");
+  requireFields({ amount }, ["amount"]);
+  const amountNum = Number(amount);
+  if (!(amountNum > 0)) {
+    throw new ApiError("Amount must be greater than 0", 400);
+  }
+
+  return withLock(() => {
+    const transactionId = generateTransactionId();
+
+    const transaction = {
+      transaction_id: transactionId,
+      resident_id: "",
+      created_at: new Date(),
+      resident_name: "",
+      block: "",
+      flat_number: "",
+      mobile: "",
+      email: "",
+      amount: amountNum,
+      currency: "INR",
+      payment_provider: "upi_qr",
+      payment_order_id: "",
+      payment_id: "",
+      payment_reference: "",
+      status: "PAYMENT_PENDING",
+      verified_at: "",
+      receipt_id: "",
+      receipt_url: "",
+      source: "HUNDI",
+      admin_notes: "",
+      updated_at: new Date(),
+    };
+    appendObject(getSheet(SHEETS.TRANSACTIONS), transaction);
+    logAudit(volunteer.email, "Started Hundi collection", "Transaction", transactionId, "", `₹${amountNum}`);
+
+    return { transactionId, amount: amountNum, currency: "INR" };
+  });
+}
+
 /** Called once the resident scans the UPI QR, pays in their own app, and
  *  reports back a reference (typed, or pre-filled from a screenshot —
  *  either way it's just a claim). This only ever reaches MANUAL_REVIEW,
@@ -180,18 +237,22 @@ function verifyPaymentManual(volunteer, transactionId, notes) {
       return { transactionId, status: transaction.status };
     }
 
-    const receipt = generateReceipt({ ...transaction, status: "VERIFIED_SUCCESS" });
+    // A Hundi offering is anonymous by design — there's no one to issue
+    // a receipt to, so skip it entirely rather than generating one with
+    // a blank name/block/flat.
+    const isHundi = transaction.source === "HUNDI";
+    const receipt = isHundi ? null : generateReceipt({ ...transaction, status: "VERIFIED_SUCCESS" });
     updateRowFields(sheet, rowIndex, {
       status: "VERIFIED_SUCCESS",
       verified_at: new Date(),
-      receipt_id: receipt.receiptId,
-      receipt_url: receipt.url,
+      receipt_id: receipt ? receipt.receiptId : "",
+      receipt_url: receipt ? receipt.url : "",
       admin_notes: notes || "",
       updated_at: new Date(),
     });
     logAudit(volunteer.email, "Verified payment", "Transaction", transactionId, transaction.status, "VERIFIED_SUCCESS");
     invalidatePublicStatsCache();
-    return { transactionId, status: "VERIFIED_SUCCESS", receiptUrl: receipt.url };
+    return { transactionId, status: "VERIFIED_SUCCESS", receiptUrl: receipt ? receipt.url : "" };
   });
 }
 

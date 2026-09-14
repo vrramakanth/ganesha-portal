@@ -214,6 +214,8 @@ export const api = {
         screenshot,
         mimeType,
       }),
+    createHundi: (idToken: string, amount: number) =>
+      apiPost<CreateDonationResult>("volunteer.payment.hundi", { idToken, amount }),
     createEvent: (
       idToken: string,
       payload: {

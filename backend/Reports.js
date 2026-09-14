@@ -52,7 +52,7 @@ const REPORT_BUILDERS = {
   donations: () =>
     rowsToObjects(getSheet(SHEETS.TRANSACTIONS)).map((t) => ({
       transaction_id: t.transaction_id,
-      resident_name: t.resident_name,
+      resident_name: t.source === "HUNDI" ? "Anonymous (Hundi)" : t.resident_name,
       block: t.block,
       flat_number: t.flat_number,
       amount: t.amount,
