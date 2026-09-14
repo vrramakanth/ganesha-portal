@@ -116,6 +116,7 @@ function approveExpense(volunteer, expenseId) {
     if (rowIndex === -1) throw new ApiError("Unknown expense", 404);
     const before = getRowObject(sheet, rowIndex);
     updateRowFields(sheet, rowIndex, { status: "APPROVED" });
+    invalidatePublicStatsCache();
     logAudit(volunteer.email, "Approved expense", "Expense", expenseId, expenseStatus(before), "APPROVED");
     return { expenseId, status: "APPROVED" };
   });

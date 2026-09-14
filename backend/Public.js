@@ -74,6 +74,9 @@ function getPublicStats() {
     families,
     goal: Number(getConfig("donation_goal", "0")) || 0,
     byBlock: Object.entries(byBlock).map(([block, amount]) => ({ block, amount })),
+    // Aggregate only, same principle as totalCollected above — a single
+    // approved-expenses sum, never itemized or attributed to a spender.
+    totalExpenses: getExpensesTotal(),
   };
 
   cache.put(PUBLIC_STATS_CACHE_KEY, JSON.stringify(stats), PUBLIC_STATS_CACHE_SECONDS);

@@ -10,11 +10,11 @@ import StatusBadge from "@/components/StatusBadge";
 
 export default function Home() {
   const { data, loading, error } = useAsync(
-    () => Promise.all([api.stats.public(), api.events.list()]),
+    () => Promise.all([api.stats.public(), api.events.list(), api.announcements.list()]),
     []
   );
 
-  const [stats, events] = data ?? [null, null];
+  const [stats, events, announcements] = data ?? [null, null, null];
   const upcoming = (events ?? [])
     .filter((e) => e.status === "OPEN")
     .sort((a, b) => {
@@ -24,19 +24,22 @@ export default function Home() {
     })
     .slice(0, 2);
   const dinnerEvent = (events ?? []).find((e) => e.category === "Dinner" && e.status === "OPEN");
+  const news = (announcements ?? [])
+    .slice()
+    .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
 
   return (
-    <div className="flex flex-col gap-6 px-5 pt-6 pb-8">
+    <div className="flex flex-col gap-4 px-5 pt-3 pb-8">
       <Image
         src="/images/ganesha-hero.png"
         alt="Lord Ganesha"
         width={335}
         height={597}
         priority
-        className="mx-auto h-56 w-auto"
+        className="mx-auto h-28 w-auto"
       />
 
-      <header className="text-center space-y-1 -mt-4">
+      <header className="text-center space-y-1">
         <p className="text-sm font-semibold tracking-widest text-maroon uppercase">
           Brigade Woods
         </p>
@@ -62,8 +65,16 @@ export default function Home() {
           <LoadingIndicator label="Loading collection totals…" className="py-2 justify-center" />
         ) : (
           <>
-            <p className="text-3xl font-bold text-maroon">{formatCurrency(stats.totalCollected)}</p>
-            <p className="text-xs font-medium tracking-wide text-muted uppercase">Collected</p>
+            <div className="flex items-center justify-center gap-8">
+              <div>
+                <p className="text-3xl font-bold text-maroon">{formatCurrency(stats.totalCollected)}</p>
+                <p className="text-xs font-medium tracking-wide text-muted uppercase">Collected</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-maroon">{formatCurrency(stats.totalExpenses)}</p>
+                <p className="text-xs font-medium tracking-wide text-muted uppercase">Expensed (so far)</p>
+              </div>
+            </div>
             <p className="mt-2 text-sm text-foreground">{stats.families} families participating</p>
           </>
         )}
@@ -122,6 +133,20 @@ export default function Home() {
           View All Events
         </Link>
       </section>
+
+      {!loading && !error && news.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">News</h2>
+          <div className="space-y-2">
+            {news.map((a) => (
+              <div key={a.announcement_id} className="rounded-xl border border-border bg-card px-4 py-3">
+                <p className="font-semibold text-sm">{a.title}</p>
+                <p className="mt-0.5 text-sm text-muted">{a.message}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {dinnerEvent && (
         <section className="rounded-xl border border-border bg-card p-5 space-y-3">
