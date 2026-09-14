@@ -62,6 +62,22 @@ export default function HundiPage() {
     }
   }
 
+  async function handleCancel() {
+    if (!transactionId) return;
+    setSubmitting(true);
+    try {
+      await api.donations.cancel(transactionId);
+      setStep("form");
+      setAmount("");
+      setCustomAmount("");
+      setTransactionId(null);
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Could not cancel. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (step === "reference" && transactionId) {
     return (
       <div className="flex flex-col gap-6 px-5 pt-8">
@@ -70,7 +86,7 @@ export default function HundiPage() {
           amount={donationAmount}
           festival={festival ?? null}
           onSubmitReference={handleSubmitReference}
-          onCancel={() => setStep("form")}
+          onCancel={handleCancel}
           submitting={submitting}
           error={error}
         />
