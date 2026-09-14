@@ -230,6 +230,7 @@ export const api = {
         status?: string;
         tokenCode?: string;
         subCategories?: string[];
+        whatsappIntro?: string;
       }
     ) => apiPost<EventRecord>("volunteer.events.create", { idToken, ...payload }),
     updateEvent: (
@@ -247,6 +248,7 @@ export const api = {
         capacity?: number;
         fee?: number;
         subCategories?: string[];
+        whatsappIntro?: string;
       }
     ) => apiPost<EventRecord>("volunteer.events.update", { idToken, eventId, ...payload }),
     updateEventStatus: (idToken: string, eventId: string, status: string) =>

@@ -44,6 +44,7 @@ export type EventRecord = {
   sub_categories?: string;
   rsvp_yes?: number | string;
   rsvp_no?: number | string;
+  whatsapp_intro?: string;
 };
 
 export type PublicStats = {

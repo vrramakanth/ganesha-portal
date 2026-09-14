@@ -71,6 +71,7 @@ function createEvent(volunteer, payload) {
 
   const sheet = getSheet(SHEETS.EVENTS);
   ensureColumn(sheet, "sub_categories");
+  ensureColumn(sheet, "whatsapp_intro");
 
   const event = {
     event_id: `EVT-${Utilities.getUuid().slice(0, 8)}`,
@@ -90,6 +91,11 @@ function createEvent(volunteer, payload) {
     contact_volunteer: volunteer.email,
     token_code: payload.tokenCode || "",
     sub_categories: buildSubCategories(payload.category, payload.subCategories),
+    // Overrides the generic per-category WhatsApp share line (e.g. a
+    // Cultural event that's specifically a devotional bhajan, not dance
+    // or instruments) — left blank, the Share button falls back to the
+    // category default (see buildWhatsAppShareUrl on the frontend).
+    whatsapp_intro: payload.whatsappIntro || "",
   };
   appendObject(sheet, event);
   invalidateEventsCache();
@@ -110,6 +116,7 @@ function updateEvent(volunteer, eventId, payload) {
   return withLock(() => {
     const sheet = getSheet(SHEETS.EVENTS);
     ensureColumn(sheet, "sub_categories");
+    ensureColumn(sheet, "whatsapp_intro");
     const rowIndex = findRowIndexById(sheet, "event_id", eventId);
     if (rowIndex === -1) throw new ApiError("Unknown event", 404);
     const before = getRowObject(sheet, rowIndex);
@@ -128,6 +135,7 @@ function updateEvent(volunteer, eventId, payload) {
       registration_deadline: payload.registrationDeadline || "",
       fee: payload.fee || 0,
       sub_categories: buildSubCategories(payload.category, payload.subCategories),
+      whatsapp_intro: payload.whatsappIntro || "",
     };
     updateRowFields(sheet, rowIndex, fields);
     invalidateEventsCache();

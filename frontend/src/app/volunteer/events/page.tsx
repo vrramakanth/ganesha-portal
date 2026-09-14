@@ -42,7 +42,10 @@ const CATEGORY_INTRO: Record<string, string> = {
  *  this button existed. */
 function buildWhatsAppShareUrl(event: EventRecord): string {
   const link = typeof window !== "undefined" ? `${window.location.origin}/events/${event.event_id}` : "";
-  const intro = CATEGORY_INTRO[event.category] ?? CATEGORY_INTRO.General;
+  // A per-event override beats the category default — e.g. a Cultural
+  // event that's specifically a devotional bhajan, not dance or
+  // instruments, where the generic line would be actively misleading.
+  const intro = event.whatsapp_intro?.trim() || CATEGORY_INTRO[event.category] || CATEGORY_INTRO.General;
   // Matches what the linked page actually offers: Cultural events have a
   // formal nomination form, everything else is just the one-tap RSVP.
   const cta =
@@ -60,6 +63,7 @@ type EventFormValues = {
   category: string;
   capacity: string;
   subCategories: string[];
+  whatsappIntro: string;
 };
 
 /** Shared by "+ New Event" and "Edit" — keyed by the parent on the event's
@@ -98,6 +102,7 @@ function EventForm({
       category,
       capacity: String(form.get("capacity") || ""),
       subCategories,
+      whatsappIntro: String(form.get("whatsappIntro") || ""),
     });
   }
 
@@ -177,6 +182,23 @@ function EventForm({
         </div>
       )}
 
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-muted uppercase tracking-wide">
+          WhatsApp share intro (optional)
+        </label>
+        <textarea
+          name="whatsappIntro"
+          defaultValue={event?.whatsapp_intro}
+          placeholder={CATEGORY_INTRO[category] ?? CATEGORY_INTRO.General}
+          rows={2}
+          className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
+        />
+        <p className="text-xs text-muted">
+          Leave blank to use the default line for {category || "this category"}. Set this when the event needs
+          something more specific — e.g. a devotional bhajan rather than the general Cultural line.
+        </p>
+      </div>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button
@@ -242,6 +264,7 @@ export default function VolunteerEventsPage() {
         category: values.category,
         capacity: values.capacity ? Number(values.capacity) : undefined,
         subCategories: values.subCategories,
+        whatsappIntro: values.whatsappIntro,
       };
       if (editingEvent) {
         await api.volunteer.updateEvent(idToken as string, editingEvent.event_id, payload);
