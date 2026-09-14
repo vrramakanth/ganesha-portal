@@ -167,18 +167,22 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
             {USE_STATIC_BANK_QR ? (
               <div className="rounded-lg bg-white p-3 flex flex-col items-center gap-2">
                 {/* Plain <img>, not next/image — Next's image optimizer
-                    re-encodes through a lossy, resized pipeline (confirmed:
-                    456px source down to 384px, quality 75, re-palettized),
-                    which a phone camera scanning a screen has a much
-                    harder time reading reliably than the crisp source
-                    file, even though it still technically decodes fine
+                    re-encodes through a lossy, resized pipeline, which a
+                    phone camera scanning a screen has a much harder time
+                    reading reliably than the crisp source file, even
+                    though it still technically decodes fine
                     programmatically. This guarantees the browser gets the
-                    exact same bytes verified to decode correctly. */}
+                    exact same bytes verified to decode correctly.
+                    Fixed width with auto height (not a fixed square) —
+                    the source is a tall screenshot of the bank's whole
+                    payment card (949x1599), not a plain square QR; forcing
+                    it into a square shrank the actual QR pattern down to
+                    a sliver, which is why it stopped scanning reliably. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/images/hdfc-vyapar-qr.png"
                   alt="HDFC Vyapar UPI QR code"
-                  className="h-[260px] w-[260px]"
+                  className="w-[280px] h-auto"
                 />
                 <p className="text-xs font-semibold text-maroon">
                   Enter {formatCurrency(amount)} after scanning
