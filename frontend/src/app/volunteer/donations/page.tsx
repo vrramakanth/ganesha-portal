@@ -104,14 +104,9 @@ export default function VolunteerDonationsPage() {
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="Donations" subtitle="Collections and payment review" />
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 -mt-4">
-        <Link href="/volunteer/donations/screenshots" className="text-xs font-medium text-maroon underline">
-          Attach Missing Screenshots
-        </Link>
-        <Link href="/volunteer/donations/hundi" className="text-xs font-medium text-maroon underline">
-          Hundi Collection
-        </Link>
-      </div>
+      <Link href="/volunteer/donations/screenshots" className="text-xs font-medium text-maroon underline -mt-4">
+        Attach Missing Screenshots
+      </Link>
 
       {loading && <LoadingIndicator />}
       {error && <p className="text-sm text-red-600">{error}</p>}

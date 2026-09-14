@@ -64,15 +64,16 @@ function createDonation({ name, mobile, email, block, flatNumber, amount }) {
  *  verifyPaymentManual knows to skip issuing a receipt, and so
  *  getPublicStats can exclude it from the block/families breakdown
  *  while still counting the amount toward the public collection total. */
-/** Volunteer-operated only — this is the physical Hundi desk near the
- *  pandal, not a self-service option on the resident's own Donate page.
- *  A volunteer starts this on behalf of whoever's in front of them (or
- *  for a cash/coin drop with no phone involved at all), so requiring
- *  Finance here (same as verifyPaymentManual/rejectPayment) keeps every
- *  donation-writing action behind the same permission, even though the
- *  transaction itself stays anonymous. */
-function createHundiDonation(volunteer, { amount }) {
-  requirePermission(volunteer, "Finance");
+/** The "eHundi" path — a public, no-questions-asked offering, same
+ *  spirit as a physical Hundi box: no name/mobile/block/flat collected,
+ *  and no minimum/maximum enforced. Reached only via a printed QR at the
+ *  physical Hundi near the pandal (an unlisted page, never linked from
+ *  the resident's own Donate page or any nav menu) — someone standing
+ *  there scans it and pays directly on their own phone, no login of any
+ *  kind. Decision 4 (a volunteer independently verifies every payment)
+ *  still applies exactly as it does for a named donation; anonymity only
+ *  removes whose name goes on it, not the verification step. */
+function createHundiDonation({ amount }) {
   requireFields({ amount }, ["amount"]);
   const amountNum = Number(amount);
   if (!(amountNum > 0)) {
@@ -106,7 +107,6 @@ function createHundiDonation(volunteer, { amount }) {
       updated_at: new Date(),
     };
     appendObject(getSheet(SHEETS.TRANSACTIONS), transaction);
-    logAudit(volunteer.email, "Started Hundi collection", "Transaction", transactionId, "", `₹${amountNum}`);
 
     return { transactionId, amount: amountNum, currency: "INR" };
   });

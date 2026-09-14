@@ -15,6 +15,7 @@ const ROUTES = {
 
   // --- Resident ---
   "donations.create": { handler: (p) => createDonation(p) },
+  "donations.createHundi": { handler: (p) => createHundiDonation(p) },
   "donations.submitReference": { handler: (p) => submitPaymentReference(p) },
   "donations.cancel": { handler: (p) => cancelDonation(p.transactionId) },
   "donations.get": { handler: (p) => getDonation(p.transactionId) },
@@ -42,7 +43,6 @@ const ROUTES = {
     auth: true,
     handler: (p, v) => attachPaymentScreenshot(v, p.transactionId, p.screenshot, p.mimeType),
   },
-  "volunteer.payment.hundi": { auth: true, handler: (p, v) => createHundiDonation(v, p) },
   "volunteer.events.create": { auth: true, handler: (p, v) => createEvent(v, p) },
   "volunteer.events.update": { auth: true, handler: (p, v) => updateEvent(v, p.eventId, p) },
   "volunteer.events.updateStatus": { auth: true, handler: (p, v) => updateEventStatus(v, p.eventId, p.status) },

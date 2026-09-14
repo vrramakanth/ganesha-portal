@@ -138,6 +138,7 @@ export const api = {
   donations: {
     create: (payload: { name: string; mobile: string; email?: string; block: string; flatNumber: string; amount: number }) =>
       apiPost<CreateDonationResult>("donations.create", payload),
+    createHundi: (payload: { amount: number }) => apiPost<CreateDonationResult>("donations.createHundi", payload),
     submitReference: (transactionId: string, reference: string, screenshot?: string, mimeType?: string) =>
       apiPost<SubmitReferenceResult>("donations.submitReference", { transactionId, reference, screenshot, mimeType }),
     cancel: (transactionId: string) => apiPost<CancelResult>("donations.cancel", { transactionId }),
@@ -214,8 +215,6 @@ export const api = {
         screenshot,
         mimeType,
       }),
-    createHundi: (idToken: string, amount: number) =>
-      apiPost<CreateDonationResult>("volunteer.payment.hundi", { idToken, amount }),
     createEvent: (
       idToken: string,
       payload: {
