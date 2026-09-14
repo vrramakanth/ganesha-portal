@@ -72,7 +72,7 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-3xl font-bold text-maroon">{formatCurrency(stats.totalExpenses)}</p>
-                <p className="text-xs font-medium tracking-wide text-muted uppercase">Expensed (so far)</p>
+                <p className="text-xs font-medium tracking-wide text-muted uppercase">Spent (so far)</p>
               </div>
             </div>
             <p className="mt-2 text-sm text-foreground">{stats.families} families participating</p>
