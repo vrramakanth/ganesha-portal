@@ -8,9 +8,10 @@ import PageHeader from "@/components/PageHeader";
 type Step = "form" | "done";
 
 export default function FeedbackPage() {
-  const { profile } = useResidentProfile();
+  const { profile, saveProfile } = useResidentProfile();
   const [message, setMessage] = useState("");
   const [name, setName] = useState("");
+  const [mobile, setMobile] = useState("");
   const [pageUrl, setPageUrl] = useState("");
   const [step, setStep] = useState<Step>("form");
   const [submitting, setSubmitting] = useState(false);
@@ -18,6 +19,7 @@ export default function FeedbackPage() {
 
   useEffect(() => {
     setName(profile.name);
+    setMobile(profile.mobile);
     setPageUrl(document.referrer || window.location.href);
   }, [profile]);
 
@@ -27,15 +29,20 @@ export default function FeedbackPage() {
       setError("Please share a few words before sending.");
       return;
     }
+    if (mobile && !/^[6-9]\d{9}$/.test(mobile)) {
+      setError("That doesn't look like a valid 10-digit mobile number.");
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
       await api.feedback.submit({
         message: message.trim(),
         reporterName: name.trim() || undefined,
-        reporterMobile: profile.mobile || undefined,
+        reporterMobile: mobile || undefined,
         pageUrl,
       });
+      if (name.trim() || mobile) saveProfile({ name: name.trim(), mobile });
       setStep("done");
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not send your feedback — please try again.");
@@ -82,6 +89,19 @@ export default function FeedbackPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="So we know who to thank"
+            className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Mobile number (optional)</label>
+          <input
+            type="tel"
+            value={mobile}
+            maxLength={10}
+            inputMode="numeric"
+            placeholder="So we can reply, if you'd like"
+            onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
             className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
           />
         </div>
