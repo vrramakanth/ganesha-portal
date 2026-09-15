@@ -94,6 +94,7 @@ const ROUTES = {
   "volunteer.expenses.approve": { auth: true, handler: (p, v) => approveExpense(v, p.expenseId) },
   "volunteer.expenses.reject": { auth: true, handler: (p, v) => rejectExpense(v, p.expenseId, p.notes) },
   "volunteer.expenses.settlementSummary": { auth: true, handler: (p, v) => getExpenseSettlementSummary(v) },
+  "volunteer.expenses.settle": { auth: true, handler: (p, v) => settleSpender(v, p.spenderMobile) },
 };
 
 function doGet(e) {

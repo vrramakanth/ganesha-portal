@@ -402,5 +402,10 @@ export const api = {
       apiPost<{ expenseId: string; status: string }>("volunteer.expenses.reject", { idToken, expenseId, notes }),
     expensesSettlementSummary: (idToken: string) =>
       apiGet<ExpenseSettlement[]>("volunteer.expenses.settlementSummary", { idToken }),
+    settleSpenderExpenses: (idToken: string, spenderMobile: string) =>
+      apiPost<{ spenderMobile: string; settledCount: number; settledTotal: number }>(
+        "volunteer.expenses.settle",
+        { idToken, spenderMobile }
+      ),
   },
 };

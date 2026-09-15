@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
@@ -44,6 +44,37 @@ export default function ReviewExpensesPage() {
     .filter((e) => e.status === "APPROVED")
     .reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
+  // Grouped client-side from the same expense list already fetched above —
+  // no separate endpoint needed, since this is just "the settled half" of
+  // what getExpenseSettlementSummary already excludes once paid.
+  const settledBySpender = useMemo(() => {
+    const byMobile = new Map<
+      string,
+      { spenderMobile: string; spenderName: string; total: number; count: number; lastPaidAt: string }
+    >();
+    expenses
+      .filter((e) => e.status === "APPROVED" && e.payment_status === "PAID")
+      .forEach((e) => {
+        const mobile = String(e.spender_mobile || "").trim();
+        if (!mobile) return;
+        const existing = byMobile.get(mobile) ?? {
+          spenderMobile: mobile,
+          spenderName: e.spender_name || mobile,
+          total: 0,
+          count: 0,
+          lastPaidAt: e.paid_at,
+        };
+        existing.total += Number(e.amount || 0);
+        existing.count += 1;
+        if (e.spender_name) existing.spenderName = e.spender_name;
+        if (e.paid_at && new Date(e.paid_at) > new Date(existing.lastPaidAt || 0)) existing.lastPaidAt = e.paid_at;
+        byMobile.set(mobile, existing);
+      });
+    return Array.from(byMobile.values()).sort(
+      (a, b) => new Date(b.lastPaidAt).getTime() - new Date(a.lastPaidAt).getTime()
+    );
+  }, [expenses]);
+
   async function handleApprove(expenseId: string) {
     setActionError(null);
     setActioning(expenseId);
@@ -65,6 +96,19 @@ export default function ReviewExpensesPage() {
       setRefreshKey((k) => k + 1);
     } catch (err) {
       setActionError(err instanceof ApiClientError ? err.message : "Could not reject expense.");
+    } finally {
+      setActioning(null);
+    }
+  }
+
+  async function handleSettle(spenderMobile: string) {
+    setActionError(null);
+    setActioning(spenderMobile);
+    try {
+      await api.volunteer.settleSpenderExpenses(idToken as string, spenderMobile);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not mark this as paid.");
     } finally {
       setActioning(null);
     }
@@ -146,37 +190,70 @@ export default function ReviewExpensesPage() {
 
           <section className="space-y-2">
             <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Reimbursement Summary</h2>
-            <p className="text-xs text-muted">Total owed to each volunteer, so they can be settled in one go.</p>
+            <p className="text-xs text-muted">
+              Total still owed to each spender or vendor — including a running tab (e.g. a caterer paid in one lump
+              sum at the end) — so it can be settled in one go.
+            </p>
             <div className="rounded-xl border border-border bg-card divide-y divide-border">
               {loadingSettlement && <LoadingIndicator className="px-4 py-3" />}
               {!loadingSettlement && settlement?.length === 0 && (
-                <p className="px-4 py-3 text-sm text-muted">Nothing to settle yet.</p>
+                <p className="px-4 py-3 text-sm text-muted">Nothing outstanding right now.</p>
               )}
               {settlement?.map((s) => (
-                <div key={s.spenderMobile} className="px-4 py-3 flex items-center justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-sm">{s.spenderName || s.spenderMobile}</p>
-                    <p className="text-xs text-muted">
-                      {s.spenderMobile} · {s.count} expense{s.count === 1 ? "" : "s"}
-                      {s.upiId ? ` · ${s.upiId}` : " · no UPI ID on file"}
-                    </p>
+                <div key={s.spenderMobile} className="px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-sm">{s.spenderName || s.spenderMobile}</p>
+                      <p className="text-xs text-muted">
+                        {s.spenderMobile} · {s.count} expense{s.count === 1 ? "" : "s"}
+                        {s.upiId ? ` · ${s.upiId}` : " · no UPI ID on file"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <p className="font-semibold text-maroon">{formatCurrency(s.total)}</p>
+                      {s.upiId && (
+                        <button
+                          type="button"
+                          onClick={() => copyUpiId(s.upiId)}
+                          className="text-xs font-semibold text-maroon underline"
+                        >
+                          {copiedFor === s.upiId ? "Copied ✓" : "Copy UPI"}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <p className="font-semibold text-maroon">{formatCurrency(s.total)}</p>
-                    {s.upiId && (
-                      <button
-                        type="button"
-                        onClick={() => copyUpiId(s.upiId)}
-                        className="text-xs font-semibold text-maroon underline"
-                      >
-                        {copiedFor === s.upiId ? "Copied ✓" : "Copy UPI"}
-                      </button>
-                    )}
-                  </div>
+                  <button
+                    type="button"
+                    disabled={actioning === s.spenderMobile}
+                    onClick={() => handleSettle(s.spenderMobile)}
+                    className="w-full rounded-lg border border-border py-1.5 text-xs font-semibold text-maroon disabled:opacity-60"
+                  >
+                    {actioning === s.spenderMobile ? "Marking as Paid…" : "Mark as Paid"}
+                  </button>
                 </div>
               ))}
             </div>
           </section>
+
+          {settledBySpender.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Recently Settled</h2>
+              <div className="rounded-xl border border-border bg-card divide-y divide-border">
+                {settledBySpender.map((s) => (
+                  <div key={s.spenderMobile} className="px-4 py-3 flex items-center justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-sm">{s.spenderName}</p>
+                      <p className="text-xs text-muted">
+                        {s.count} expense{s.count === 1 ? "" : "s"}
+                        {s.lastPaidAt ? ` · paid ${new Date(s.lastPaidAt).toLocaleDateString()}` : ""}
+                      </p>
+                    </div>
+                    <p className="font-semibold text-muted">{formatCurrency(s.total)}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="space-y-2">
             <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Recent Expenses</h2>
@@ -203,6 +280,12 @@ export default function ReviewExpensesPage() {
                       </a>
                     )}
                     <StatusBadge label={e.status} tone={STATUS_TONE[e.status] ?? "neutral"} />
+                    {e.status === "APPROVED" && (
+                      <StatusBadge
+                        label={e.payment_status === "PAID" ? "PAID" : "UNPAID"}
+                        tone={e.payment_status === "PAID" ? "neutral" : "warning"}
+                      />
+                    )}
                   </div>
                 </div>
               ))}

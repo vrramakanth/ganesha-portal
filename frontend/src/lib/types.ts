@@ -240,6 +240,8 @@ export type Expense = {
   admin_notes?: string;
   recorded_by: string;
   created_at: string;
+  payment_status: "UNPAID" | "PAID";
+  paid_at: string;
 };
 
 export type ExpenseSettlement = {

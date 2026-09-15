@@ -213,6 +213,12 @@ export default function MyStuffPage() {
                     label={e.status}
                     tone={e.status === "APPROVED" ? "success" : e.status === "REJECTED" ? "danger" : "warning"}
                   />
+                  {e.status === "APPROVED" && (
+                    <StatusBadge
+                      label={e.payment_status === "PAID" ? "Paid" : "Awaiting Payment"}
+                      tone={e.payment_status === "PAID" ? "success" : "neutral"}
+                    />
+                  )}
                 </div>
               </Row>
             ))}

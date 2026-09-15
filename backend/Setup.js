@@ -42,7 +42,7 @@ const SHEET_SCHEMAS = {
   [SHEETS.EXPENSES]: [
     "expense_id", "date", "amount", "purpose", "screenshot_url",
     "spender_name", "spender_mobile", "upi_id", "status", "admin_notes",
-    "recorded_by", "created_at",
+    "recorded_by", "created_at", "payment_status", "paid_at",
   ],
   [SHEETS.ANNOUNCEMENTS]: [
     "announcement_id", "title", "message", "published_at", "expires_at", "active", "related_event_id",

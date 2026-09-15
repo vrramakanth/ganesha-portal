@@ -9,6 +9,7 @@
  *  spending claims too, not just payment claims). */
 
 const EXPENSE_STATUSES = ["PENDING", "APPROVED", "REJECTED"];
+const PAYMENT_STATUSES = ["UNPAID", "PAID"];
 
 /** Rows recorded before this approval workflow existed have no status
  *  at all — treating a blank as APPROVED grandfathers them in rather
@@ -16,6 +17,19 @@ const EXPENSE_STATUSES = ["PENDING", "APPROVED", "REJECTED"];
 function expenseStatus(e) {
   const s = String(e.status || "").trim().toUpperCase();
   return EXPENSE_STATUSES.includes(s) ? s : "APPROVED";
+}
+
+/** Separate from expenseStatus above on purpose: `status` answers "is
+ *  this a legitimate claim" (Decision 4), `payment_status` answers "has
+ *  the cash actually left our hands yet." An APPROVED-but-UNPAID
+ *  expense (e.g. a caterer running a tab across several days, paid in
+ *  one lump sum at the end) is accrued — it still counts as real
+ *  spending today (getExpensesTotal doesn't look at this field at all),
+ *  it just hasn't been settled. Blank defaults to UNPAID so every row
+ *  recorded before this existed is correctly "still owed." */
+function paymentStatus(e) {
+  const s = String(e.payment_status || "").trim().toUpperCase();
+  return PAYMENT_STATUSES.includes(s) ? s : "UNPAID";
 }
 
 /** Self-heals the sheet and its header row so this works immediately
@@ -37,7 +51,7 @@ function ensureExpensesSheet() {
   const headers = [
     "expense_id", "date", "amount", "purpose", "screenshot_url",
     "spender_name", "spender_mobile", "upi_id", "status", "admin_notes",
-    "recorded_by", "created_at",
+    "recorded_by", "created_at", "payment_status", "paid_at",
   ];
   const existing = getHeaders(sheet);
   if (existing.length === 0) {
@@ -106,6 +120,8 @@ function recordExpense(volunteer, { date, amount, purpose, screenshot, mimeType,
       admin_notes: "",
       recorded_by: volunteer.email,
       created_at: new Date(),
+      payment_status: "UNPAID",
+      paid_at: "",
     };
     appendObject(sheet, expense);
     logAudit(volunteer.email, "Recorded expense", "Expense", expense.expense_id, "", `₹${amountNum} — ${purpose}`);
@@ -116,7 +132,7 @@ function recordExpense(volunteer, { date, amount, purpose, screenshot, mimeType,
 function listExpenses(volunteer) {
   requirePermission(volunteer, "Finance");
   return rowsToObjects(ensureExpensesSheet())
-    .map((e) => ({ ...e, status: expenseStatus(e) }))
+    .map((e) => ({ ...e, status: expenseStatus(e), payment_status: paymentStatus(e) }))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
@@ -147,16 +163,21 @@ function rejectExpense(volunteer, expenseId, notes) {
   });
 }
 
-/** Groups every APPROVED expense by who actually spent the money, so
- *  whoever's handling reimbursement can settle each volunteer once
- *  instead of tracking it line-by-line. Finance-only, same as the
+/** Groups every APPROVED-but-still-UNPAID expense by who's owed the
+ *  money, so whoever's handling settlement can pay each spender/vendor
+ *  once instead of tracking it line-by-line. Finance-only, same as the
  *  itemized list above. A still-PENDING expense isn't owed yet, so it's
- *  excluded until reviewed. Rows without a spender_mobile (shouldn't
- *  happen going forward, but guards any pre-this-feature row) are
- *  skipped rather than grouped under a blank key. */
+ *  excluded until reviewed; a PAID one has already been settled (see
+ *  settleSpender below), so it's excluded here too — this view is
+ *  deliberately "what's still outstanding right now," not a running
+ *  history. Rows without a spender_mobile (shouldn't happen going
+ *  forward, but guards any pre-this-feature row) are skipped rather
+ *  than grouped under a blank key. */
 function getExpenseSettlementSummary(volunteer) {
   requirePermission(volunteer, "Finance");
-  const expenses = rowsToObjects(ensureExpensesSheet()).filter((e) => expenseStatus(e) === "APPROVED");
+  const expenses = rowsToObjects(ensureExpensesSheet()).filter(
+    (e) => expenseStatus(e) === "APPROVED" && paymentStatus(e) === "UNPAID"
+  );
   const byMobile = {};
   expenses.forEach((e) => {
     const mobile = String(e.spender_mobile || "").trim();
@@ -174,6 +195,43 @@ function getExpenseSettlementSummary(volunteer) {
   return Object.values(byMobile).sort((a, b) => b.total - a.total);
 }
 
+/** Marks every currently APPROVED-and-UNPAID expense for one spender
+ *  as PAID, in one shot — matches how a lump-sum settlement actually
+ *  happens (e.g. a caterer who's run a tab across several days of
+ *  meals, paid all at once at the end), rather than needing to tick
+ *  off each day's entry individually. Doesn't touch getExpensesTotal —
+ *  the expense already counted as real spending the moment it was
+ *  approved; this only records that the cash has now actually moved. */
+function settleSpender(volunteer, spenderMobile) {
+  requirePermission(volunteer, "Finance");
+  requireFields({ spenderMobile }, ["spenderMobile"]);
+  return withLock(() => {
+    const sheet = ensureExpensesSheet();
+    const rows = rowsToObjects(sheet);
+    const now = new Date();
+    let settledCount = 0;
+    let settledTotal = 0;
+    rows.forEach((row, i) => {
+      if (String(row.spender_mobile) !== String(spenderMobile)) return;
+      if (expenseStatus(row) !== "APPROVED" || paymentStatus(row) !== "UNPAID") return;
+      const rowIndex = i + 2; // rowsToObjects skips the header row
+      updateRowFields(sheet, rowIndex, { payment_status: "PAID", paid_at: now });
+      settledCount += 1;
+      settledTotal += Number(row.amount || 0);
+    });
+    if (settledCount === 0) throw new ApiError("Nothing outstanding to settle for this spender", 400);
+    logAudit(
+      volunteer.email,
+      "Settled expenses",
+      "Expense",
+      spenderMobile,
+      "UNPAID",
+      `${settledCount} expense(s), ₹${settledTotal}`
+    );
+    return { spenderMobile, settledCount, settledTotal };
+  });
+}
+
 /** Resident's own recorded expenses for My Stuff — same mobile-as-
  *  identity-key pattern as listDonationsByMobile/listMyVolunteerStatus,
  *  public/unauthenticated by design, consistent with every other My
@@ -183,7 +241,7 @@ function listMyExpenses(mobile) {
   requireFields({ mobile }, ["mobile"]);
   return rowsToObjects(ensureExpensesSheet())
     .filter((e) => String(e.spender_mobile) === String(mobile))
-    .map((e) => ({ ...e, status: expenseStatus(e) }))
+    .map((e) => ({ ...e, status: expenseStatus(e), payment_status: paymentStatus(e) }))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
