@@ -153,8 +153,11 @@ export default function RecordExpensePage() {
             onClick={() => fileInputRef.current?.click()}
             className="w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon"
           >
-            {screenshot ? "Receipt Attached ✓" : "Attach Receipt"}
+            {screenshot ? "Receipt Attached ✓" : "Attach Receipt (optional)"}
           </button>
+          <p className="text-xs text-muted">
+            No receipt on hand — e.g. a running vendor tab settled later? Leave this blank and record it anyway.
+          </p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
