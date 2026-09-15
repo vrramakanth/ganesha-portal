@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import SystemUnderTestBanner from "@/components/SystemUnderTestBanner";
 import AnnouncementsTicker from "@/components/AnnouncementsTicker";
 import "./globals.css";
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SystemUnderTestBanner />
         <AnnouncementsTicker />
         {children}
+        <Analytics />
       </body>
     </html>
   );
