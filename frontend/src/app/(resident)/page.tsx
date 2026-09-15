@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -18,6 +19,7 @@ export default function Home() {
   // fetching feedback (or the endpoint not existing yet on an older
   // deployed backend) shouldn't take down the rest of the Home page.
   const { data: feedback } = useAsync(() => api.feedback.listPublished(), []);
+  const [voiceExpanded, setVoiceExpanded] = useState(false);
 
   const [stats, events, announcements] = data ?? [null, null, null];
   const upcoming = (events ?? [])
@@ -193,8 +195,19 @@ export default function Home() {
         <section className="space-y-3">
           <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Community Voices</h2>
           <div className="rounded-xl border border-border bg-card px-4 py-3">
-            <p className="text-sm">&ldquo;{feedback[0].message}&rdquo;</p>
+            <p className={`text-sm ${voiceExpanded ? "" : "line-clamp-4"}`}>
+              &ldquo;{feedback[0].message}&rdquo;
+            </p>
             <p className="mt-1 text-xs text-muted">— {feedback[0].reporter_name || "A Brigade Woods resident"}</p>
+            {feedback[0].message.length > 160 && (
+              <button
+                type="button"
+                onClick={() => setVoiceExpanded((v) => !v)}
+                className="mt-1.5 text-xs font-semibold text-maroon"
+              >
+                {voiceExpanded ? "Show less" : "Read more"}
+              </button>
+            )}
           </div>
         </section>
       )}
