@@ -11,17 +11,16 @@ import StatusBadge from "@/components/StatusBadge";
 import LinkifiedText from "@/components/LinkifiedText";
 
 export default function Home() {
-  const { data, loading, error } = useAsync(
-    () => Promise.all([api.stats.public(), api.events.list(), api.announcements.list()]),
-    []
-  );
-  // Fetched separately from the core stats/events/news above — a hiccup
-  // fetching feedback (or the endpoint not existing yet on an older
-  // deployed backend) shouldn't take down the rest of the Home page.
+  // Each fetched independently — these used to be bundled into one
+  // Promise.all, which meant a hiccup in any single one (this backend,
+  // Apps Script, occasionally blips) blanked out the totals, Upcoming,
+  // AND News together, even though only one of them actually failed.
+  const { data: stats, loading: statsLoading, error: statsError } = useAsync(() => api.stats.public(), []);
+  const { data: events, loading: eventsLoading, error: eventsError } = useAsync(() => api.events.list(), []);
+  const { data: announcements, error: announcementsError } = useAsync(() => api.announcements.list(), []);
   const { data: feedback } = useAsync(() => api.feedback.listPublished(), []);
   const [voiceExpanded, setVoiceExpanded] = useState(false);
 
-  const [stats, events, announcements] = data ?? [null, null, null];
   const upcoming = (events ?? [])
     .filter((e) => e.status === "OPEN")
     .sort((a, b) => {
@@ -84,12 +83,10 @@ export default function Home() {
         Donate Now
       </Link>
 
-      {error && <p className="text-center text-sm text-red-600">{error}</p>}
-
       <div className="rounded-xl border border-border bg-card p-5 text-center">
-        {error ? (
+        {statsError ? (
           <p className="text-sm text-muted py-2">Unable to load totals.</p>
-        ) : loading || !stats ? (
+        ) : statsLoading || !stats ? (
           <LoadingIndicator label="Loading totals…" className="py-2 justify-center" />
         ) : (
           <>
@@ -112,7 +109,8 @@ export default function Home() {
         <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
           Upcoming
         </h2>
-        {!loading && upcoming.length === 0 && (
+        {eventsError && <p className="text-sm text-red-600">Couldn&apos;t load events — please try again shortly.</p>}
+        {!eventsLoading && !eventsError && upcoming.length === 0 && (
           <p className="text-sm text-muted">No upcoming events yet.</p>
         )}
         <div className="space-y-2">
@@ -159,7 +157,7 @@ export default function Home() {
         </Link>
       </section>
 
-      {!loading && !error && news.length > 0 && (
+      {!announcementsError && news.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">News</h2>
           <div className="rounded-xl border border-border bg-card px-4 py-3">
