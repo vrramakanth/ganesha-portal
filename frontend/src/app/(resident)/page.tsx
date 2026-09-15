@@ -51,7 +51,7 @@ export default function Home() {
             <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
             <circle cx="12" cy="13" r="3.5" />
           </svg>
-          <span className="animate-twinkle text-xs font-bold">Magic Moments</span>
+          <span className="text-xs font-bold">Magic Moments</span>
         </a>
       </div>
 
@@ -151,25 +151,23 @@ export default function Home() {
             );
           })}
         </div>
-        <Link
-          href="/events"
-          className="block w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon"
-        >
-          View All Events
+        <Link href="/events" className="block text-center text-xs font-medium text-maroon">
+          View all events →
         </Link>
       </section>
 
       {!loading && !error && news.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">News</h2>
-          <div className="space-y-2">
-            {news.map((a) => (
-              <div key={a.announcement_id} className="rounded-xl border border-border bg-card px-4 py-3">
-                <p className="font-semibold text-sm">{a.title}</p>
-                <p className="mt-0.5 text-sm text-muted">{a.message}</p>
-              </div>
-            ))}
+          <div className="rounded-xl border border-border bg-card px-4 py-3">
+            <p className="font-semibold text-sm">{news[0].title}</p>
+            <p className="mt-0.5 text-sm text-muted">{news[0].message}</p>
           </div>
+          {news.length > 1 && (
+            <Link href="/more" className="block text-center text-xs font-medium text-maroon">
+              See all updates →
+            </Link>
+          )}
         </section>
       )}
 
@@ -191,23 +189,12 @@ export default function Home() {
       {feedback && feedback.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Community Voices</h2>
-          <div className="space-y-2">
-            {feedback.map((f) => (
-              <div key={f.feedback_id} className="rounded-xl border border-border bg-card px-4 py-3">
-                <p className="text-sm">&ldquo;{f.message}&rdquo;</p>
-                <p className="mt-1 text-xs text-muted">— {f.reporter_name || "A Brigade Woods resident"}</p>
-              </div>
-            ))}
+          <div className="rounded-xl border border-border bg-card px-4 py-3">
+            <p className="text-sm">&ldquo;{feedback[0].message}&rdquo;</p>
+            <p className="mt-1 text-xs text-muted">— {feedback[0].reporter_name || "A Brigade Woods resident"}</p>
           </div>
         </section>
       )}
-
-      <Link
-        href="/feedback"
-        className="block w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon"
-      >
-        We&apos;d Love Your Feedback
-      </Link>
 
       <a
         href="/docs/user-guide.pdf"

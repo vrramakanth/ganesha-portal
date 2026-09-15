@@ -47,6 +47,22 @@ function createAnnouncement(volunteer, { title, message, expiresAt, relatedEvent
   return announcement;
 }
 
+function updateAnnouncement(volunteer, announcementId, { title, message, expiresAt }) {
+  requirePermission(volunteer, "Content");
+  requireFields({ title, message }, ["title", "message"]);
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.ANNOUNCEMENTS);
+    const rowIndex = findRowIndexById(sheet, "announcement_id", announcementId);
+    if (rowIndex === -1) throw new ApiError("Unknown announcement", 404);
+    const before = getRowObject(sheet, rowIndex);
+
+    updateRowFields(sheet, rowIndex, { title, message, expires_at: expiresAt || "" });
+    invalidateAnnouncementsCache();
+    logAudit(volunteer.email, "Edited announcement", "Announcement", announcementId, before.title, title);
+    return { announcementId, title, message, expiresAt: expiresAt || "" };
+  });
+}
+
 function deactivateAnnouncement(volunteer, announcementId) {
   requirePermission(volunteer, "Content");
   return withLock(() => {

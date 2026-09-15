@@ -312,6 +312,15 @@ export const api = {
       idToken: string,
       payload: { title: string; message: string; expiresAt?: string; relatedEventId?: string }
     ) => apiPost<Announcement>("volunteer.announcements.create", { idToken, ...payload }),
+    updateAnnouncement: (
+      idToken: string,
+      announcementId: string,
+      payload: { title: string; message: string; expiresAt?: string }
+    ) =>
+      apiPost<{ announcementId: string; title: string; message: string; expiresAt: string }>(
+        "volunteer.announcements.update",
+        { idToken, announcementId, ...payload }
+      ),
     deactivateAnnouncement: (idToken: string, announcementId: string) =>
       apiPost<{ announcementId: string; active: boolean }>("volunteer.announcements.deactivate", {
         idToken,
