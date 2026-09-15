@@ -295,7 +295,7 @@ export type BugReport = {
   bug_id: string;
   description: string;
   screenshot_url: string;
-  status: "OPEN" | "CLOSED";
+  status: "OPEN" | "IN_PROGRESS" | "CLOSED";
   reporter_name: string;
   reporter_mobile: string;
   page_url: string;

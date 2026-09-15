@@ -11,8 +11,9 @@ const WHATSAPP_NUMBER = "919880766321";
 type Step = "form" | "done";
 
 export default function ReportBugPage() {
-  const { profile } = useResidentProfile();
+  const { profile, saveProfile } = useResidentProfile();
   const [description, setDescription] = useState("");
+  const [mobile, setMobile] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [pageUrl, setPageUrl] = useState("");
   const [step, setStep] = useState<Step>("form");
@@ -23,14 +24,18 @@ export default function ReportBugPage() {
   // Best-effort context for whoever triages this — which page they came
   // from, since "Report a Bug" itself is a dead end with no bug in it.
   useEffect(() => {
+    setMobile(profile.mobile);
     setPageUrl(document.referrer || window.location.href);
-  }, []);
+  }, [profile]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
     if (!description.trim()) {
       setError("Please describe the issue in a line or two.");
+      return;
+    }
+    if (mobile && !/^[6-9]\d{9}$/.test(mobile)) {
+      setError("That doesn't look like a valid 10-digit mobile number.");
       return;
     }
     if (file && file.size > 8 * 1024 * 1024) {
@@ -38,6 +43,7 @@ export default function ReportBugPage() {
       return;
     }
 
+    setError(null);
     setSubmitting(true);
     try {
       const screenshot = file ? await fileToBase64(file) : undefined;
@@ -46,9 +52,10 @@ export default function ReportBugPage() {
         screenshot,
         mimeType: file?.type || undefined,
         reporterName: profile.name || undefined,
-        reporterMobile: profile.mobile || undefined,
+        reporterMobile: mobile || undefined,
         pageUrl,
       });
+      if (mobile) saveProfile({ mobile });
 
       const lines = [
         `Bug Report ${bug.bug_id}`,
@@ -119,6 +126,19 @@ export default function ReportBugPage() {
           >
             {file ? `📎 ${file.name}` : "Attach a Screenshot (optional)"}
           </button>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Mobile number (optional)</label>
+          <input
+            type="tel"
+            value={mobile}
+            maxLength={10}
+            inputMode="numeric"
+            placeholder="In case we need more details"
+            onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
+          />
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

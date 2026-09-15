@@ -66,8 +66,8 @@ function listBugs(volunteer) {
 
 function updateBugStatus(volunteer, bugId, status) {
   requirePermission(volunteer, "Operations");
-  if (status !== "OPEN" && status !== "CLOSED") {
-    throw new ApiError('Status must be "OPEN" or "CLOSED"', 400);
+  if (!["OPEN", "IN_PROGRESS", "CLOSED"].includes(status)) {
+    throw new ApiError('Status must be "OPEN", "IN_PROGRESS" or "CLOSED"', 400);
   }
   return withLock(() => {
     const sheet = getBugsSheet();
