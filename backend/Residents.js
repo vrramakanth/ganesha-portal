@@ -41,6 +41,20 @@ function findResidentByMobile(mobile) {
   return rows.find((r) => String(r.mobile) === String(mobile));
 }
 
+/** Public, resident-triggered lookup (a "Lookup" button next to the
+ *  mobile field on forms like Community Dinner) so a returning
+ *  resident doesn't retype name/block/flat that's already on file —
+ *  same identity model as My Stuff (mobile only, no OTP), just used
+ *  to pre-fill a form instead of list past activity. Returns null
+ *  rather than erroring when nobody's on file yet, since that's the
+ *  ordinary first-time-resident case, not a failure. */
+function lookupResident(mobile) {
+  validateMobile(mobile);
+  const resident = findResidentByMobile(mobile);
+  if (!resident) return null;
+  return { name: resident.name, block: resident.block, flatNumber: resident.flat_number };
+}
+
 /** Mobile is the resident's identity key (used for all "my stuff" lookups
  *  by mobile-only, no OTP — spec §6), so a garbage value isn't just bad
  *  data, it's a lookup the resident can never find their own donations/

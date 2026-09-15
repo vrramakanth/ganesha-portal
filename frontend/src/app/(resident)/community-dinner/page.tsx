@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -43,6 +43,9 @@ export default function CommunityDinnerPage() {
   const [registrationId, setRegistrationId] = useState<string | null>(null);
   const [guestAmount, setGuestAmount] = useState(0);
   const [hasCheckedExisting, setHasCheckedExisting] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [lookupMessage, setLookupMessage] = useState<string | null>(null);
+  const adultsInputRef = useRef<HTMLInputElement>(null);
 
   // One-time hydration from the saved profile, same trick as Donate —
   // prev || profile.x means a field the resident clears stays cleared
@@ -136,6 +139,36 @@ export default function CommunityDinnerPage() {
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Something went wrong. Please try again.");
       setStep("form");
+    }
+  }
+
+  // Explicit, resident-triggered fetch of their last known name/block/
+  // flat by mobile (a Lookup button, not an automatic call on every
+  // keystroke) — saves retyping details already on file without
+  // turning every visit to this page into a background lookup.
+  async function handleLookup() {
+    setError(null);
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      setLookupMessage("Enter a valid 10-digit mobile number first.");
+      return;
+    }
+    setLookingUp(true);
+    setLookupMessage(null);
+    try {
+      const result = await api.residents.lookup(mobile);
+      if (result) {
+        setName(result.name);
+        setBlock(result.block);
+        setFlatNumber(result.flatNumber);
+        setLookupMessage(null);
+        adultsInputRef.current?.focus();
+      } else {
+        setLookupMessage("No saved details found for this number — please fill in below.");
+      }
+    } catch (err) {
+      setLookupMessage(err instanceof ApiClientError ? err.message : "Could not look up details. Please fill in manually.");
+    } finally {
+      setLookingUp(false);
     }
   }
 
@@ -251,6 +284,41 @@ export default function CommunityDinnerPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
+          <label className="text-sm font-medium">Mobile</label>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <MobileInput
+                value={mobile}
+                onChange={(v) => {
+                  setMobile(v);
+                  setLookupMessage(null);
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleLookup}
+              disabled={lookingUp}
+              title="Lookup — autofill your saved details"
+              aria-label="Lookup — autofill your saved details"
+              className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-lg border border-maroon text-maroon disabled:opacity-50 active:bg-maroon/10 transition-colors"
+            >
+              {lookingUp ? (
+                <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" />
+                  <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="7" strokeLinecap="round" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
+          </div>
+          {lookupMessage && <p className="text-xs text-muted">{lookupMessage}</p>}
+        </div>
+        <div className="space-y-1.5">
           <label className="text-sm font-medium">Name</label>
           <input
             required
@@ -259,10 +327,6 @@ export default function CommunityDinnerPage() {
             autoComplete="off"
             className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
           />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium">Mobile</label>
-          <MobileInput value={mobile} onChange={setMobile} />
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Block</label>
@@ -279,6 +343,7 @@ export default function CommunityDinnerPage() {
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Adults (12+)</label>
               <input
+                ref={adultsInputRef}
                 type="number"
                 min="0"
                 inputMode="numeric"

@@ -14,6 +14,7 @@ const ROUTES = {
   "bugs.report": { handler: (p) => reportBug(p) },
   "feedback.submit": { handler: (p) => submitFeedback(p) },
   "feedback.listPublished": { handler: () => listPublishedFeedback() },
+  "residents.lookup": { handler: (p) => lookupResident(p.mobile) },
 
   // --- Resident ---
   "donations.create": { handler: (p) => createDonation(p) },

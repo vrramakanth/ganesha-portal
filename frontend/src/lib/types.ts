@@ -319,6 +319,12 @@ export type FeedbackReport = {
   updated_at: string;
 };
 
+export type ResidentLookup = {
+  name: string;
+  block: string;
+  flatNumber: string;
+};
+
 export type CommunityDinnerRegistration = {
   registration_id: string;
   resident_name: string;

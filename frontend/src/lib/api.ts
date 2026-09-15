@@ -24,6 +24,7 @@ import type {
   PublicStats,
   RedeemResult,
   ReportExport,
+  ResidentLookup,
   SubmitReferenceResult,
   Transaction,
   Volunteer,
@@ -224,6 +225,9 @@ export const api = {
   },
   expenses: {
     mine: (mobile: string) => apiGet<Expense[]>("expenses.mine", { mobile }),
+  },
+  residents: {
+    lookup: (mobile: string) => apiGet<ResidentLookup | null>("residents.lookup", { mobile }),
   },
   communityDinner: {
     register: (payload: {

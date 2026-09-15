@@ -28,12 +28,18 @@ function communityDinnerGuestAmount(guestAdults, guestChildren) {
   return Number(guestAdults || 0) * GUEST_ADULT_PRICE + Number(guestChildren || 0) * GUEST_CHILD_PRICE;
 }
 
-/** One-time registration, then locked — a second attempt for the same
- *  mobile OR the same block+flat is rejected outright (closes the
- *  loophole of retrying with a typo'd mobile). Any change after that
- *  goes through an admin via editCommunityDinnerRegistration; there's
- *  no self-service edit, since a wrong headcount has a real cost
- *  attached once guests are involved. */
+/** One-time registration, then locked once it's genuinely settled —
+ *  any change after that goes through an admin via
+ *  editCommunityDinnerRegistration; there's no self-service edit,
+ *  since a wrong headcount has a real cost attached once guests are
+ *  involved. "Settled" specifically means CONFIRMED (done) or
+ *  MANUAL_REVIEW (already submitted, awaiting a decision) — those two
+ *  throw. REJECTED/CANCELLED don't count as registered at all (that
+ *  attempt just didn't work out), and PAYMENT_PENDING isn't locked
+ *  either: nothing's been paid or reviewed yet, so a resubmit (e.g.
+ *  from a browser that lost the saved profile the resume flow relies
+ *  on) just picks the existing pending registration back up instead
+ *  of erroring. */
 function registerCommunityDinner({ residentName, mobile, block, flatNumber, adults, children, guestAdults, guestChildren }) {
   requireFields({ residentName, mobile, block, flatNumber }, ["residentName", "mobile", "block", "flatNumber"]);
   validateMobile(mobile);
@@ -47,23 +53,27 @@ function registerCommunityDinner({ residentName, mobile, block, flatNumber, adul
     throw new ApiError("Please add at least one person attending", 400);
   }
 
+  // Every other registration flow (Donations, Dinner, Events,
+  // Volunteers) upserts Residents so the details show up in future
+  // lookups (e.g. the "Lookup" autofill button) — Community Dinner had
+  // been the one outlier that didn't, so a resident who only ever
+  // registered here had nothing on file to autofill from next time.
+  upsertResident({ name: residentName, mobile, block, flatNumber });
+
   return withLock(() => {
     const sheet = ensureCommunityDinnerSheet();
     const existing = rowsToObjects(sheet);
-    // REJECTED/CANCELLED don't count as "already registered" — a
-    // rejected payment means this attempt didn't work out, not that
-    // the resident is permanently locked out; they should be able to
-    // try again. Only an active or successful attempt blocks a retry.
-    const alreadyRegistered = existing.some(
-      (r) =>
-        r.status !== "REJECTED" &&
-        r.status !== "CANCELLED" &&
-        (String(r.mobile) === String(mobile) ||
-          (String(r.block) === String(block) && String(r.flat_number) === String(flatNumber)))
-    );
-    if (alreadyRegistered) {
+    const matches = (r) =>
+      String(r.mobile) === String(mobile) ||
+      (String(r.block) === String(block) && String(r.flat_number) === String(flatNumber));
+
+    const pending = existing.find((r) => r.status === "PAYMENT_PENDING" && matches(r));
+    if (pending) return pending;
+
+    const locked = existing.some((r) => (r.status === "CONFIRMED" || r.status === "MANUAL_REVIEW") && matches(r));
+    if (locked) {
       throw new ApiError(
-        "This mobile number or flat has already registered for the Community Dinner. To make a change, please message an admin on WhatsApp.",
+        "This mobile number or flat is already registered for the Community Dinner. Go to My Stuff in the app to message an admin directly if you need to make a change.",
         409
       );
     }
