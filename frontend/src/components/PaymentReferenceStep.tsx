@@ -198,6 +198,17 @@ export default function PaymentReferenceStep({
                 <p className="text-xs font-semibold text-maroon">
                   Enter {formatCurrency(amount)} after scanning
                 </p>
+                {/* Saves the actual file, not a screenshot of the
+                    rendered page — same crisp source used above, so a
+                    resident who wants to pay from a different app or
+                    device later still gets a QR that scans reliably. */}
+                <a
+                  href="/images/hdfc-vyapar-qr.png"
+                  download="ganesha-utsav-payment-qr.png"
+                  className="text-xs font-semibold text-maroon underline"
+                >
+                  Download QR
+                </a>
               </div>
             ) : (
               <div className="rounded-lg bg-white p-3">

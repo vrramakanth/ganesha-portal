@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
@@ -10,11 +11,12 @@ import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
 import PaymentReferenceStep from "@/components/PaymentReferenceStep";
 import PageHeader from "@/components/PageHeader";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 const GUEST_ADULT_PRICE = 200;
 const GUEST_CHILD_PRICE = 100;
 
-type Step = "form" | "creating" | "payment" | "confirmed" | "submitted" | "cancelled";
+type Step = "checking" | "form" | "creating" | "payment" | "confirmed" | "submitted" | "cancelled" | "already";
 
 /** Phase 1 of the Community Dinner: registration only (headcount +
  *  chargeable guests + payment where needed). Deliberately unlisted —
@@ -35,11 +37,12 @@ export default function CommunityDinnerPage() {
   const [guestAdults, setGuestAdults] = useState("");
   const [guestChildren, setGuestChildren] = useState("");
 
-  const [step, setStep] = useState<Step>("form");
+  const [step, setStep] = useState<Step>("checking");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [registrationId, setRegistrationId] = useState<string | null>(null);
   const [guestAmount, setGuestAmount] = useState(0);
+  const [hasCheckedExisting, setHasCheckedExisting] = useState(false);
 
   // One-time hydration from the saved profile, same trick as Donate —
   // prev || profile.x means a field the resident clears stays cleared
@@ -52,6 +55,40 @@ export default function CommunityDinnerPage() {
     setFlatNumber((prev) => prev || profile.flatNumber);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
+
+  // A resident who registered with guests, left to pay in their UPI app,
+  // then came back later has no way to get back to the payment step —
+  // the form itself now looks fresh, and resubmitting just hits the
+  // one-time lock. This is the exact "comeback user, ends up double
+  // entering" problem seen with Donations, fixed here by checking for
+  // an already-saved mobile's existing registration on load and
+  // resuming straight into payment instead of showing the form again.
+  const existingLookupMobile = loaded && /^[6-9]\d{9}$/.test(profile.mobile) ? profile.mobile : null;
+  const { data: existingRegistration, loading: checkingExisting } = useAsync(
+    () => (existingLookupMobile ? api.communityDinner.mine(existingLookupMobile) : Promise.resolve(null)),
+    [existingLookupMobile]
+  );
+
+  useEffect(() => {
+    if (!loaded || hasCheckedExisting) return;
+    if (!existingLookupMobile) {
+      setHasCheckedExisting(true);
+      setStep("form");
+      return;
+    }
+    if (checkingExisting) return;
+    setHasCheckedExisting(true);
+    if (!existingRegistration) {
+      setStep("form");
+    } else if (existingRegistration.status === "PAYMENT_PENDING") {
+      setRegistrationId(existingRegistration.registration_id);
+      setGuestAmount(existingRegistration.guest_amount);
+      setStep("payment");
+    } else {
+      setRegistrationId(existingRegistration.registration_id);
+      setStep("already");
+    }
+  }, [loaded, hasCheckedExisting, existingLookupMobile, checkingExisting, existingRegistration]);
 
   const computedGuestAmount =
     (Number(guestAdults) || 0) * GUEST_ADULT_PRICE + (Number(guestChildren) || 0) * GUEST_CHILD_PRICE;
@@ -127,6 +164,26 @@ export default function CommunityDinnerPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (step === "checking") {
+    return <LoadingIndicator label="Checking your registration…" className="px-5 pt-8" />;
+  }
+
+  if (step === "already") {
+    return (
+      <div className="flex flex-col gap-4 px-5 pt-8 text-center items-center">
+        <PageHeader title="Already Registered" backHref="/more" backLabel="← More" />
+        <p className="text-sm text-muted">
+          You&apos;ve already registered for the Community Dinner.
+          <br />
+          Registration ID: {registrationId}
+        </p>
+        <Link href="/my-stuff" className="text-sm font-semibold text-maroon underline">
+          Check status in My Stuff
+        </Link>
+      </div>
+    );
   }
 
   if (step === "payment") {
