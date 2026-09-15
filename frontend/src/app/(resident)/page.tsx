@@ -33,14 +33,35 @@ export default function Home() {
     .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
 
   return (
-    <div className="flex flex-col gap-4 px-5 pt-3 pb-8">
+    <div className="relative flex flex-col gap-4 px-5 pt-3 pb-8">
+      <div className="absolute right-4 top-3">
+        <a
+          href="https://photos.app.goo.gl/ZhCpaqaWJnbeGdkk9"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Magic Moments — view and add your festival photos"
+          className="relative flex items-center gap-1.5 rounded-full bg-saffron pl-2.5 pr-3 py-2 text-white shadow-sm active:bg-saffron-dark transition-colors"
+        >
+          <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-white">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-2.5 w-2.5">
+              <path d="M10 1.2 12.3 7l6.2.5-4.7 4 1.4 6-5.2-3.1L4.8 17.5l1.4-6-4.7-4L7.7 7 10 1.2Z" />
+            </svg>
+          </span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0">
+            <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
+            <circle cx="12" cy="13" r="3.5" />
+          </svg>
+          <span className="animate-twinkle text-xs font-bold">Magic Moments</span>
+        </a>
+      </div>
+
       <Image
         src="/images/ganesha-hero.png"
         alt="Lord Ganesha"
-        width={335}
-        height={597}
+        width={242}
+        height={306}
         priority
-        className="mx-auto h-28 w-auto"
+        className="mx-auto h-36 w-auto"
       />
 
       <header className="text-center space-y-1">

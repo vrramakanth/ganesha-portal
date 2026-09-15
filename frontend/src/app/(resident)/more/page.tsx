@@ -57,25 +57,24 @@ export default function MorePage() {
         </section>
       )}
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
-          Festival Photos
-        </h2>
-        <a
-          href="https://photos.app.goo.gl/ZhCpaqaWJnbeGdkk9"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3.5"
-        >
-          <div>
-            <p className="font-semibold text-sm">View &amp; Add Photos</p>
-            <p className="text-xs text-muted">
-              Browse the shared album and drop in your own pics (a Google sign-in is needed to add)
-            </p>
-          </div>
-          <span className="text-muted">›</span>
-        </a>
-      </section>
+      <a
+        href="https://photos.app.goo.gl/ZhCpaqaWJnbeGdkk9"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-3 rounded-2xl border border-saffron/30 bg-gradient-to-br from-saffron/15 to-maroon/10 px-4 py-4"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-card text-maroon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+            <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
+            <circle cx="12" cy="13" r="3.5" />
+          </svg>
+        </span>
+        <div className="flex-1">
+          <p className="font-semibold text-sm">Upload &amp; Check Photos</p>
+          <p className="text-xs text-muted">Share your favorite moments, and see what others have shared</p>
+        </div>
+        <span className="text-muted">›</span>
+      </a>
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">

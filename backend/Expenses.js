@@ -19,8 +19,16 @@ function expenseStatus(e) {
 }
 
 /** Self-heals the sheet and its header row so this works immediately
- *  even before anyone's re-run setupSheets() for this feature — same
- *  principle as ensureColumn() elsewhere in this codebase. */
+ *  even before anyone's re-run setupSheets() for this feature.
+ *
+ *  This runs on every expense read/write (record, list, approve,
+ *  reject, settlement, the dashboard's getExpensesTotal — all of them),
+ *  so it reads the header row exactly once per call. The original
+ *  version called ensureColumn() per header once the sheet already
+ *  existed, and ensureColumn() re-reads the header row itself — 12
+ *  separate Sheets API round trips every single call, which is what
+ *  made every expense operation (and the volunteer dashboard, which
+ *  calls this indirectly) get slower as expense traffic picked up. */
 function ensureExpensesSheet() {
   const spreadsheet = getSpreadsheet();
   let sheet = spreadsheet.getSheetByName(SHEETS.EXPENSES);
@@ -31,10 +39,14 @@ function ensureExpensesSheet() {
     "spender_name", "spender_mobile", "upi_id", "status", "admin_notes",
     "recorded_by", "created_at",
   ];
-  if (sheet.getLastColumn() === 0) {
+  const existing = getHeaders(sheet);
+  if (existing.length === 0) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   } else {
-    headers.forEach((h) => ensureColumn(sheet, h));
+    const missing = headers.filter((h) => !existing.includes(h));
+    if (missing.length > 0) {
+      sheet.getRange(1, existing.length + 1, 1, missing.length).setValues([missing]);
+    }
   }
   return sheet;
 }
