@@ -142,7 +142,7 @@ export default function MyStuffPage() {
             ))}
           </Section>
 
-          <Section title="My Dinner Tokens">
+          <Section title="My Dinner Tokens" subtitle="From a specific dinner day you registered for as an Event">
             {dinnerTokens.length === 0 && <Empty>No dinner tokens yet.</Empty>}
             {dinnerTokens.map((t) =>
               t.tokenId ? (
@@ -165,7 +165,10 @@ export default function MyStuffPage() {
           </Section>
 
           {communityDinner && (
-            <Section title="My Community Dinner">
+            <Section
+              title="My Community Dinner"
+              subtitle="Your household's one-time Community Dinner signup — separate from Dinner Tokens above"
+            >
               <div className="px-4 py-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <div>
@@ -276,10 +279,13 @@ function statusTone(status: string) {
   return "neutral" as const;
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">{title}</h2>
+      <div>
+        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">{title}</h2>
+        {subtitle && <p className="text-xs text-muted normal-case tracking-normal">{subtitle}</p>}
+      </div>
       <div className="rounded-xl border border-border bg-card divide-y divide-border">{children}</div>
     </section>
   );
