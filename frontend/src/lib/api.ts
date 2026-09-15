@@ -59,6 +59,23 @@ function unwrap<T>(json: unknown): T {
   return res.data as T;
 }
 
+/** Apps Script Web Apps occasionally serve an HTML page (a timeout,
+ *  a quota limit, an auth interstitial) instead of the script's actual
+ *  JSON response — reading as text first and parsing ourselves lets us
+ *  surface one friendly message for that case, instead of a raw
+ *  "Unexpected token '<'" (or Safari's differently-worded equivalent)
+ *  parse error leaking straight to the screen. */
+async function parseJsonResponse<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new ApiClientError("Something went wrong — please try again in a moment.", 502);
+  }
+  return unwrap<T>(json);
+}
+
 async function apiGet<T>(action: string, params: Params = {}): Promise<T> {
   const url = new URL(apiUrl());
   url.searchParams.set("action", action);
@@ -66,7 +83,7 @@ async function apiGet<T>(action: string, params: Params = {}): Promise<T> {
     if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
   });
   const res = await fetch(url.toString());
-  return unwrap<T>(await res.json());
+  return parseJsonResponse<T>(res);
 }
 
 async function apiPost<T>(action: string, body: Params = {}): Promise<T> {
@@ -80,7 +97,7 @@ async function apiPost<T>(action: string, body: Params = {}): Promise<T> {
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(body),
   });
-  return unwrap<T>(await res.json());
+  return parseJsonResponse<T>(res);
 }
 
 export const api = {
