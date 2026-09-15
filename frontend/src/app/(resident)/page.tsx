@@ -7,6 +7,7 @@ import { useAsync } from "@/lib/useAsync";
 import { formatCurrency, formatEventWhen, formatEventTime } from "@/lib/date";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import StatusBadge from "@/components/StatusBadge";
+import LinkifiedText from "@/components/LinkifiedText";
 
 export default function Home() {
   const { data, loading, error } = useAsync(
@@ -161,7 +162,9 @@ export default function Home() {
           <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">News</h2>
           <div className="rounded-xl border border-border bg-card px-4 py-3">
             <p className="font-semibold text-sm">{news[0].title}</p>
-            <p className="mt-0.5 text-sm text-muted">{news[0].message}</p>
+            <p className="mt-0.5 text-sm text-muted">
+              <LinkifiedText text={news[0].message} />
+            </p>
           </div>
           {news.length > 1 && (
             <Link href="/more" className="block text-center text-xs font-medium text-maroon">

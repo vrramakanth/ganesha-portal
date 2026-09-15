@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import LinkifiedText from "@/components/LinkifiedText";
 
 export default function MorePage() {
   const { data, loading, error } = useAsync(
@@ -50,7 +51,9 @@ export default function MorePage() {
             {announcements.map((a) => (
               <div key={a.announcement_id} className="px-4 py-3 space-y-1">
                 <p className="font-semibold text-sm">{a.title}</p>
-                <p className="text-xs text-muted">{a.message}</p>
+                <p className="text-xs text-muted">
+                  <LinkifiedText text={a.message} />
+                </p>
               </div>
             ))}
           </div>
