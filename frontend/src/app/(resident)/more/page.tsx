@@ -59,6 +59,26 @@ export default function MorePage() {
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
+          Festival Photos
+        </h2>
+        <a
+          href="https://photos.app.goo.gl/ZhCpaqaWJnbeGdkk9"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3.5"
+        >
+          <div>
+            <p className="font-semibold text-sm">View &amp; Add Photos</p>
+            <p className="text-xs text-muted">
+              Browse the shared album and drop in your own pics (a Google sign-in is needed to add)
+            </p>
+          </div>
+          <span className="text-muted">›</span>
+        </a>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
           Need Help?
         </h2>
         <a
