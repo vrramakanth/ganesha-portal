@@ -14,6 +14,9 @@ type Props = {
   onCancel: () => void | Promise<void>;
   submitting: boolean;
   error: string | null;
+  /** When true, a screenshot isn't optional — e.g. Community Dinner's
+   *  guest payment, where a typed reference alone isn't enough proof. */
+  requireScreenshot?: boolean;
 };
 
 /** Android: targeting a package explicitly via intent:// "package=" is
@@ -71,7 +74,15 @@ const USE_STATIC_BANK_QR = true;
  *  claimed reference for a volunteer to independently verify (Decision 4).
  *  Screenshot upload tries a best-effort OCR guess (Ocr.js) but always
  *  fails soft to an empty, editable field if extraction doesn't work. */
-export default function PaymentReferenceStep({ amount, festival, onSubmitReference, onCancel, submitting, error }: Props) {
+export default function PaymentReferenceStep({
+  amount,
+  festival,
+  onSubmitReference,
+  onCancel,
+  submitting,
+  error,
+  requireScreenshot = false,
+}: Props) {
   const [reference, setReference] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
@@ -258,9 +269,18 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
           onClick={() => fileInputRef.current?.click()}
           className="w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon disabled:opacity-60"
         >
-          {extracting ? "Reading screenshot…" : screenshot ? "Screenshot Attached ✓" : "Upload Payment Screenshot"}
+          {extracting
+            ? "Reading screenshot…"
+            : screenshot
+              ? "Screenshot Attached ✓"
+              : requireScreenshot
+                ? "Upload Payment Screenshot (required)"
+                : "Upload Payment Screenshot"}
         </button>
         {extractError && <p className="text-xs text-saffron-dark">{extractError}</p>}
+        {requireScreenshot && !screenshot && (
+          <p className="text-xs text-muted">A screenshot of the payment is required to submit this.</p>
+        )}
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Or type your UPI reference / UTR</label>
@@ -276,7 +296,7 @@ export default function PaymentReferenceStep({ amount, festival, onSubmitReferen
 
         <button
           type="button"
-          disabled={submitting || !reference.trim()}
+          disabled={submitting || !reference.trim() || (requireScreenshot && !screenshot)}
           onClick={() => onSubmitReference(reference.trim(), screenshot?.base64, screenshot?.mimeType)}
           className="w-full rounded-xl bg-maroon py-4 text-center text-sm font-semibold text-white disabled:opacity-60 active:bg-maroon-dark transition-colors"
         >

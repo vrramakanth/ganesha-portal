@@ -16,6 +16,7 @@ export type FestivalInfo = {
   contact: string;
   upi_vpa: string;
   upi_payee_name: string;
+  admin_whatsapp_number: string;
 };
 
 export type Block = {
@@ -314,6 +315,27 @@ export type FeedbackReport = {
   status: "PENDING" | "PUBLISHED" | "DECLINED";
   reviewed_by: string;
   reviewed_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CommunityDinnerRegistration = {
+  registration_id: string;
+  resident_name: string;
+  mobile: string;
+  block: string;
+  flat_number: string;
+  adults: number;
+  children: number;
+  guest_adults: number;
+  guest_children: number;
+  guest_amount: number;
+  payment_reference: string;
+  payment_screenshot_url: string;
+  status: "CONFIRMED" | "PAYMENT_PENDING" | "MANUAL_REVIEW" | "REJECTED" | "CANCELLED";
+  reviewed_by: string;
+  reviewed_at: string;
+  admin_notes: string;
   created_at: string;
   updated_at: string;
 };

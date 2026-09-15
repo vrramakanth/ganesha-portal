@@ -4,6 +4,7 @@ import type {
   Block,
   BugReport,
   CancelResult,
+  CommunityDinnerRegistration,
   ConfigEntry,
   CreateDonationResult,
   DinnerDashboard,
@@ -224,6 +225,28 @@ export const api = {
   expenses: {
     mine: (mobile: string) => apiGet<Expense[]>("expenses.mine", { mobile }),
   },
+  communityDinner: {
+    register: (payload: {
+      residentName: string;
+      mobile: string;
+      block: string;
+      flatNumber: string;
+      adults: number;
+      children: number;
+      guestAdults?: number;
+      guestChildren?: number;
+    }) => apiPost<CommunityDinnerRegistration>("communityDinner.register", payload),
+    submitPayment: (registrationId: string, reference: string, screenshot: string, mimeType: string) =>
+      apiPost<{ registrationId: string; status: string }>("communityDinner.submitPayment", {
+        registrationId,
+        reference,
+        screenshot,
+        mimeType,
+      }),
+    cancel: (registrationId: string) =>
+      apiPost<{ registrationId: string; status: string }>("communityDinner.cancel", { registrationId }),
+    mine: (mobile: string) => apiGet<CommunityDinnerRegistration | null>("communityDinner.mine", { mobile }),
+  },
   volunteer: {
     authCheck: (idToken: string) => apiGet<Volunteer>("auth.check", { idToken }),
     dashboard: (idToken: string) => apiGet<VolunteerDashboard>("volunteer.dashboard", { idToken }),
@@ -382,6 +405,37 @@ export const api = {
         feedbackId,
         status,
       }),
+    communityDinnerList: (idToken: string) =>
+      apiGet<CommunityDinnerRegistration[]>("volunteer.communityDinner.list", { idToken }),
+    communityDinnerPayments: (idToken: string) =>
+      apiGet<CommunityDinnerRegistration[]>("volunteer.communityDinner.payments", { idToken }),
+    approveCommunityDinnerPayment: (idToken: string, registrationId: string) =>
+      apiPost<{ registrationId: string; status: string }>("volunteer.communityDinner.payment.approve", {
+        idToken,
+        registrationId,
+      }),
+    rejectCommunityDinnerPayment: (idToken: string, registrationId: string, notes?: string) =>
+      apiPost<{ registrationId: string; status: string }>("volunteer.communityDinner.payment.reject", {
+        idToken,
+        registrationId,
+        notes,
+      }),
+    editCommunityDinnerRegistration: (
+      idToken: string,
+      registrationId: string,
+      fields: Partial<{
+        resident_name: string;
+        mobile: string;
+        block: string;
+        flat_number: string;
+        adults: number;
+        children: number;
+        guest_adults: number;
+        guest_children: number;
+        status: string;
+        admin_notes: string;
+      }>
+    ) => apiPost<CommunityDinnerRegistration>("volunteer.communityDinner.edit", { idToken, registrationId, ...fields }),
     recordExpense: (
       idToken: string,
       payload: {

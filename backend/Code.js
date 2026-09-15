@@ -34,6 +34,10 @@ const ROUTES = {
   "volunteers.register": { handler: (p) => registerVolunteer(p) },
   "volunteers.mine": { handler: (p) => listMyVolunteerStatus(p.mobile) },
   "expenses.mine": { handler: (p) => listMyExpenses(p.mobile) },
+  "communityDinner.register": { handler: (p) => registerCommunityDinner(p) },
+  "communityDinner.submitPayment": { handler: (p) => submitCommunityDinnerPayment(p) },
+  "communityDinner.cancel": { handler: (p) => cancelCommunityDinnerRegistration(p.registrationId) },
+  "communityDinner.mine": { handler: (p) => listMyCommunityDinnerRegistration(p.mobile) },
 
   // --- Volunteer (requires idToken; some also require a permission) ---
   "auth.check": { auth: true, handler: (p, v) => v },
@@ -76,6 +80,20 @@ const ROUTES = {
   "volunteer.bugs.updateStatus": { auth: true, handler: (p, v) => updateBugStatus(v, p.bugId, p.status) },
   "volunteer.feedback.list": { auth: true, handler: (p, v) => listFeedback(v) },
   "volunteer.feedback.updateStatus": { auth: true, handler: (p, v) => updateFeedbackStatus(v, p.feedbackId, p.status) },
+  "volunteer.communityDinner.list": { auth: true, handler: (p, v) => listCommunityDinnerRegistrations(v) },
+  "volunteer.communityDinner.payments": { auth: true, handler: (p, v) => listCommunityDinnerPaymentsForReview(v) },
+  "volunteer.communityDinner.payment.approve": {
+    auth: true,
+    handler: (p, v) => approveCommunityDinnerPayment(v, p.registrationId),
+  },
+  "volunteer.communityDinner.payment.reject": {
+    auth: true,
+    handler: (p, v) => rejectCommunityDinnerPayment(v, p.registrationId, p.notes),
+  },
+  "volunteer.communityDinner.edit": {
+    auth: true,
+    handler: (p, v) => editCommunityDinnerRegistration(v, p.registrationId, p),
+  },
   "volunteer.expenses.record": {
     auth: true,
     handler: (p, v) =>

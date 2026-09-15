@@ -15,9 +15,12 @@ import StatusBadge from "@/components/StatusBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
 
 const MAX_SONG_BYTES = 10 * 1024 * 1024; // 10MB — comfortably covers a full song at typical MP3 bitrates
+const DEFAULT_WHATSAPP_NUMBER = "919880766321";
 
 export default function MyStuffPage() {
   const { profile, loaded } = useResidentProfile();
+  const { data: festival } = useAsync(() => api.festival.get(), []);
+  const whatsappNumber = festival?.admin_whatsapp_number || DEFAULT_WHATSAPP_NUMBER;
   const [mobileInput, setMobileInput] = useState("");
   const [mobile, setMobile] = useState<string | null>(null);
   // Overrides the profile.mobile auto-fill below when the resident
@@ -37,6 +40,7 @@ export default function MyStuffPage() {
             api.dinner.mine(activeMobile),
             api.volunteers.mine(activeMobile),
             api.expenses.mine(activeMobile),
+            api.communityDinner.mine(activeMobile),
           ])
         : Promise.resolve(null),
     [activeMobile, refreshKey]
@@ -68,7 +72,8 @@ export default function MyStuffPage() {
     );
   }
 
-  const [donations, registrations, dinnerTokens, volunteerStatus, expenses] = data ?? [[], [], [], [], []];
+  const [donations, registrations, dinnerTokens, volunteerStatus, expenses, communityDinner] =
+    data ?? [[], [], [], [], [], null];
   const totalSpent = expenses
     .filter((e) => e.status === "APPROVED")
     .reduce((sum, e) => sum + Number(e.amount || 0), 0);
@@ -158,6 +163,41 @@ export default function MyStuffPage() {
               )
             )}
           </Section>
+
+          {communityDinner && (
+            <Section title="My Community Dinner">
+              <div className="px-4 py-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-sm">{communityDinner.registration_id}</p>
+                    <p className="text-xs text-muted">
+                      {communityDinner.adults} adult{communityDinner.adults === 1 ? "" : "s"},{" "}
+                      {communityDinner.children} child{communityDinner.children === 1 ? "" : "ren"}
+                      {(communityDinner.guest_adults > 0 || communityDinner.guest_children > 0) &&
+                        ` + ${communityDinner.guest_adults} guest adult${communityDinner.guest_adults === 1 ? "" : "s"}, ${communityDinner.guest_children} guest child${communityDinner.guest_children === 1 ? "" : "ren"}`}
+                    </p>
+                    {communityDinner.guest_amount > 0 && (
+                      <p className="text-xs text-muted">Guest payment: {formatCurrency(communityDinner.guest_amount)}</p>
+                    )}
+                  </div>
+                  <StatusBadge
+                    label={communityDinner.status.replace(/_/g, " ")}
+                    tone={statusTone(communityDinner.status)}
+                  />
+                </div>
+                <a
+                  href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+                    `Hi, I'd like to request a change to my Community Dinner registration.\nRegistration ID: ${communityDinner.registration_id}\nName: ${communityDinner.resident_name}\nBlock/Flat: ${communityDinner.block} ${communityDinner.flat_number}\n\nWhat needs to change: `
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block text-xs font-semibold text-maroon underline"
+                >
+                  Request a Change (WhatsApp)
+                </a>
+              </div>
+            </Section>
+          )}
 
           <Section title="My Seva Status">
             {volunteerStatus.length === 0 && <Empty>You haven&apos;t signed up for Seva yet.</Empty>}

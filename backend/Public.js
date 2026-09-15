@@ -21,6 +21,10 @@ function getFestivalInfo() {
   // the frontend can validate against a real number even before anyone
   // has added a maximum_donation row to Configuration.
   info.maximum_donation = getConfig("maximum_donation", "100000");
+  // Read-only fallback here — no seeding side-effect from a public,
+  // unauthenticated call. The row itself gets created for editing the
+  // first time an Operations admin opens Settings (listConfig).
+  info.admin_whatsapp_number = getConfig("admin_whatsapp_number", ADMIN_WHATSAPP_DEFAULT);
   return info;
 }
 

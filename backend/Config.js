@@ -24,6 +24,7 @@ const SHEETS = {
   AUDIT_LOG: "Audit Log",
   BUGS: "Bugs",
   FEEDBACK: "Feedback",
+  COMMUNITY_DINNER: "Community Dinner",
 };
 
 function getScriptProperty(key) {
@@ -82,6 +83,21 @@ function getConfig(key, fallback) {
   return row ? row.value : fallback;
 }
 
+/** The WhatsApp number residents are pointed to for things this app
+ *  can't do itself (Report a Bug, requesting a change to a locked
+ *  Community Dinner registration). Configurable so it doesn't need a
+ *  code change to update — seeded into the Configuration sheet (so
+ *  it's visible to edit in Settings) the first time an Operations
+ *  admin opens it, same pattern as the Seva guideline defaults below. */
+const ADMIN_WHATSAPP_DEFAULT = "919880766321";
+
+function getAdminWhatsappNumber() {
+  const existing = getConfig("admin_whatsapp_number", "");
+  if (existing) return existing;
+  setConfig("admin_whatsapp_number", ADMIN_WHATSAPP_DEFAULT);
+  return ADMIN_WHATSAPP_DEFAULT;
+}
+
 /** Invalidated on every write below, so an admin's change takes effect
  *  on the very next read rather than waiting out the cache TTL. */
 function setConfig(key, value) {
@@ -118,6 +134,7 @@ const FINANCE_ONLY_CONFIG_KEYS = [
 function listConfig(volunteer) {
   requirePermission(volunteer, "Operations");
   seedSevaGuidelineDefaults();
+  getAdminWhatsappNumber();
   const rows = getConfigRows_();
   if (volunteer.permissions.includes("Finance")) return rows;
   return rows.filter((r) => !FINANCE_ONLY_CONFIG_KEYS.includes(r.key));

@@ -60,6 +60,12 @@ const SHEET_SCHEMAS = {
     "feedback_id", "message", "reporter_name", "reporter_mobile", "page_url", "status",
     "reviewed_by", "reviewed_at", "created_at", "updated_at",
   ],
+  [SHEETS.COMMUNITY_DINNER]: [
+    "registration_id", "resident_name", "mobile", "block", "flat_number",
+    "adults", "children", "guest_adults", "guest_children", "guest_amount",
+    "payment_reference", "payment_screenshot_url", "status",
+    "reviewed_by", "reviewed_at", "admin_notes", "created_at", "updated_at",
+  ],
 };
 
 function setupSheets() {

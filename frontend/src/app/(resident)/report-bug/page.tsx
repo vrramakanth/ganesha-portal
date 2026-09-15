@@ -2,16 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
 import { fileToBase64 } from "@/lib/file";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import PageHeader from "@/components/PageHeader";
 
-const WHATSAPP_NUMBER = "919880766321";
+const DEFAULT_WHATSAPP_NUMBER = "919880766321";
 
 type Step = "form" | "done";
 
 export default function ReportBugPage() {
   const { profile, saveProfile } = useResidentProfile();
+  const { data: festival } = useAsync(() => api.festival.get(), []);
+  const whatsappNumber = festival?.admin_whatsapp_number || DEFAULT_WHATSAPP_NUMBER;
   const [description, setDescription] = useState("");
   const [mobile, setMobile] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -63,7 +66,7 @@ export default function ReportBugPage() {
         bug.screenshot_url ? `Screenshot: ${bug.screenshot_url}` : "(no screenshot attached)",
       ];
       const waText = encodeURIComponent(lines.join("\n\n"));
-      window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`;
+      window.location.href = `https://wa.me/${whatsappNumber}?text=${waText}`;
 
       setStep("done");
     } catch (err) {

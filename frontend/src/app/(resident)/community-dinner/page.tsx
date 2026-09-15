@@ -1,0 +1,307 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { api, ApiClientError } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
+import { useResidentProfile } from "@/lib/useResidentProfile";
+import { formatCurrency } from "@/lib/date";
+import BlockSelect from "@/components/BlockSelect";
+import FlatInput from "@/components/FlatInput";
+import MobileInput from "@/components/MobileInput";
+import PaymentReferenceStep from "@/components/PaymentReferenceStep";
+import PageHeader from "@/components/PageHeader";
+
+const GUEST_ADULT_PRICE = 200;
+const GUEST_CHILD_PRICE = 100;
+
+type Step = "form" | "creating" | "payment" | "confirmed" | "submitted" | "cancelled";
+
+/** Phase 1 of the Community Dinner: registration only (headcount +
+ *  chargeable guests + payment where needed). Deliberately unlisted —
+ *  not linked from Home, More, or any nav menu — while the team tests
+ *  it via direct URL; the actual dinner-day token/redemption side
+ *  (Phase 2) comes later, once registrations are settled. */
+export default function CommunityDinnerPage() {
+  const { profile, saveProfile, loaded } = useResidentProfile();
+  const { data: festival } = useAsync(() => api.festival.get(), []);
+
+  const [name, setName] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [block, setBlock] = useState("");
+  const [flatNumber, setFlatNumber] = useState("");
+  const [adults, setAdults] = useState("");
+  const [children, setChildren] = useState("");
+  const [hasGuests, setHasGuests] = useState(false);
+  const [guestAdults, setGuestAdults] = useState("");
+  const [guestChildren, setGuestChildren] = useState("");
+
+  const [step, setStep] = useState<Step>("form");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [registrationId, setRegistrationId] = useState<string | null>(null);
+  const [guestAmount, setGuestAmount] = useState(0);
+
+  // One-time hydration from the saved profile, same trick as Donate —
+  // prev || profile.x means a field the resident clears stays cleared
+  // instead of snapping back on every keystroke.
+  useEffect(() => {
+    if (!loaded) return;
+    setName((prev) => prev || profile.name);
+    setMobile((prev) => prev || profile.mobile);
+    setBlock((prev) => prev || profile.block);
+    setFlatNumber((prev) => prev || profile.flatNumber);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
+  const computedGuestAmount =
+    (Number(guestAdults) || 0) * GUEST_ADULT_PRICE + (Number(guestChildren) || 0) * GUEST_CHILD_PRICE;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!name.trim()) {
+      setError("Please enter your name.");
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      setError("Enter a valid 10-digit mobile number.");
+      return;
+    }
+    if (!block || !flatNumber) {
+      setError("Please enter your block and flat number.");
+      return;
+    }
+    const adultsNum = Number(adults) || 0;
+    const childrenNum = Number(children) || 0;
+    const guestAdultsNum = hasGuests ? Number(guestAdults) || 0 : 0;
+    const guestChildrenNum = hasGuests ? Number(guestChildren) || 0 : 0;
+    if (adultsNum + childrenNum + guestAdultsNum + guestChildrenNum <= 0) {
+      setError("Please add at least one person attending.");
+      return;
+    }
+
+    setStep("creating");
+    try {
+      const registration = await api.communityDinner.register({
+        residentName: name.trim(),
+        mobile,
+        block,
+        flatNumber,
+        adults: adultsNum,
+        children: childrenNum,
+        guestAdults: guestAdultsNum,
+        guestChildren: guestChildrenNum,
+      });
+      saveProfile({ name: name.trim(), mobile, block, flatNumber });
+      setRegistrationId(registration.registration_id);
+      setGuestAmount(registration.guest_amount);
+      setStep(registration.status === "CONFIRMED" ? "confirmed" : "payment");
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong. Please try again.");
+      setStep("form");
+    }
+  }
+
+  async function handleSubmitReference(reference: string, screenshot?: string, mimeType?: string) {
+    if (!registrationId || !screenshot) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.communityDinner.submitPayment(registrationId, reference, screenshot, mimeType || "image/jpeg");
+      setStep("submitted");
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Could not submit your payment. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleCancel() {
+    if (!registrationId) return;
+    setSubmitting(true);
+    try {
+      await api.communityDinner.cancel(registrationId);
+      setStep("cancelled");
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Could not cancel. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (step === "payment") {
+    return (
+      <div className="flex flex-col gap-6 px-5 pt-8">
+        <PageHeader
+          title="Pay for Your Guests"
+          subtitle={`${formatCurrency(guestAmount)} for the guests you added`}
+          backHref="/more"
+          backLabel="← More"
+        />
+        <PaymentReferenceStep
+          amount={guestAmount}
+          festival={festival ?? null}
+          onSubmitReference={handleSubmitReference}
+          onCancel={handleCancel}
+          submitting={submitting}
+          error={error}
+          requireScreenshot
+        />
+      </div>
+    );
+  }
+
+  if (step === "confirmed") {
+    return (
+      <div className="flex flex-col gap-4 px-5 pt-8 text-center items-center">
+        <PageHeader title="You're Registered!" backHref="/more" backLabel="← More" />
+        <p className="text-sm text-muted">
+          Your Community Dinner registration is confirmed.
+          <br />
+          Registration ID: {registrationId}
+        </p>
+      </div>
+    );
+  }
+
+  if (step === "submitted") {
+    return (
+      <div className="flex flex-col gap-4 px-5 pt-8 text-center items-center">
+        <PageHeader title="Thank You!" backHref="/more" backLabel="← More" />
+        <p className="text-sm text-muted">
+          Your payment is being reviewed by a volunteer — you&apos;ll be confirmed once it&apos;s verified.
+        </p>
+      </div>
+    );
+  }
+
+  if (step === "cancelled") {
+    return (
+      <div className="flex flex-col gap-4 px-5 pt-8 text-center items-center">
+        <PageHeader title="Registration Cancelled" backHref="/more" backLabel="← More" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6 px-5 pt-8">
+      <PageHeader
+        title="Community Dinner"
+        subtitle="Register your household — this is one-time, so please double-check before submitting."
+        backHref="/more"
+        backLabel="← More"
+      />
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Name</label>
+          <input
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="off"
+            className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Mobile</label>
+          <MobileInput value={mobile} onChange={setMobile} />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Block</label>
+          <BlockSelect value={block} onChange={setBlock} />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Flat (3-digit number only)</label>
+          <FlatInput value={flatNumber} onChange={setFlatNumber} />
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <p className="text-xs font-medium text-muted uppercase tracking-wide">Your Household</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Adults (12+)</label>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                value={adults}
+                onChange={(e) => setAdults(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Children (6-12)</label>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                value={children}
+                onChange={(e) => setChildren(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" checked={hasGuests} onChange={(e) => setHasGuests(e.target.checked)} />
+            Bringing guests?
+          </label>
+          <p className="text-xs text-muted">
+            Guests are chargeable at actuals — ₹{GUEST_ADULT_PRICE}/plate for adults (12+), ₹{GUEST_CHILD_PRICE}/plate
+            for children (6-12).
+          </p>
+          {hasGuests && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Guest Adults</label>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    value={guestAdults}
+                    onChange={(e) => setGuestAdults(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Guest Children</label>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    value={guestChildren}
+                    onChange={(e) => setGuestChildren(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm"
+                  />
+                </div>
+              </div>
+              {computedGuestAmount > 0 && (
+                <p className="text-sm font-semibold text-maroon">
+                  Guest total: {formatCurrency(computedGuestAmount)} — payable right after you submit
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={step === "creating"}
+          className="w-full rounded-xl bg-maroon py-4 text-center text-sm font-semibold text-white disabled:opacity-60 active:bg-maroon-dark transition-colors"
+        >
+          {step === "creating" ? "Registering…" : "Register"}
+        </button>
+        <p className="text-xs text-muted text-center">
+          This is a one-time registration and gets locked once submitted — to change anything afterward, please
+          message an admin on WhatsApp.
+        </p>
+      </form>
+    </div>
+  );
+}

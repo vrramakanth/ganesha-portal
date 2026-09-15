@@ -78,3 +78,8 @@ function generateFeedbackId() {
   const seq = nextSequence("counter_feedback");
   return `GWG-FB-${pad(seq, 4)}`;
 }
+
+function generateCommunityDinnerId() {
+  const seq = nextSequence("counter_community_dinner");
+  return `GWG-CD-${pad(seq, 4)}`;
+}
