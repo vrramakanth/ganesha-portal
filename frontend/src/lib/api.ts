@@ -76,14 +76,35 @@ async function parseJsonResponse<T>(res: Response): Promise<T> {
   return unwrap<T>(json);
 }
 
+/** Shares one in-flight request across simultaneous identical GETs —
+ *  e.g. the announcements ticker (rendered on every page, in the root
+ *  layout) and a page's own `announcements.list()` call both firing on
+ *  the same load previously meant two separate Apps Script executions
+ *  for the same read. Keyed by the full request URL, cleared once the
+ *  request settles, so it only collapses truly-concurrent calls — a
+ *  later page visit still fetches fresh data, never stale. */
+const inFlightGets = new Map<string, Promise<unknown>>();
+
 async function apiGet<T>(action: string, params: Params = {}): Promise<T> {
   const url = new URL(apiUrl());
   url.searchParams.set("action", action);
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
   });
-  const res = await fetch(url.toString());
-  return parseJsonResponse<T>(res);
+  const key = url.toString();
+  const existing = inFlightGets.get(key);
+  if (existing) return existing as Promise<T>;
+
+  const promise = (async () => {
+    try {
+      const res = await fetch(key);
+      return await parseJsonResponse<T>(res);
+    } finally {
+      inFlightGets.delete(key);
+    }
+  })();
+  inFlightGets.set(key, promise);
+  return promise;
 }
 
 async function apiPost<T>(action: string, body: Params = {}): Promise<T> {
