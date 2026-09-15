@@ -50,10 +50,16 @@ function registerCommunityDinner({ residentName, mobile, block, flatNumber, adul
   return withLock(() => {
     const sheet = ensureCommunityDinnerSheet();
     const existing = rowsToObjects(sheet);
+    // REJECTED/CANCELLED don't count as "already registered" — a
+    // rejected payment means this attempt didn't work out, not that
+    // the resident is permanently locked out; they should be able to
+    // try again. Only an active or successful attempt blocks a retry.
     const alreadyRegistered = existing.some(
       (r) =>
-        String(r.mobile) === String(mobile) ||
-        (String(r.block) === String(block) && String(r.flat_number) === String(flatNumber))
+        r.status !== "REJECTED" &&
+        r.status !== "CANCELLED" &&
+        (String(r.mobile) === String(mobile) ||
+          (String(r.block) === String(block) && String(r.flat_number) === String(flatNumber)))
     );
     if (alreadyRegistered) {
       throw new ApiError(
@@ -140,7 +146,16 @@ function cancelCommunityDinnerRegistration(registrationId) {
  *  one-time lock above. */
 function listMyCommunityDinnerRegistration(mobile) {
   requireFields({ mobile }, ["mobile"]);
-  return rowsToObjects(ensureCommunityDinnerSheet()).find((r) => String(r.mobile) === String(mobile)) || null;
+  const matches = rowsToObjects(ensureCommunityDinnerSheet()).filter((r) => String(r.mobile) === String(mobile));
+  if (matches.length === 0) return null;
+  // A resident can now have more than one row here (a rejected/
+  // cancelled attempt no longer blocks trying again), so prefer
+  // whichever is still active over a past dead end, and the most
+  // recent among ties — this is what both My Stuff and the resident
+  // page's "resume where I left off" flow rely on.
+  const active = matches.filter((r) => r.status !== "REJECTED" && r.status !== "CANCELLED");
+  const pool = active.length > 0 ? active : matches;
+  return pool.reduce((latest, r) => (new Date(r.created_at) > new Date(latest.created_at) ? r : latest));
 }
 
 /** Full roster — Dinner permission, for general admin visibility and
