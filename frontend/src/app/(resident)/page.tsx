@@ -19,6 +19,7 @@ export default function Home() {
   const { data: events, loading: eventsLoading, error: eventsError } = useAsync(() => api.events.list(), []);
   const { data: announcements, error: announcementsError } = useAsync(() => api.announcements.list(), []);
   const { data: feedback } = useAsync(() => api.feedback.listPublished(), []);
+  const { data: dinnerCount } = useAsync(() => api.communityDinner.publicCount(), []);
   const [expandedVoices, setExpandedVoices] = useState<Record<string, boolean>>({});
   const [expandedNews, setExpandedNews] = useState<Record<string, boolean>>({});
 
@@ -161,7 +162,13 @@ export default function Home() {
         <div>
           <p className="font-semibold">Community Dinner</p>
           <p className="text-xs font-medium text-saffron">20th September, evening — details to follow</p>
-          <p className="text-sm text-muted">Register your household — one time only</p>
+          <p className="text-sm font-semibold">Free for all residents</p>
+          <p className="text-sm text-muted">Register your household — one time only. Guests welcome at ₹200/adult, ₹100/child.</p>
+          {!!dinnerCount && dinnerCount.registered > 0 && (
+            <p className="mt-1 text-sm font-semibold text-maroon">
+              {dinnerCount.registered} already registered
+            </p>
+          )}
         </div>
         <Link
           href="/community-dinner"

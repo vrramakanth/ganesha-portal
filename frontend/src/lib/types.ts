@@ -325,6 +325,10 @@ export type ResidentLookup = {
   flatNumber: string;
 };
 
+export type CommunityDinnerPublicCount = {
+  registered: number;
+};
+
 export type CommunityDinnerRegistration = {
   registration_id: string;
   resident_name: string;

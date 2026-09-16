@@ -26,6 +26,7 @@ type Step = "checking" | "form" | "creating" | "payment" | "confirmed" | "submit
 export default function CommunityDinnerPage() {
   const { profile, saveProfile, loaded } = useResidentProfile();
   const { data: festival } = useAsync(() => api.festival.get(), []);
+  const { data: dinnerCount } = useAsync(() => api.communityDinner.publicCount(), []);
 
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
@@ -282,6 +283,12 @@ export default function CommunityDinnerPage() {
         backLabel="← More"
       />
       <p className="-mt-4 text-sm font-medium text-saffron">20th September, evening — details to follow</p>
+      <p className="-mt-4 text-sm font-semibold">
+        Free for all residents — guests welcome at ₹{GUEST_ADULT_PRICE}/adult, ₹{GUEST_CHILD_PRICE}/child
+      </p>
+      {!!dinnerCount && dinnerCount.registered > 0 && (
+        <p className="-mt-4 text-sm font-semibold text-maroon">{dinnerCount.registered} already registered</p>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">

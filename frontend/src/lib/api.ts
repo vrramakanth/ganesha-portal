@@ -4,6 +4,7 @@ import type {
   Block,
   BugReport,
   CancelResult,
+  CommunityDinnerPublicCount,
   CommunityDinnerRegistration,
   ConfigEntry,
   CreateDonationResult,
@@ -250,6 +251,7 @@ export const api = {
     cancel: (registrationId: string) =>
       apiPost<{ registrationId: string; status: string }>("communityDinner.cancel", { registrationId }),
     mine: (mobile: string) => apiGet<CommunityDinnerRegistration | null>("communityDinner.mine", { mobile }),
+    publicCount: () => apiGet<CommunityDinnerPublicCount>("communityDinner.publicCount"),
   },
   volunteer: {
     authCheck: (idToken: string) => apiGet<Volunteer>("auth.check", { idToken }),

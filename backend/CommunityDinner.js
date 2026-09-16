@@ -11,6 +11,8 @@
 
 const GUEST_ADULT_PRICE = 200;
 const GUEST_CHILD_PRICE = 100;
+const COMMUNITY_DINNER_COUNT_CACHE_KEY = "community_dinner_public_count";
+const COMMUNITY_DINNER_COUNT_CACHE_SECONDS = 300; // 5 min — same public-aggregate caching as stats.public (§13, §55)
 
 function ensureCommunityDinnerSheet() {
   const spreadsheet = getSpreadsheet();
@@ -102,8 +104,43 @@ function registerCommunityDinner({ residentName, mobile, block, flatNumber, adul
       updated_at: new Date(),
     };
     appendObject(sheet, registration);
+    invalidateCommunityDinnerCountCache();
     return registration;
   });
+}
+
+/** Public headcount for the Home page's live "X already registered"
+ *  figure — sums adults + children + guest_adults + guest_children
+ *  across every registration that hasn't fallen through (REJECTED/
+ *  CANCELLED don't represent someone actually coming, so they're
+ *  excluded the same way listMyCommunityDinnerRegistration treats
+ *  them as dead ends). Cached the same way as stats.public (§13, §55)
+ *  since this is an aggregate-only, non-personal number — no names,
+ *  blocks or flats are exposed. */
+function getCommunityDinnerPublicCount() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(COMMUNITY_DINNER_COUNT_CACHE_KEY);
+  if (cached != null) return { registered: Number(cached) };
+
+  const rows = rowsToObjects(ensureCommunityDinnerSheet()).filter(
+    (r) => r.status !== "REJECTED" && r.status !== "CANCELLED"
+  );
+  const registered = rows.reduce(
+    (sum, r) =>
+      sum +
+      Number(r.adults || 0) +
+      Number(r.children || 0) +
+      Number(r.guest_adults || 0) +
+      Number(r.guest_children || 0),
+    0
+  );
+
+  cache.put(COMMUNITY_DINNER_COUNT_CACHE_KEY, String(registered), COMMUNITY_DINNER_COUNT_CACHE_SECONDS);
+  return { registered };
+}
+
+function invalidateCommunityDinnerCountCache() {
+  CacheService.getScriptCache().remove(COMMUNITY_DINNER_COUNT_CACHE_KEY);
 }
 
 /** The screenshot is mandatory here — unlike donations.submitReference,
@@ -147,6 +184,7 @@ function cancelCommunityDinnerRegistration(registrationId) {
       throw new ApiError("This registration is already confirmed — please message an admin on WhatsApp to cancel it", 400);
     }
     updateRowFields(sheet, rowIndex, { status: "CANCELLED", updated_at: new Date() });
+    invalidateCommunityDinnerCountCache();
     return { registrationId, status: "CANCELLED" };
   });
 }
@@ -198,6 +236,7 @@ function approveCommunityDinnerPayment(volunteer, registrationId) {
       updated_at: new Date(),
     });
     logAudit(volunteer.email, "Approved Community Dinner payment", "CommunityDinner", registrationId, before.status, "CONFIRMED");
+    invalidateCommunityDinnerCountCache();
     return { registrationId, status: "CONFIRMED" };
   });
 }
@@ -217,6 +256,7 @@ function rejectCommunityDinnerPayment(volunteer, registrationId, notes) {
       updated_at: new Date(),
     });
     logAudit(volunteer.email, "Rejected Community Dinner payment", "CommunityDinner", registrationId, before.status, "REJECTED");
+    invalidateCommunityDinnerCountCache();
     return { registrationId, status: "REJECTED" };
   });
 }
@@ -253,6 +293,7 @@ function editCommunityDinnerRegistration(volunteer, registrationId, fields) {
 
     updateRowFields(sheet, rowIndex, update);
     logAudit(volunteer.email, "Edited Community Dinner registration", "CommunityDinner", registrationId, "", "edited");
+    invalidateCommunityDinnerCountCache();
     return Object.assign({}, before, update, { registration_id: registrationId });
   });
 }
