@@ -25,6 +25,7 @@ const SHEETS = {
   BUGS: "Bugs",
   FEEDBACK: "Feedback",
   COMMUNITY_DINNER: "Community Dinner",
+  BHOG_SPONSORS: "Bhog Sponsors",
 };
 
 function getScriptProperty(key) {

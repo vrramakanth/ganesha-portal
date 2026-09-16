@@ -66,6 +66,10 @@ const SHEET_SCHEMAS = {
     "payment_reference", "payment_screenshot_url", "status",
     "reviewed_by", "reviewed_at", "admin_notes", "created_at", "updated_at",
   ],
+  [SHEETS.BHOG_SPONSORS]: [
+    "sponsor_id", "mobile", "resident_name", "transaction_id", "amount",
+    "bhog_date", "recorded_by", "created_at",
+  ],
 };
 
 function setupSheets() {

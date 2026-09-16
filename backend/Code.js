@@ -96,6 +96,13 @@ const ROUTES = {
     auth: true,
     handler: (p, v) => editCommunityDinnerRegistration(v, p.registrationId, p),
   },
+
+  "volunteer.bhogSponsors.lookupDonations": {
+    auth: true,
+    handler: (p, v) => lookupBhogSponsorDonations(v, p.mobile),
+  },
+  "volunteer.bhogSponsors.record": { auth: true, handler: (p, v) => recordBhogSponsor(v, p) },
+  "volunteer.bhogSponsors.list": { auth: true, handler: (p, v) => listBhogSponsors(v) },
   "volunteer.expenses.record": {
     auth: true,
     handler: (p, v) =>

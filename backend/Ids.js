@@ -83,3 +83,8 @@ function generateCommunityDinnerId() {
   const seq = nextSequence("counter_community_dinner");
   return `GWG-CD-${pad(seq, 4)}`;
 }
+
+function generateBhogSponsorId() {
+  const seq = nextSequence("counter_bhog_sponsor");
+  return `GWG-BHOG-${pad(seq, 4)}`;
+}

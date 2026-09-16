@@ -1,6 +1,8 @@
 import type {
   Announcement,
   AuditLogEntry,
+  BhogSponsor,
+  BhogSponsorLookup,
   Block,
   BugReport,
   CancelResult,
@@ -442,6 +444,13 @@ export const api = {
         admin_notes: string;
       }>
     ) => apiPost<CommunityDinnerRegistration>("volunteer.communityDinner.edit", { idToken, registrationId, ...fields }),
+    lookupBhogSponsorDonations: (idToken: string, mobile: string) =>
+      apiGet<BhogSponsorLookup>("volunteer.bhogSponsors.lookupDonations", { idToken, mobile }),
+    recordBhogSponsor: (
+      idToken: string,
+      payload: { mobile: string; residentName: string; transactionIds?: string[]; amount: number; bhogDate: string }
+    ) => apiPost<BhogSponsor>("volunteer.bhogSponsors.record", { idToken, ...payload }),
+    bhogSponsorsList: (idToken: string) => apiGet<BhogSponsor[]>("volunteer.bhogSponsors.list", { idToken }),
     recordExpense: (
       idToken: string,
       payload: {

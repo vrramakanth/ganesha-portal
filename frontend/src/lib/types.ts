@@ -325,6 +325,22 @@ export type ResidentLookup = {
   flatNumber: string;
 };
 
+export type BhogSponsorLookup = {
+  name: string;
+  donations: DonationSummary[];
+};
+
+export type BhogSponsor = {
+  sponsor_id: string;
+  mobile: string;
+  resident_name: string;
+  transaction_id: string;
+  amount: number;
+  bhog_date: string;
+  recorded_by: string;
+  created_at: string;
+};
+
 export type CommunityDinnerPublicCount = {
   registered: number;
 };
