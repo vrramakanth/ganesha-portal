@@ -281,6 +281,7 @@ export default function CommunityDinnerPage() {
         backHref="/more"
         backLabel="← More"
       />
+      <p className="-mt-4 text-sm font-medium text-saffron">20th September, evening — details to follow</p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">

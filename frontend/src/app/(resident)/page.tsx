@@ -19,7 +19,8 @@ export default function Home() {
   const { data: events, loading: eventsLoading, error: eventsError } = useAsync(() => api.events.list(), []);
   const { data: announcements, error: announcementsError } = useAsync(() => api.announcements.list(), []);
   const { data: feedback } = useAsync(() => api.feedback.listPublished(), []);
-  const [voiceExpanded, setVoiceExpanded] = useState(false);
+  const [expandedVoices, setExpandedVoices] = useState<Record<string, boolean>>({});
+  const [expandedNews, setExpandedNews] = useState<Record<string, boolean>>({});
 
   const upcoming = (events ?? [])
     .filter((e) => e.status === "OPEN")
@@ -156,26 +157,10 @@ export default function Home() {
         </Link>
       </section>
 
-      {!announcementsError && news.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">News</h2>
-          <div className="rounded-xl border border-border bg-card px-4 py-3">
-            <p className="font-semibold text-sm">{news[0].title}</p>
-            <p className="mt-0.5 text-sm text-muted">
-              <LinkifiedText text={news[0].message} />
-            </p>
-          </div>
-          {news.length > 1 && (
-            <Link href="/more" className="block text-center text-xs font-medium text-maroon">
-              See all updates →
-            </Link>
-          )}
-        </section>
-      )}
-
       <section className="rounded-xl border border-border bg-card p-5 space-y-3">
         <div>
           <p className="font-semibold">Community Dinner</p>
+          <p className="text-xs font-medium text-saffron">20th September, evening — details to follow</p>
           <p className="text-sm text-muted">Register your household — one time only</p>
         </div>
         <Link
@@ -186,23 +171,65 @@ export default function Home() {
         </Link>
       </section>
 
+      {!announcementsError && news.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">News</h2>
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {news.slice(0, 2).map((a) => {
+              const isExpanded = !!expandedNews[a.announcement_id];
+              return (
+                <div key={a.announcement_id} className="px-4 py-3">
+                  <p className="font-semibold text-sm">{a.title}</p>
+                  <p className={`mt-0.5 text-sm text-muted ${isExpanded ? "" : "line-clamp-2"}`}>
+                    <LinkifiedText text={a.message} />
+                  </p>
+                  {a.message.length > 80 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedNews((prev) => ({ ...prev, [a.announcement_id]: !prev[a.announcement_id] }))
+                      }
+                      className="mt-1 text-xs font-semibold text-maroon"
+                    >
+                      {isExpanded ? "Show less" : "Read more"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {news.length > 2 && (
+            <Link href="/more" className="block text-center text-xs font-medium text-maroon">
+              See all updates →
+            </Link>
+          )}
+        </section>
+      )}
+
       {feedback && feedback.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Community Voices</h2>
-          <div className="rounded-xl border border-border bg-card px-4 py-3">
-            <p className={`text-sm ${voiceExpanded ? "" : "line-clamp-4"}`}>
-              &ldquo;{feedback[0].message}&rdquo;
-            </p>
-            <p className="mt-1 text-xs text-muted">— {feedback[0].reporter_name || "A Brigade Woods resident"}</p>
-            {feedback[0].message.length > 160 && (
-              <button
-                type="button"
-                onClick={() => setVoiceExpanded((v) => !v)}
-                className="mt-1.5 text-xs font-semibold text-maroon"
-              >
-                {voiceExpanded ? "Show less" : "Read more"}
-              </button>
-            )}
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {feedback.slice(0, 2).map((f) => {
+              const isExpanded = !!expandedVoices[f.feedback_id];
+              return (
+                <div key={f.feedback_id} className="px-4 py-3">
+                  <p className={`text-sm ${isExpanded ? "" : "line-clamp-2"}`}>&ldquo;{f.message}&rdquo;</p>
+                  <p className="mt-1 text-xs text-muted">— {f.reporter_name || "A Brigade Woods resident"}</p>
+                  {f.message.length > 80 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedVoices((prev) => ({ ...prev, [f.feedback_id]: !prev[f.feedback_id] }))
+                      }
+                      className="mt-1.5 text-xs font-semibold text-maroon"
+                    >
+                      {isExpanded ? "Show less" : "Read more"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
