@@ -10,7 +10,7 @@ const links = [
   {
     href: "/volunteer/community-dinner",
     label: "Community Dinner",
-    description: "Registrations, guest payment review, and edits (Phase 1 — testing)",
+    description: "Registrations, guest payment review, and edits",
   },
 ];
 

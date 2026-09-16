@@ -20,6 +20,9 @@ export default function VolunteerDashboardPage() {
     ...(volunteer?.permissions.includes("Finance")
       ? [{ href: "/volunteer/donations", label: "Review Payments" }]
       : []),
+    ...(volunteer?.permissions.includes("Finance") || volunteer?.permissions.includes("Dinner")
+      ? [{ href: "/volunteer/community-dinner", label: "Community Dinner" }]
+      : []),
     { href: "/volunteer/dinner/counter", label: "Dinner Counter" },
     { href: "/volunteer/events", label: "Events" },
     ...(volunteer?.permissions.includes("Operations") ? [{ href: "/volunteer/volunteers", label: "Seva" }] : []),
