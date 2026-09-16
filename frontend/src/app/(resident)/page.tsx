@@ -29,7 +29,6 @@ export default function Home() {
       return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
     })
     .slice(0, 2);
-  const dinnerEvent = (events ?? []).find((e) => e.category === "Dinner" && e.status === "OPEN");
   const news = (announcements ?? [])
     .slice()
     .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
@@ -174,20 +173,18 @@ export default function Home() {
         </section>
       )}
 
-      {dinnerEvent && (
-        <section className="rounded-xl border border-border bg-card p-5 space-y-3">
-          <div>
-            <p className="font-semibold">{dinnerEvent.name}</p>
-            <p className="text-sm text-muted">Registrations open</p>
-          </div>
-          <Link
-            href="/dinner"
-            className="block w-full rounded-xl bg-maroon py-3 text-center font-semibold text-white active:bg-maroon-dark transition-colors"
-          >
-            Register
-          </Link>
-        </section>
-      )}
+      <section className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <div>
+          <p className="font-semibold">Community Dinner</p>
+          <p className="text-sm text-muted">Register your household — one time only</p>
+        </div>
+        <Link
+          href="/community-dinner"
+          className="block w-full rounded-xl bg-maroon py-3 text-center font-semibold text-white active:bg-maroon-dark transition-colors"
+        >
+          Register
+        </Link>
+      </section>
 
       {feedback && feedback.length > 0 && (
         <section className="space-y-3">

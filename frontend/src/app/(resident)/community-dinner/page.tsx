@@ -19,10 +19,10 @@ const GUEST_CHILD_PRICE = 100;
 type Step = "checking" | "form" | "creating" | "payment" | "confirmed" | "submitted" | "cancelled" | "already";
 
 /** Phase 1 of the Community Dinner: registration only (headcount +
- *  chargeable guests + payment where needed). Deliberately unlisted —
- *  not linked from Home, More, or any nav menu — while the team tests
- *  it via direct URL; the actual dinner-day token/redemption side
- *  (Phase 2) comes later, once registrations are settled. */
+ *  chargeable guests + payment where needed) — now the live resident
+ *  flow, replacing the old generic Dinner registration (/dinner, which
+ *  now just redirects here). The actual dinner-day token/redemption
+ *  side (Phase 2) comes later, once registrations are settled. */
 export default function CommunityDinnerPage() {
   const { profile, saveProfile, loaded } = useResidentProfile();
   const { data: festival } = useAsync(() => api.festival.get(), []);

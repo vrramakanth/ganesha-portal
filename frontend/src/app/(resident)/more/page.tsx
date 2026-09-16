@@ -60,6 +60,17 @@ export default function MorePage() {
         </section>
       )}
 
+      <Link
+        href="/community-dinner"
+        className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3.5"
+      >
+        <div>
+          <p className="font-semibold text-sm">Community Dinner</p>
+          <p className="text-xs text-muted">Register your household — one time only</p>
+        </div>
+        <span className="text-muted">›</span>
+      </Link>
+
       <a
         href="https://photos.app.goo.gl/ZhCpaqaWJnbeGdkk9"
         target="_blank"
