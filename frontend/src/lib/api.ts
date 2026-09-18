@@ -410,6 +410,9 @@ export const api = {
     runBackup: (idToken: string) =>
       apiPost<{ name: string; url: string; created: boolean }>("volunteer.backup.run", { idToken }),
     auditLog: (idToken: string) => apiGet<AuditLogEntry[]>("volunteer.auditLog.list", { idToken }),
+    archiveAuditLog: (idToken: string) =>
+      apiPost<{ archivedCount: number; remainingCount: number }>("volunteer.auditLog.archive", { idToken }),
+    archivedAuditLog: (idToken: string) => apiGet<AuditLogEntry[]>("volunteer.auditLog.archived", { idToken }),
     bugsList: (idToken: string) => apiGet<BugReport[]>("volunteer.bugs.list", { idToken }),
     updateBugStatus: (idToken: string, bugId: string, status: "OPEN" | "IN_PROGRESS" | "CLOSED") =>
       apiPost<{ bugId: string; status: string }>("volunteer.bugs.updateStatus", { idToken, bugId, status }),
