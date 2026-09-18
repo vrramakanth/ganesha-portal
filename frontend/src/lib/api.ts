@@ -290,6 +290,18 @@ export const api = {
         transactionId,
         notes,
       }),
+    recordSponsorship: (
+      idToken: string,
+      payload: {
+        name: string;
+        mobile?: string;
+        amount: number;
+        reference: string;
+        notes?: string;
+        screenshot?: string;
+        mimeType?: string;
+      }
+    ) => apiPost<{ transactionId: string; status: string }>("volunteer.sponsorships.record", { idToken, ...payload }),
     attachPaymentScreenshot: (idToken: string, transactionId: string, screenshot: string, mimeType: string) =>
       apiPost<{ transactionId: string; screenshotUrl: string }>("volunteer.payment.attachScreenshot", {
         idToken,

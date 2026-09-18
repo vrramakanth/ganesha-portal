@@ -18,7 +18,10 @@ export default function VolunteerDashboardPage() {
 
   const quickActions = [
     ...(volunteer?.permissions.includes("Finance")
-      ? [{ href: "/volunteer/donations", label: "Review Payments" }]
+      ? [
+          { href: "/volunteer/donations", label: "Review Payments" },
+          { href: "/volunteer/sponsorships", label: "Record Sponsorship" },
+        ]
       : []),
     ...(volunteer?.permissions.includes("Finance") || volunteer?.permissions.includes("Dinner")
       ? [{ href: "/volunteer/community-dinner", label: "Community Dinner" }]

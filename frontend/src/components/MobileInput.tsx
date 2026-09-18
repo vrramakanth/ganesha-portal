@@ -3,13 +3,15 @@
 export default function MobileInput({
   value,
   onChange,
+  required = true,
 }: {
   value: string;
   onChange: (mobile: string) => void;
+  required?: boolean;
 }) {
   return (
     <input
-      required
+      required={required}
       type="tel"
       value={value}
       maxLength={10}

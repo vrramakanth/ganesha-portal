@@ -2,17 +2,20 @@
  *  through backend-verified transitions — never trust a client claim of
  *  "I have paid" (Decision 4). */
 
-/** Reserved "block" value for sponsorships — a common bucket beyond the
- *  residential blocks so sponsors ride the exact same donation/verify/
- *  receipt flow. Deliberately not a row in the Blocks sheet: validateBlock
- *  backs every other form (dinner, events, volunteers), which must keep
- *  rejecting it. */
+/** Reserved "block" value for sponsorships, which are recorded only by an
+ *  admin (recordSponsorship below) — sponsors often aren't residents. It's
+ *  deliberately not a row in the Blocks sheet, so validateBlock rejects it
+ *  on every resident-facing form, including this one. */
 const SPONSOR_BLOCK = "SPONSOR";
 
 function createDonation({ name, mobile, email, block, flatNumber, amount }) {
-  const isSponsor = block === SPONSOR_BLOCK;
-  requireFields({ name, mobile, block, amount }, ["name", "mobile", "block", "amount"]);
-  if (!isSponsor) requireFields({ flatNumber }, ["flatNumber"]);
+  requireFields({ name, mobile, block, flatNumber, amount }, [
+    "name",
+    "mobile",
+    "block",
+    "flatNumber",
+    "amount",
+  ]);
 
   const amountNum = Number(amount);
   const minimum = Number(getConfig("minimum_donation", "0")) || 0;
@@ -20,27 +23,11 @@ function createDonation({ name, mobile, email, block, flatNumber, amount }) {
   if (!(amountNum > 0) || amountNum < minimum) {
     throw new ApiError(`Amount must be at least ₹${minimum}`, 400);
   }
-  // The donation cap exists to catch typos on household gifts;
-  // sponsorships are legitimately larger and still get independently
-  // verified against the bank statement (Decision 4).
-  if (!isSponsor && amountNum > maximum) {
+  if (amountNum > maximum) {
     throw new ApiError(`Amount cannot exceed ₹${maximum}`, 400);
   }
-
-  // A sponsor's mobile may belong to an existing resident — never
-  // overwrite that resident's block/flat with the sponsor bucket, or
-  // their My Stuff PIN check and saved address would break. Link to the
-  // existing resident if there is one, otherwise stay unlinked.
-  let residentId = "";
-  if (isSponsor) {
-    validateMobile(mobile);
-    const existing = findResidentByMobile(mobile);
-    residentId = existing ? existing.resident_id : "";
-  } else {
-    validateBlock(block);
-    residentId = upsertResident({ name, mobile, email, block, flatNumber }).resident_id;
-  }
-  const resident = { resident_id: residentId };
+  validateBlock(block);
+  const resident = upsertResident({ name, mobile, email, block, flatNumber });
 
   return withLock(() => {
     const transactionId = generateTransactionId();
@@ -51,7 +38,7 @@ function createDonation({ name, mobile, email, block, flatNumber, amount }) {
       created_at: new Date(),
       resident_name: name,
       block,
-      flat_number: isSponsor ? "" : flatNumber,
+      flat_number: flatNumber,
       mobile,
       email: email || "",
       amount: amountNum,
@@ -71,6 +58,59 @@ function createDonation({ name, mobile, email, block, flatNumber, amount }) {
     appendObject(getSheet(SHEETS.TRANSACTIONS), transaction);
 
     return { transactionId, amount: amountNum, currency: "INR" };
+  });
+}
+
+/** Admin-only: records a sponsorship the sponsor paid outside the app
+ *  (bank transfer, cheque, cash, UPI to a volunteer). Sponsors often
+ *  aren't residents, so there's no resident account, block or flat, and
+ *  mobile is optional. Lands in MANUAL_REVIEW rather than success —
+ *  the same Payment Review queue verifies it against the bank statement
+ *  and issues the receipt (Decision 4: recording a claim never makes it
+ *  count). No maximum applies, unlike household donations. */
+function recordSponsorship(volunteer, { name, mobile, amount, reference, screenshot, mimeType, notes }) {
+  requirePermission(volunteer, "Finance");
+  requireFields({ name, amount, reference }, ["name", "amount", "reference"]);
+  const amountNum = Number(amount);
+  const minimum = Number(getConfig("minimum_donation", "0")) || 0;
+  if (!(amountNum > 0) || amountNum < minimum) {
+    throw new ApiError(`Amount must be at least ₹${minimum}`, 400);
+  }
+  if (mobile) validateMobile(mobile);
+
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.TRANSACTIONS);
+    const transactionId = generateTransactionId();
+    const fields = {
+      transaction_id: transactionId,
+      resident_id: "",
+      created_at: new Date(),
+      resident_name: String(name).trim(),
+      block: SPONSOR_BLOCK,
+      flat_number: "",
+      mobile: mobile || "",
+      email: "",
+      amount: amountNum,
+      currency: "INR",
+      payment_provider: "manual_admin",
+      payment_order_id: "",
+      payment_id: "",
+      payment_reference: String(reference).trim(),
+      status: "MANUAL_REVIEW",
+      verified_at: "",
+      receipt_id: "",
+      receipt_url: "",
+      source: "SPONSOR",
+      admin_notes: notes || "",
+      updated_at: new Date(),
+    };
+    if (screenshot) {
+      ensureColumn(sheet, "payment_screenshot_url");
+      fields.payment_screenshot_url = savePaymentScreenshot(screenshot, mimeType);
+    }
+    appendObject(sheet, fields);
+    logAudit(volunteer.email, "Recorded sponsorship", "Transaction", transactionId, "", `${fields.resident_name} ₹${amountNum}`);
+    return { transactionId, status: "MANUAL_REVIEW" };
   });
 }
 
