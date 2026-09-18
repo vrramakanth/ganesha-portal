@@ -5,6 +5,7 @@ import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatCurrency } from "@/lib/date";
+import { SPONSOR_BLOCK } from "@/lib/sponsor";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
@@ -24,6 +25,7 @@ export default function DonatePage() {
   const [email, setEmail] = useState("");
   const [block, setBlock] = useState("");
   const [flatNumber, setFlatNumber] = useState("");
+  const [isSponsor, setIsSponsor] = useState(false);
   const [amount, setAmount] = useState<number | "">("");
   const [customAmount, setCustomAmount] = useState("");
 
@@ -48,7 +50,9 @@ export default function DonatePage() {
 
   const fields = { name, mobile, block, flatNumber };
 
-  const maxAmount = Number(festival?.maximum_donation || 0) || undefined;
+  // Sponsorships aren't capped like household donations — the backend skips
+  // the maximum for them too, and a volunteer still verifies every payment.
+  const maxAmount = isSponsor ? undefined : Number(festival?.maximum_donation || 0) || undefined;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,11 +79,15 @@ export default function DonatePage() {
         name: fields.name,
         mobile: fields.mobile,
         email: email || undefined,
-        block: fields.block,
-        flatNumber: fields.flatNumber,
+        block: isSponsor ? SPONSOR_BLOCK : fields.block,
+        flatNumber: isSponsor ? "" : fields.flatNumber,
         amount: amt,
       });
-      saveProfile({ name: fields.name, mobile: fields.mobile, block: fields.block, flatNumber: fields.flatNumber });
+      // A sponsor's name is usually a business, not the person — don't
+      // overwrite the resident details saved for the household forms.
+      if (!isSponsor) {
+        saveProfile({ name: fields.name, mobile: fields.mobile, block: fields.block, flatNumber: fields.flatNumber });
+      }
       setTransactionId(order.transactionId);
       setDonationAmount(order.amount);
       setStep("reference");
@@ -162,8 +170,27 @@ export default function DonatePage() {
       <PageHeader title="Donate" />
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Donating as">
+          {[
+            { label: "Resident", value: false },
+            { label: "Sponsor", value: true },
+          ].map((opt) => (
+            <button
+              key={opt.label}
+              type="button"
+              aria-pressed={isSponsor === opt.value}
+              onClick={() => setIsSponsor(opt.value)}
+              className={`rounded-lg border py-2.5 text-sm font-semibold transition-colors ${
+                isSponsor === opt.value ? "border-saffron bg-saffron/10 text-saffron-dark" : "border-border text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Name</label>
+          <label className="text-sm font-medium">{isSponsor ? "Sponsor name (individual or business)" : "Name"}</label>
           <input
             required
             value={fields.name}
@@ -190,15 +217,19 @@ export default function DonatePage() {
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium">Block</label>
-          <BlockSelect value={fields.block} onChange={setBlock} />
-        </div>
+        {!isSponsor && (
+          <>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Block</label>
+              <BlockSelect value={fields.block} onChange={setBlock} />
+            </div>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium">Flat (3-digit number only)</label>
-          <FlatInput value={fields.flatNumber} onChange={setFlatNumber} />
-        </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Flat (3-digit number only)</label>
+              <FlatInput value={fields.flatNumber} onChange={setFlatNumber} />
+            </div>
+          </>
+        )}
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Amount</label>

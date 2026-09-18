@@ -10,6 +10,7 @@ import type { Transaction } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import { SPONSOR_BLOCK } from "@/lib/sponsor";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   SUCCESS: "success",
@@ -97,7 +98,7 @@ export default function AttachScreenshotsPage() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-semibold text-sm">
-                    {t.block}-{t.flat_number} · {t.resident_name}
+                    {t.block === SPONSOR_BLOCK ? "Sponsor" : `${t.block}-${t.flat_number}`} · {t.resident_name}
                   </p>
                   <p className="text-xs text-muted">
                     {formatCurrency(Number(t.amount))} · {t.transaction_id}

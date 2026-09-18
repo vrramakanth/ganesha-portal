@@ -75,8 +75,12 @@ function getPublicStats() {
   // still count toward totalCollected above, but "families" and the
   // block-wise breakdown only make sense for named givers, so they're
   // excluded here rather than showing up as a bogus "|" family or a
-  // blank-labeled block.
-  const namedTransactions = transactions.filter((t) => t.block && t.flat_number);
+  // blank-labeled block. Sponsorships (block SPONSOR, no flat) are
+  // excluded the same way: they count toward the total, but aren't a
+  // household or a residential block.
+  const namedTransactions = transactions.filter(
+    (t) => t.block && t.flat_number && t.block !== SPONSOR_BLOCK
+  );
   const families = new Set(namedTransactions.map((t) => `${t.block}|${t.flat_number}`)).size;
 
   const byBlock = {};

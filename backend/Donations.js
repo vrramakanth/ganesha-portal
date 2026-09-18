@@ -2,14 +2,17 @@
  *  through backend-verified transitions — never trust a client claim of
  *  "I have paid" (Decision 4). */
 
+/** Reserved "block" value for sponsorships — a common bucket beyond the
+ *  residential blocks so sponsors ride the exact same donation/verify/
+ *  receipt flow. Deliberately not a row in the Blocks sheet: validateBlock
+ *  backs every other form (dinner, events, volunteers), which must keep
+ *  rejecting it. */
+const SPONSOR_BLOCK = "SPONSOR";
+
 function createDonation({ name, mobile, email, block, flatNumber, amount }) {
-  requireFields({ name, mobile, block, flatNumber, amount }, [
-    "name",
-    "mobile",
-    "block",
-    "flatNumber",
-    "amount",
-  ]);
+  const isSponsor = block === SPONSOR_BLOCK;
+  requireFields({ name, mobile, block, amount }, ["name", "mobile", "block", "amount"]);
+  if (!isSponsor) requireFields({ flatNumber }, ["flatNumber"]);
 
   const amountNum = Number(amount);
   const minimum = Number(getConfig("minimum_donation", "0")) || 0;
@@ -17,11 +20,27 @@ function createDonation({ name, mobile, email, block, flatNumber, amount }) {
   if (!(amountNum > 0) || amountNum < minimum) {
     throw new ApiError(`Amount must be at least ₹${minimum}`, 400);
   }
-  if (amountNum > maximum) {
+  // The donation cap exists to catch typos on household gifts;
+  // sponsorships are legitimately larger and still get independently
+  // verified against the bank statement (Decision 4).
+  if (!isSponsor && amountNum > maximum) {
     throw new ApiError(`Amount cannot exceed ₹${maximum}`, 400);
   }
-  validateBlock(block);
-  const resident = upsertResident({ name, mobile, email, block, flatNumber });
+
+  // A sponsor's mobile may belong to an existing resident — never
+  // overwrite that resident's block/flat with the sponsor bucket, or
+  // their My Stuff PIN check and saved address would break. Link to the
+  // existing resident if there is one, otherwise stay unlinked.
+  let residentId = "";
+  if (isSponsor) {
+    validateMobile(mobile);
+    const existing = findResidentByMobile(mobile);
+    residentId = existing ? existing.resident_id : "";
+  } else {
+    validateBlock(block);
+    residentId = upsertResident({ name, mobile, email, block, flatNumber }).resident_id;
+  }
+  const resident = { resident_id: residentId };
 
   return withLock(() => {
     const transactionId = generateTransactionId();
@@ -32,7 +51,7 @@ function createDonation({ name, mobile, email, block, flatNumber, amount }) {
       created_at: new Date(),
       resident_name: name,
       block,
-      flat_number: flatNumber,
+      flat_number: isSponsor ? "" : flatNumber,
       mobile,
       email: email || "",
       amount: amountNum,

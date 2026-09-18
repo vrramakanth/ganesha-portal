@@ -11,6 +11,7 @@ import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import { SPONSOR_BLOCK } from "@/lib/sponsor";
 
 /** A Hundi offering has no name/block/flat by design — show that plainly
  *  instead of a blank name or a dangling " · · GWG-..." separator. */
@@ -18,7 +19,9 @@ function donorLabel(t: { resident_name: string; source: string }): string {
   return t.source === "HUNDI" ? "Anonymous (Hundi)" : t.resident_name;
 }
 function donorLocation(t: { block: string; flat_number: string; source: string }): string {
-  return t.source === "HUNDI" ? "" : `${t.block} · ${t.flat_number} · `;
+  if (t.source === "HUNDI") return "";
+  if (t.block === SPONSOR_BLOCK) return "Sponsor · ";
+  return `${t.block} · ${t.flat_number} · `;
 }
 
 const STATUS_TONE: Record<string, BadgeTone> = {

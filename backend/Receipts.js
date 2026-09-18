@@ -20,13 +20,18 @@ function generateReceipt(transaction) {
 
   body.appendParagraph("BRIGADE WOODS").setHeading(DocumentApp.ParagraphHeading.HEADING2);
   body.appendParagraph(getConfig("festival_name", "Ganesha Chathurthi 2026"));
-  body.appendParagraph("DONATION RECEIPT").setHeading(DocumentApp.ParagraphHeading.HEADING3);
+  const isSponsor = transaction.block === SPONSOR_BLOCK;
+  body
+    .appendParagraph(isSponsor ? "SPONSORSHIP RECEIPT" : "DONATION RECEIPT")
+    .setHeading(DocumentApp.ParagraphHeading.HEADING3);
   body.appendParagraph(`Receipt No: ${receiptId}`);
   body.appendParagraph(`Transaction: ${transaction.transaction_id}`);
   body.appendParagraph("");
   body.appendParagraph(`Name: ${transaction.resident_name}`);
-  body.appendParagraph(`Block: ${transaction.block}`);
-  body.appendParagraph(`Flat: ${transaction.flat_number}`);
+  if (!isSponsor) {
+    body.appendParagraph(`Block: ${transaction.block}`);
+    body.appendParagraph(`Flat: ${transaction.flat_number}`);
+  }
   body.appendParagraph("");
   body.appendParagraph(`Amount: ₹${transaction.amount}`);
   body.appendParagraph(
@@ -36,7 +41,7 @@ function generateReceipt(transaction) {
   body.appendParagraph("");
   body.appendParagraph(`STATUS: ${transaction.status}`);
   body.appendParagraph("");
-  body.appendParagraph("Thank you for contributing.");
+  body.appendParagraph(isSponsor ? "Thank you for sponsoring." : "Thank you for contributing.");
   doc.saveAndClose();
 
   const docFile = DriveApp.getFileById(doc.getId());
