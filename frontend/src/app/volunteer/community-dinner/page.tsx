@@ -31,6 +31,15 @@ type EditFields = {
   guest_children: string;
 };
 
+/** Block A→S, then flat number numerically (so 9 comes before 10, not
+ *  after 1). Blank or unexpected blocks sort last rather than first. */
+function compareByBlockThenFlat(a: CommunityDinnerRegistration, b: CommunityDinnerRegistration): number {
+  const blockA = String(a.block || "").trim().toUpperCase() || "~";
+  const blockB = String(b.block || "").trim().toUpperCase() || "~";
+  if (blockA !== blockB) return blockA < blockB ? -1 : 1;
+  return Number(a.flat_number) - Number(b.flat_number) || String(a.flat_number).localeCompare(String(b.flat_number));
+}
+
 function toEditFields(r: CommunityDinnerRegistration): EditFields {
   return {
     resident_name: r.resident_name,
@@ -59,6 +68,7 @@ export default function VolunteerCommunityDinnerPage() {
   const [editFields, setEditFields] = useState<EditFields | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const { data: allRegistrations, loading: loadingAll } = useAsync(
@@ -71,6 +81,9 @@ export default function VolunteerCommunityDinnerPage() {
   );
 
   const registrations = allRegistrations ?? [];
+  const visibleRegistrations = registrations
+    .filter((r) => !search || String(r.mobile).includes(search))
+    .sort(compareByBlockThenFlat);
   const confirmed = registrations.filter((r) => r.status === "CONFIRMED");
   const totalGuestRevenue = confirmed.reduce((sum, r) => sum + Number(r.guest_amount || 0), 0);
   const totalHeads = confirmed.reduce(
@@ -255,11 +268,28 @@ export default function VolunteerCommunityDinnerPage() {
           <p className="text-xs text-muted">
             Edits here are for WhatsApp-requested changes — residents can&apos;t self-edit once registered.
           </p>
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={search}
+            onChange={(e) => setSearch(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            placeholder="Search by mobile number"
+            autoComplete="off"
+            className="w-full rounded-lg border border-border bg-card px-3 py-3 text-sm"
+          />
+          <p className="text-xs text-muted">
+            {search
+              ? `${visibleRegistrations.length} of ${registrations.length} registrations`
+              : "Sorted by block (A to S), then flat number."}
+          </p>
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
             {registrations.length === 0 && !loadingAll && (
               <p className="px-4 py-3 text-sm text-muted">No registrations yet.</p>
             )}
-            {registrations.map((r) =>
+            {registrations.length > 0 && visibleRegistrations.length === 0 && (
+              <p className="px-4 py-3 text-sm text-muted">No registration matches that mobile number.</p>
+            )}
+            {visibleRegistrations.map((r) =>
               editingId === r.registration_id && editFields ? (
                 <div key={r.registration_id} className="px-4 py-3 space-y-2">
                   <div className="grid grid-cols-2 gap-2">
