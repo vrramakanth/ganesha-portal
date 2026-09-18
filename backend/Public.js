@@ -2,7 +2,12 @@
 
 const SUCCESS_STATUSES = ["SUCCESS", "VERIFIED_SUCCESS"];
 const PUBLIC_STATS_CACHE_KEY = "public_stats";
-const PUBLIC_STATS_CACHE_SECONDS = 300; // 5 min — spec §52 explicitly allows caching public aggregates
+// 10 min — was 5, doubled as the operational spreadsheet grew (19 sheets,
+// ~15.7K cells as of mid-festival): SpreadsheetApp.openById() cost scales
+// with the whole file, not just this sheet, so halving how often this
+// cache-misses meaningfully cuts load during peak traffic, at the cost
+// of slightly staler public totals.
+const PUBLIC_STATS_CACHE_SECONDS = 600;
 
 function getFestivalInfo() {
   const keys = [

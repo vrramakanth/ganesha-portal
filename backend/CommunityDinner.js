@@ -12,7 +12,10 @@
 const GUEST_ADULT_PRICE = 200;
 const GUEST_CHILD_PRICE = 100;
 const COMMUNITY_DINNER_COUNT_CACHE_KEY = "community_dinner_public_count";
-const COMMUNITY_DINNER_COUNT_CACHE_SECONDS = 300; // 5 min — same public-aggregate caching as stats.public (§13, §55)
+// 10 min — was 5, doubled alongside stats.public's TTL as the
+// operational spreadsheet grew; same public-aggregate caching
+// principle (§13, §55).
+const COMMUNITY_DINNER_COUNT_CACHE_SECONDS = 600;
 
 function ensureCommunityDinnerSheet() {
   const spreadsheet = getSpreadsheet();
