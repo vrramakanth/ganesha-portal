@@ -424,6 +424,13 @@ export const api = {
       apiGet<CommunityDinnerRegistration[]>("volunteer.communityDinner.list", { idToken }),
     communityDinnerPayments: (idToken: string) =>
       apiGet<CommunityDinnerRegistration[]>("volunteer.communityDinner.payments", { idToken }),
+    attachCommunityDinnerScreenshot: (idToken: string, registrationId: string, screenshot: string, mimeType: string) =>
+      apiPost<{ registrationId: string; screenshotUrl: string }>("volunteer.communityDinner.attachScreenshot", {
+        idToken,
+        registrationId,
+        screenshot,
+        mimeType,
+      }),
     approveCommunityDinnerPayment: (idToken: string, registrationId: string) =>
       apiPost<{ registrationId: string; status: string }>("volunteer.communityDinner.payment.approve", {
         idToken,

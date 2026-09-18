@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import { formatCurrency } from "@/lib/date";
+import { fileToBase64 } from "@/lib/file";
 import type { CommunityDinnerRegistration } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
@@ -57,6 +58,8 @@ export default function VolunteerCommunityDinnerPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<EditFields | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const { data: allRegistrations, loading: loadingAll } = useAsync(
     () => (hasDinner ? api.volunteer.communityDinnerList(idToken as string) : Promise.resolve([])),
@@ -98,6 +101,26 @@ export default function VolunteerCommunityDinnerPage() {
       setActionError(err instanceof ApiClientError ? err.message : "Could not reject payment.");
     } finally {
       setActioning(null);
+    }
+  }
+
+  async function handleAttachScreenshot(registrationId: string, file: File | undefined) {
+    if (!file) return;
+    setActionError(null);
+    setUploadingId(registrationId);
+    try {
+      const base64 = await fileToBase64(file);
+      await api.volunteer.attachCommunityDinnerScreenshot(
+        idToken as string,
+        registrationId,
+        base64,
+        file.type || "image/jpeg"
+      );
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not upload screenshot.");
+    } finally {
+      setUploadingId(null);
     }
   }
 
@@ -174,7 +197,7 @@ export default function VolunteerCommunityDinnerPage() {
                   </div>
                   <p className="font-semibold text-maroon shrink-0">{formatCurrency(Number(r.guest_amount))}</p>
                 </div>
-                {r.payment_screenshot_url && (
+                {r.payment_screenshot_url ? (
                   <a
                     href={r.payment_screenshot_url}
                     target="_blank"
@@ -183,6 +206,26 @@ export default function VolunteerCommunityDinnerPage() {
                   >
                     View Screenshot
                   </a>
+                ) : (
+                  <>
+                    <input
+                      ref={(el) => {
+                        fileInputRefs.current[r.registration_id] = el;
+                      }}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleAttachScreenshot(r.registration_id, e.target.files?.[0])}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      disabled={uploadingId === r.registration_id}
+                      onClick={() => fileInputRefs.current[r.registration_id]?.click()}
+                      className="inline-block text-xs font-semibold text-maroon disabled:opacity-60"
+                    >
+                      {uploadingId === r.registration_id ? "Uploading…" : "Upload Screenshot"}
+                    </button>
+                  </>
                 )}
                 <div className="flex gap-2">
                   <button

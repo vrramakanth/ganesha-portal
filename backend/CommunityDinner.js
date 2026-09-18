@@ -222,6 +222,28 @@ function listCommunityDinnerPaymentsForReview(volunteer) {
   return rowsToObjects(ensureCommunityDinnerSheet()).filter((r) => r.status === "MANUAL_REVIEW");
 }
 
+/** Backfills a screenshot for a registration whose resident sent it
+ *  directly over WhatsApp instead of through the app's own upload step
+ *  — same pattern as Donations' attachPaymentScreenshot. Touches only
+ *  payment_screenshot_url (plus updated_at), never status or amount,
+ *  so it's pure reconciliation, not a payment decision. */
+function attachCommunityDinnerScreenshot(volunteer, registrationId, screenshot, mimeType) {
+  requirePermission(volunteer, "Finance");
+  requireFields({ registrationId, screenshot }, ["registrationId", "screenshot"]);
+  return withLock(() => {
+    const sheet = ensureCommunityDinnerSheet();
+    const rowIndex = findRowIndexById(sheet, "registration_id", registrationId);
+    if (rowIndex === -1) throw new ApiError("Unknown registration", 404);
+
+    const url = savePaymentScreenshot(screenshot, mimeType);
+    if (!url) throw new ApiError("Could not save screenshot — please try again", 500);
+
+    updateRowFields(sheet, rowIndex, { payment_screenshot_url: url, updated_at: new Date() });
+    logAudit(volunteer.email, "Attached payment screenshot", "CommunityDinner", registrationId, "", url);
+    return { registrationId, screenshotUrl: url };
+  });
+}
+
 function approveCommunityDinnerPayment(volunteer, registrationId) {
   requirePermission(volunteer, "Finance");
   return withLock(() => {

@@ -87,6 +87,10 @@ const ROUTES = {
   "volunteer.feedback.updateStatus": { auth: true, handler: (p, v) => updateFeedbackStatus(v, p.feedbackId, p.status) },
   "volunteer.communityDinner.list": { auth: true, handler: (p, v) => listCommunityDinnerRegistrations(v) },
   "volunteer.communityDinner.payments": { auth: true, handler: (p, v) => listCommunityDinnerPaymentsForReview(v) },
+  "volunteer.communityDinner.attachScreenshot": {
+    auth: true,
+    handler: (p, v) => attachCommunityDinnerScreenshot(v, p.registrationId, p.screenshot, p.mimeType),
+  },
   "volunteer.communityDinner.payment.approve": {
     auth: true,
     handler: (p, v) => approveCommunityDinnerPayment(v, p.registrationId),
