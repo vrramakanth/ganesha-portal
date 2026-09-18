@@ -234,7 +234,8 @@ export const api = {
   residents: {
     lookup: (mobile: string) => apiGet<ResidentLookup | null>("residents.lookup", { mobile }),
     pinStatus: (mobile: string) => apiGet<ResidentPinStatus>("residents.pinStatus", { mobile }),
-    setPin: (mobile: string, pin: string) => apiPost<{ mobile: string }>("residents.setPin", { mobile, pin }),
+    setPin: (mobile: string, pin: string, block: string, flatNumber: string) =>
+      apiPost<{ mobile: string }>("residents.setPin", { mobile, pin, block, flatNumber }),
     verifyPin: (mobile: string, pin: string) =>
       apiPost<{ mobile: string; verified: boolean }>("residents.verifyPin", { mobile, pin }),
   },
@@ -462,8 +463,8 @@ export const api = {
       payload: { date: string; amount: number; purpose: string; vendorChecked: boolean }
     ) => apiPost<FutureCost>("volunteer.futureCosts.record", { idToken, ...payload }),
     futureCostsList: (idToken: string) => apiGet<FutureCost[]>("volunteer.futureCosts.list", { idToken }),
-    resetResidentPin: (idToken: string, mobile: string) =>
-      apiPost<{ mobile: string }>("volunteer.residents.resetPin", { idToken, mobile }),
+    adminSetResidentPin: (idToken: string, mobile: string, pin: string) =>
+      apiPost<{ mobile: string }>("volunteer.residents.setPin", { idToken, mobile, pin }),
     recordExpense: (
       idToken: string,
       payload: {

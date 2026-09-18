@@ -9,6 +9,8 @@ import { formatCurrency } from "@/lib/date";
 import { fileToBase64 } from "@/lib/file";
 import { parseVolunteerAvailability, isAreaApproved } from "@/lib/volunteerAreas";
 import type { EventRegistration } from "@/lib/types";
+import BlockSelect from "@/components/BlockSelect";
+import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
@@ -16,6 +18,10 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 
 const MAX_SONG_BYTES = 10 * 1024 * 1024; // 10MB — comfortably covers a full song at typical MP3 bitrates
 const DEFAULT_WHATSAPP_NUMBER = "919880766321";
+// PIN resets always go to Ramakanth specifically, regardless of the
+// configurable admin_whatsapp_number used for every other WhatsApp
+// link on this page — he's the one who can actually action a reset.
+const PIN_RESET_WHATSAPP_NUMBER = "919880766321";
 
 export default function MyStuffPage() {
   const { profile, loaded } = useResidentProfile();
@@ -39,6 +45,8 @@ export default function MyStuffPage() {
   const [pinVerified, setPinVerified] = useState(false);
   const [pin, setPinInput] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
+  const [pinBlock, setPinBlock] = useState("");
+  const [pinFlat, setPinFlat] = useState("");
   const [pinSubmitting, setPinSubmitting] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
 
@@ -53,6 +61,8 @@ export default function MyStuffPage() {
     setPinVerified(false);
     setPinInput("");
     setPinConfirm("");
+    setPinBlock("");
+    setPinFlat("");
     setPinError(null);
   }, [activeMobile]);
 
@@ -77,6 +87,10 @@ export default function MyStuffPage() {
   async function handleSetPin(e: React.FormEvent) {
     e.preventDefault();
     setPinError(null);
+    if (!pinBlock || !pinFlat) {
+      setPinError("Enter the block and flat on file for this number.");
+      return;
+    }
     if (!/^\d{4}$/.test(pin)) {
       setPinError("PIN must be exactly 4 digits.");
       return;
@@ -87,7 +101,7 @@ export default function MyStuffPage() {
     }
     setPinSubmitting(true);
     try {
-      await api.residents.setPin(activeMobile as string, pin);
+      await api.residents.setPin(activeMobile as string, pin, pinBlock, pinFlat);
       setPinVerified(true);
     } catch (err) {
       setPinError(err instanceof ApiClientError ? err.message : "Could not save PIN.");
@@ -167,6 +181,23 @@ export default function MyStuffPage() {
         </button>
 
         <form onSubmit={isFirstTime ? handleSetPin : handleVerifyPin} className="space-y-4">
+          {isFirstTime && (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <p className="text-xs font-medium text-muted uppercase tracking-wide">Confirm it&apos;s you</p>
+              <p className="text-xs text-muted">Enter the block and flat on file for this number.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Block</label>
+                  <BlockSelect value={pinBlock} onChange={setPinBlock} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Flat</label>
+                  <FlatInput value={pinFlat} onChange={setPinFlat} />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <label className="text-sm font-medium">{isFirstTime ? "Choose a 4-digit PIN" : "PIN"}</label>
             <input
@@ -207,14 +238,14 @@ export default function MyStuffPage() {
 
         {!isFirstTime && (
           <a
-            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+            href={`https://wa.me/${PIN_RESET_WHATSAPP_NUMBER}?text=${encodeURIComponent(
               `Hi, I forgot my My Stuff PIN for mobile ${activeMobile}. Could you help me reset it?`
             )}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-center text-xs font-semibold text-maroon underline"
           >
-            Forgot PIN? Message an admin
+            Forgot PIN? Message an admin on WhatsApp
           </a>
         )}
       </div>

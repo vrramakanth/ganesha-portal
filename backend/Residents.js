@@ -119,10 +119,20 @@ function getResidentPinStatus(mobile) {
 }
 
 /** First-time setup only — throws if one's already set; from then on
- *  only resetResidentPin (admin, via the Forgot PIN WhatsApp path) can
- *  clear it so a new one can be chosen. */
-function setResidentPin(mobile, pin) {
-  requireFields({ mobile, pin }, ["mobile", "pin"]);
+ *  only adminSetResidentPin (via the Forgot PIN WhatsApp path) can
+ *  change it.
+ *
+ *  block/flatNumber must match what's on file: without this, the very
+ *  first person to visit an unclaimed account (not necessarily its
+ *  real owner — every account from before this feature shipped starts
+ *  unclaimed) could set the PIN themselves and both read that
+ *  resident's data and lock the real owner out. Requiring their actual
+ *  block+flat closes that race — a bare guess of a 10-digit mobile
+ *  number is no longer enough to claim an account, though someone who
+ *  already knows a specific neighbor's exact address still could;
+ *  that's a real OTP problem for later, not one this can fully solve. */
+function setResidentPin(mobile, pin, block, flatNumber) {
+  requireFields({ mobile, pin, block, flatNumber }, ["mobile", "pin", "block", "flatNumber"]);
   validateMobile(mobile);
   validatePinFormat(pin);
 
@@ -134,6 +144,19 @@ function setResidentPin(mobile, pin) {
     const resident = getRowObject(sheet, rowIndex);
     if (resident.pin_hash) {
       throw new ApiError("A PIN is already set for this number — use Forgot PIN to reset it", 400);
+    }
+    // Flat number is compared numerically, not as an exact string —
+    // Sheets silently strips leading zeros from a cell that isn't
+    // text-formatted, so an existing row can hold 5 instead of "005"
+    // even though every form on this site zero-pads on entry. A strict
+    // string match would wrongly reject a real resident over a
+    // formatting quirk that has nothing to do with whether they
+    // actually live there.
+    if (
+      String(resident.block).trim().toUpperCase() !== String(block).trim().toUpperCase() ||
+      Number(resident.flat_number) !== Number(flatNumber)
+    ) {
+      throw new ApiError("Block and flat don't match our records for this number", 400);
     }
     updateRowFields(sheet, rowIndex, { pin_hash: hashPin(pin, mobile) });
     return { mobile };
@@ -170,21 +193,27 @@ function verifyResidentPin(mobile, pin) {
   return { mobile, verified: true };
 }
 
-/** Operations-gated — the only way a PIN ever gets cleared once set.
- *  Clearing just lets the resident set a fresh one next visit; it
- *  never reveals or resets it to anything guessable. */
-function resetResidentPin(volunteer, mobile) {
+/** Operations-gated — sets a resident's My Stuff PIN directly to a
+ *  chosen 4-digit value in one step (e.g. handling a "forgot PIN"
+ *  request live over WhatsApp/phone, telling them their new PIN right
+ *  there instead of making them come back to set one themselves).
+ *  Overwrites whatever was there before, or sets one for the first
+ *  time — unlike the resident's own first-time setup, this doesn't
+ *  check block/flat, since the admin doing this is themselves the
+ *  trust boundary. */
+function adminSetResidentPin(volunteer, mobile, pin) {
   requirePermission(volunteer, "Operations");
-  requireFields({ mobile }, ["mobile"]);
+  requireFields({ mobile, pin }, ["mobile", "pin"]);
   validateMobile(mobile);
+  validatePinFormat(pin);
 
   return withLock(() => {
     const sheet = getSheet(SHEETS.RESIDENTS);
     ensureColumn(sheet, "pin_hash");
     const rowIndex = findRowIndexById(sheet, "mobile", mobile);
     if (rowIndex === -1) throw new ApiError("No account found for this number", 404);
-    updateRowFields(sheet, rowIndex, { pin_hash: "" });
-    logAudit(volunteer.email, "Reset My Stuff PIN", "Residents", mobile, "", "");
+    updateRowFields(sheet, rowIndex, { pin_hash: hashPin(pin, mobile) });
+    logAudit(volunteer.email, "Admin set My Stuff PIN", "Residents", mobile, "", "");
     return { mobile };
   });
 }

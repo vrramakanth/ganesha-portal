@@ -28,7 +28,7 @@ export default function VolunteerDashboardPage() {
     { href: "/volunteer/events", label: "Events" },
     ...(volunteer?.permissions.includes("Operations") ? [{ href: "/volunteer/volunteers", label: "Seva" }] : []),
     ...(volunteer?.permissions.includes("Operations")
-      ? [{ href: "/volunteer/reset-pin", label: "Reset My Stuff PIN" }]
+      ? [{ href: "/volunteer/reset-pin", label: "Change Resident PIN" }]
       : []),
     { href: "/volunteer/expenses", label: "Record Expense" },
     { href: "/volunteer/future-costs", label: "Future Costs" },
