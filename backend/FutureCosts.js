@@ -44,6 +44,7 @@ function recordFutureCost(volunteer, { date, amount, purpose, vendorChecked }) {
     };
     appendObject(sheet, estimate);
     logAudit(volunteer.email, "Recorded future cost estimate", "FutureCosts", estimate.estimate_id, "", purpose);
+    invalidatePublicStatsCache();
     return estimate;
   });
 }

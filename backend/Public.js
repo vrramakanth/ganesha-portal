@@ -88,6 +88,11 @@ function getPublicStats() {
     // Aggregate only, same principle as totalCollected above — a single
     // approved-expenses sum, never itemized or attributed to a spender.
     totalExpenses: getExpensesTotal(),
+    // A worst-case planning estimate, not money already spent — shown
+    // to residents alongside totalExpenses so Home can flag when
+    // (spent + estimated ahead) is closing in on what's been collected,
+    // without ever presenting the estimate as a settled fact.
+    futureCosts: getFutureCostsTotal(),
   };
 
   cache.put(PUBLIC_STATS_CACHE_KEY, JSON.stringify(stats), PUBLIC_STATS_CACHE_SECONDS);

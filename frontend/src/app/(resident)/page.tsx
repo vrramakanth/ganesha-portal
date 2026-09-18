@@ -7,8 +7,29 @@ import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { formatCurrency, formatEventWhen, formatEventTime } from "@/lib/date";
 import LoadingIndicator from "@/components/LoadingIndicator";
-import StatusBadge from "@/components/StatusBadge";
+import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
 import LinkifiedText from "@/components/LinkifiedText";
+
+// Traffic-light read on (spent + worst-case costs ahead) vs collected —
+// a resident-facing signal that stays honest (the estimate is real, so
+// a genuine shortfall shows red) without ever presenting a forecast as
+// settled money already lost. Ratio bands: >105% red, 95-105% amber
+// (either side of break-even), <95% green.
+const AHEAD_TEXT_COLOR: Record<BadgeTone, string> = {
+  danger: "text-red-700",
+  warning: "text-amber-700",
+  success: "text-green-700",
+  info: "text-blue-700",
+  neutral: "text-foreground",
+};
+
+function costsAheadStatus(spent: number, futureCosts: number, collected: number): { tone: BadgeTone; label: string } {
+  if (collected <= 0) return { tone: "neutral", label: "" };
+  const ratio = (spent + futureCosts) / collected;
+  if (ratio > 1.05) return { tone: "danger", label: "Estimated costs ahead exceed what's collected so far" };
+  if (ratio >= 0.95) return { tone: "warning", label: "Close to fully covered — every donation helps" };
+  return { tone: "success", label: "Comfortably covered" };
+}
 
 export default function Home() {
   // Each fetched independently — these used to be bundled into one
@@ -90,19 +111,46 @@ export default function Home() {
         ) : statsLoading || !stats ? (
           <LoadingIndicator label="Loading totals…" className="py-2 justify-center" />
         ) : (
-          <>
-            <div className="flex items-center justify-center gap-8">
-              <div>
-                <p className="text-3xl font-bold text-maroon">{formatCurrency(stats.totalCollected)}</p>
-                <p className="text-xs font-medium tracking-wide text-muted uppercase">Collected</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-maroon">{formatCurrency(stats.totalExpenses)}</p>
-                <p className="text-xs font-medium tracking-wide text-muted uppercase">Spent (so far)</p>
-              </div>
-            </div>
-            <p className="mt-2 text-sm text-foreground">{stats.families} families participating</p>
-          </>
+          (() => {
+            const ahead = stats.futureCosts > 0 ? costsAheadStatus(stats.totalExpenses, stats.futureCosts, stats.totalCollected) : null;
+            return (
+              <>
+                <div className="flex items-center justify-center gap-5">
+                  <div>
+                    <p className="text-xl font-bold text-maroon">{formatCurrency(stats.totalCollected)}</p>
+                    <p className="text-[10px] font-medium tracking-wide text-muted uppercase">Collected</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-maroon">{formatCurrency(stats.totalExpenses)}</p>
+                    <p className="text-[10px] font-medium tracking-wide text-muted uppercase">Spent</p>
+                  </div>
+                  {ahead && (
+                    <div>
+                      <p className={`text-xl font-bold ${AHEAD_TEXT_COLOR[ahead.tone]}`}>
+                        ≤{formatCurrency(stats.futureCosts)}
+                      </p>
+                      <p className="text-[10px] font-medium tracking-wide text-muted uppercase">Expenses Ahead (est.)*</p>
+                    </div>
+                  )}
+                </div>
+
+                {ahead && (
+                  <>
+                    <div className="mt-3 flex justify-center border-t border-border pt-3">
+                      <StatusBadge label={ahead.label} tone={ahead.tone} />
+                    </div>
+                    <p className="mt-2 text-[10px] leading-snug text-muted">
+                      *Worst-case estimate for remaining costs (dinner catering, closing events) —{" "}
+                      <span className="font-semibold text-foreground">donations are still open</span>, volunteers
+                      are working to optimize costs, and final costs are typically lower.
+                    </p>
+                  </>
+                )}
+
+                <p className="mt-2 text-sm text-foreground">{stats.families} families participating</p>
+              </>
+            );
+          })()
         )}
       </div>
 

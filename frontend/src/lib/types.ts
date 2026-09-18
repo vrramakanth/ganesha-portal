@@ -55,6 +55,7 @@ export type PublicStats = {
   goal: number;
   byBlock: { block: string; amount: number }[];
   totalExpenses: number;
+  futureCosts: number;
 };
 
 export type Announcement = {
