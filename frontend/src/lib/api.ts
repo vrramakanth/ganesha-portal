@@ -23,6 +23,7 @@ import type {
   ExtractReferenceResult,
   FeedbackReport,
   FestivalInfo,
+  FutureCost,
   MyDinnerToken,
   PublicStats,
   RedeemResult,
@@ -451,6 +452,11 @@ export const api = {
       payload: { mobile: string; residentName: string; transactionIds?: string[]; amount: number; bhogDate: string }
     ) => apiPost<BhogSponsor>("volunteer.bhogSponsors.record", { idToken, ...payload }),
     bhogSponsorsList: (idToken: string) => apiGet<BhogSponsor[]>("volunteer.bhogSponsors.list", { idToken }),
+    recordFutureCost: (
+      idToken: string,
+      payload: { date: string; amount: number; purpose: string; vendorChecked: boolean }
+    ) => apiPost<FutureCost>("volunteer.futureCosts.record", { idToken, ...payload }),
+    futureCostsList: (idToken: string) => apiGet<FutureCost[]>("volunteer.futureCosts.list", { idToken }),
     recordExpense: (
       idToken: string,
       payload: {

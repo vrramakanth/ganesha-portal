@@ -225,7 +225,23 @@ export type VolunteerDashboard = {
   mealsServed: number;
   volunteerCount: number;
   alerts: string[];
-  festivalSummary: { income: number; expenses: number; balance: number };
+  festivalSummary: {
+    income: number;
+    expenses: number;
+    balance: number;
+    futureCosts: number;
+    projectedBalance: number;
+  };
+};
+
+export type FutureCost = {
+  estimate_id: string;
+  date: string;
+  amount: number;
+  purpose: string;
+  vendor_checked: boolean;
+  recorded_by: string;
+  created_at: string;
 };
 
 export type Expense = {

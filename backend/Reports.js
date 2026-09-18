@@ -32,6 +32,8 @@ function getVolunteerDashboard(volunteer) {
 
   const income = successful.reduce((sum, t) => sum + Number(t.amount || 0), 0);
   const expenses = getExpensesTotal();
+  const balance = income - expenses;
+  const futureCosts = getFutureCostsTotal();
 
   return {
     collected: hasFinance ? income : null,
@@ -44,7 +46,12 @@ function getVolunteerDashboard(volunteer) {
     // permission — a simple income/expense/balance summary (spec §28)
     // isn't the same sensitivity as the detailed Donations transaction
     // list or Settings' payment config, both of which stay Finance-gated.
-    festivalSummary: { income, expenses, balance: income - expenses },
+    // futureCosts/projectedBalance are a forward-looking planning
+    // estimate, kept separate from the real balance above rather than
+    // folded into `expenses` — projectedBalance nets them together so
+    // an admin can see what's actually left once known upcoming spend
+    // is accounted for.
+    festivalSummary: { income, expenses, balance, futureCosts, projectedBalance: balance - futureCosts },
   };
 }
 

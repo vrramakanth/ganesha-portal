@@ -103,6 +103,9 @@ const ROUTES = {
   },
   "volunteer.bhogSponsors.record": { auth: true, handler: (p, v) => recordBhogSponsor(v, p) },
   "volunteer.bhogSponsors.list": { auth: true, handler: (p, v) => listBhogSponsors(v) },
+
+  "volunteer.futureCosts.record": { auth: true, handler: (p, v) => recordFutureCost(v, p) },
+  "volunteer.futureCosts.list": { auth: true, handler: (p, v) => listFutureCosts(v) },
   "volunteer.expenses.record": {
     auth: true,
     handler: (p, v) =>

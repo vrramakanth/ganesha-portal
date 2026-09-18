@@ -88,3 +88,8 @@ function generateBhogSponsorId() {
   const seq = nextSequence("counter_bhog_sponsor");
   return `GWG-BHOG-${pad(seq, 4)}`;
 }
+
+function generateFutureCostId() {
+  const seq = nextSequence("counter_future_cost");
+  return `GWG-FC-${pad(seq, 4)}`;
+}

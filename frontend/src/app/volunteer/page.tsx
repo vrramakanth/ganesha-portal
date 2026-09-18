@@ -24,9 +24,11 @@ export default function VolunteerDashboardPage() {
       ? [{ href: "/volunteer/community-dinner", label: "Community Dinner" }]
       : []),
     { href: "/volunteer/dinner/counter", label: "Dinner Counter" },
+    { href: "/volunteer/bhog-sponsors", label: "Bhog Sponsors" },
     { href: "/volunteer/events", label: "Events" },
     ...(volunteer?.permissions.includes("Operations") ? [{ href: "/volunteer/volunteers", label: "Seva" }] : []),
     { href: "/volunteer/expenses", label: "Record Expense" },
+    { href: "/volunteer/future-costs", label: "Future Costs" },
     ...(volunteer?.permissions.includes("Finance")
       ? [{ href: "/volunteer/expenses/review", label: "Review Expenses" }]
       : []),
@@ -51,6 +53,8 @@ export default function VolunteerDashboardPage() {
               <StatTile value={formatCurrency(data.festivalSummary.income)} label="Income" />
               <StatTile value={formatCurrency(data.festivalSummary.expenses)} label="Expenses" />
               <StatTile value={formatCurrency(data.festivalSummary.balance)} label="Balance" />
+              <StatTile value={formatCurrency(data.festivalSummary.futureCosts)} label="Future Costs" />
+              <StatTile value={formatCurrency(data.festivalSummary.projectedBalance)} label="Projected Balance" />
             </div>
           </section>
 

@@ -12,11 +12,6 @@ const links = [
     label: "Community Dinner",
     description: "Registrations, guest payment review, and edits",
   },
-  {
-    href: "/volunteer/bhog-sponsors",
-    label: "Bhog Sponsors",
-    description: "Log who's sponsoring Maha Prasadam, and on which evening",
-  },
 ];
 
 export default function VolunteerMorePage() {
