@@ -27,6 +27,9 @@ export default function VolunteerDashboardPage() {
     { href: "/volunteer/bhog-sponsors", label: "Bhog Sponsors" },
     { href: "/volunteer/events", label: "Events" },
     ...(volunteer?.permissions.includes("Operations") ? [{ href: "/volunteer/volunteers", label: "Seva" }] : []),
+    ...(volunteer?.permissions.includes("Operations")
+      ? [{ href: "/volunteer/reset-pin", label: "Reset My Stuff PIN" }]
+      : []),
     { href: "/volunteer/expenses", label: "Record Expense" },
     { href: "/volunteer/future-costs", label: "Future Costs" },
     ...(volunteer?.permissions.includes("Finance")

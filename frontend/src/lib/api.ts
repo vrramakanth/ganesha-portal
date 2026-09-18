@@ -29,6 +29,7 @@ import type {
   RedeemResult,
   ReportExport,
   ResidentLookup,
+  ResidentPinStatus,
   SubmitReferenceResult,
   Transaction,
   Volunteer,
@@ -232,6 +233,10 @@ export const api = {
   },
   residents: {
     lookup: (mobile: string) => apiGet<ResidentLookup | null>("residents.lookup", { mobile }),
+    pinStatus: (mobile: string) => apiGet<ResidentPinStatus>("residents.pinStatus", { mobile }),
+    setPin: (mobile: string, pin: string) => apiPost<{ mobile: string }>("residents.setPin", { mobile, pin }),
+    verifyPin: (mobile: string, pin: string) =>
+      apiPost<{ mobile: string; verified: boolean }>("residents.verifyPin", { mobile, pin }),
   },
   communityDinner: {
     register: (payload: {
@@ -457,6 +462,8 @@ export const api = {
       payload: { date: string; amount: number; purpose: string; vendorChecked: boolean }
     ) => apiPost<FutureCost>("volunteer.futureCosts.record", { idToken, ...payload }),
     futureCostsList: (idToken: string) => apiGet<FutureCost[]>("volunteer.futureCosts.list", { idToken }),
+    resetResidentPin: (idToken: string, mobile: string) =>
+      apiPost<{ mobile: string }>("volunteer.residents.resetPin", { idToken, mobile }),
     recordExpense: (
       idToken: string,
       payload: {

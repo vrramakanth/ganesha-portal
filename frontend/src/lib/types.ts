@@ -341,6 +341,11 @@ export type ResidentLookup = {
   flatNumber: string;
 };
 
+export type ResidentPinStatus = {
+  hasAccount: boolean;
+  hasPin: boolean;
+};
+
 export type BhogSponsorLookup = {
   name: string;
   donations: DonationSummary[];

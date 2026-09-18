@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -31,9 +31,37 @@ export default function MyStuffPage() {
 
   const activeMobile = searchingNew ? null : mobile || (loaded && profile.mobile ? profile.mobile : null);
 
+  // A PIN gate on top of mobile-as-identity (spec §6's known gap) — a
+  // bare guess of a valid-format mobile number used to be enough to see
+  // someone else's donations/registrations/dinner status. A mobile with
+  // no account at all (pinStatus.hasAccount === false) has nothing to
+  // protect, so it skips straight through with no PIN step.
+  const [pinVerified, setPinVerified] = useState(false);
+  const [pin, setPinInput] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
+  const [pinSubmitting, setPinSubmitting] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+
+  const { data: pinStatus, loading: pinStatusLoading } = useAsync(
+    () => (activeMobile ? api.residents.pinStatus(activeMobile) : Promise.resolve(null)),
+    [activeMobile]
+  );
+
+  // Reset the gate whenever the looked-up number changes — verifying
+  // for one mobile must never carry over to a different one.
+  useEffect(() => {
+    setPinVerified(false);
+    setPinInput("");
+    setPinConfirm("");
+    setPinError(null);
+  }, [activeMobile]);
+
+  const needsPinGate = !!pinStatus?.hasAccount && !pinVerified;
+  const canFetchData = !!activeMobile && !pinStatusLoading && !needsPinGate;
+
   const { data, loading, error } = useAsync(
     () =>
-      activeMobile
+      canFetchData && activeMobile
         ? Promise.all([
             api.donations.mine(activeMobile),
             api.registrations.mine(activeMobile),
@@ -43,8 +71,48 @@ export default function MyStuffPage() {
             api.communityDinner.mine(activeMobile),
           ])
         : Promise.resolve(null),
-    [activeMobile, refreshKey]
+    [canFetchData, activeMobile, refreshKey]
   );
+
+  async function handleSetPin(e: React.FormEvent) {
+    e.preventDefault();
+    setPinError(null);
+    if (!/^\d{4}$/.test(pin)) {
+      setPinError("PIN must be exactly 4 digits.");
+      return;
+    }
+    if (pin !== pinConfirm) {
+      setPinError("PINs don't match — try again.");
+      return;
+    }
+    setPinSubmitting(true);
+    try {
+      await api.residents.setPin(activeMobile as string, pin);
+      setPinVerified(true);
+    } catch (err) {
+      setPinError(err instanceof ApiClientError ? err.message : "Could not save PIN.");
+    } finally {
+      setPinSubmitting(false);
+    }
+  }
+
+  async function handleVerifyPin(e: React.FormEvent) {
+    e.preventDefault();
+    setPinError(null);
+    if (!/^\d{4}$/.test(pin)) {
+      setPinError("Enter your 4-digit PIN.");
+      return;
+    }
+    setPinSubmitting(true);
+    try {
+      await api.residents.verifyPin(activeMobile as string, pin);
+      setPinVerified(true);
+    } catch (err) {
+      setPinError(err instanceof ApiClientError ? err.message : "Could not verify PIN.");
+    } finally {
+      setPinSubmitting(false);
+    }
+  }
 
   if (!activeMobile) {
     return (
@@ -68,6 +136,87 @@ export default function MyStuffPage() {
             Look Up
           </button>
         </form>
+      </div>
+    );
+  }
+
+  if (pinStatusLoading) {
+    return <LoadingIndicator label="Checking…" className="px-5 pt-8" />;
+  }
+
+  function backToLookup() {
+    setMobile(null);
+    setMobileInput("");
+    setSearchingNew(true);
+  }
+
+  if (needsPinGate && pinStatus) {
+    const isFirstTime = !pinStatus.hasPin;
+    return (
+      <div className="flex flex-col gap-6 px-5 pt-8">
+        <PageHeader
+          title={isFirstTime ? "Set a PIN" : "Enter Your PIN"}
+          subtitle={
+            isFirstTime
+              ? "Protect your donations, registrations and tokens with a 4-digit PIN — you'll use this every time you check My Stuff."
+              : `Enter the PIN for ${activeMobile}`
+          }
+        />
+        <button type="button" onClick={backToLookup} className="text-left text-xs font-medium text-maroon underline -mt-4">
+          Look up a different number
+        </button>
+
+        <form onSubmit={isFirstTime ? handleSetPin : handleVerifyPin} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">{isFirstTime ? "Choose a 4-digit PIN" : "PIN"}</label>
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              autoFocus
+              className="w-full rounded-lg border border-border bg-card px-3 py-3 text-center text-lg tracking-[0.5em]"
+            />
+          </div>
+
+          {isFirstTime && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Confirm PIN</label>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                value={pinConfirm}
+                onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                className="w-full rounded-lg border border-border bg-card px-3 py-3 text-center text-lg tracking-[0.5em]"
+              />
+            </div>
+          )}
+
+          {pinError && <p className="text-sm text-red-600">{pinError}</p>}
+
+          <button
+            type="submit"
+            disabled={pinSubmitting}
+            className="w-full rounded-xl bg-saffron py-3.5 text-center text-sm font-semibold text-white disabled:opacity-60 active:bg-saffron-dark transition-colors"
+          >
+            {pinSubmitting ? "Please wait…" : isFirstTime ? "Set PIN" : "Unlock"}
+          </button>
+        </form>
+
+        {!isFirstTime && (
+          <a
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+              `Hi, I forgot my My Stuff PIN for mobile ${activeMobile}. Could you help me reset it?`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-center text-xs font-semibold text-maroon underline"
+          >
+            Forgot PIN? Message an admin
+          </a>
+        )}
       </div>
     );
   }

@@ -15,6 +15,9 @@ const ROUTES = {
   "feedback.submit": { handler: (p) => submitFeedback(p) },
   "feedback.listPublished": { handler: () => listPublishedFeedback() },
   "residents.lookup": { handler: (p) => lookupResident(p.mobile) },
+  "residents.pinStatus": { handler: (p) => getResidentPinStatus(p.mobile) },
+  "residents.setPin": { handler: (p) => setResidentPin(p.mobile, p.pin) },
+  "residents.verifyPin": { handler: (p) => verifyResidentPin(p.mobile, p.pin) },
   "communityDinner.publicCount": { handler: () => getCommunityDinnerPublicCount() },
 
   // --- Resident ---
@@ -106,6 +109,8 @@ const ROUTES = {
 
   "volunteer.futureCosts.record": { auth: true, handler: (p, v) => recordFutureCost(v, p) },
   "volunteer.futureCosts.list": { auth: true, handler: (p, v) => listFutureCosts(v) },
+
+  "volunteer.residents.resetPin": { auth: true, handler: (p, v) => resetResidentPin(v, p.mobile) },
   "volunteer.expenses.record": {
     auth: true,
     handler: (p, v) =>
