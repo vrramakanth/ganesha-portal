@@ -502,6 +502,11 @@ export const api = {
       idToken: string,
       payload: { date: string; amount: number; purpose: string; vendorChecked: boolean }
     ) => apiPost<FutureCost>("volunteer.futureCosts.record", { idToken, ...payload }),
+    updateFutureCost: (
+      idToken: string,
+      estimateId: string,
+      payload: { date: string; amount: number; purpose: string; vendorChecked: boolean }
+    ) => apiPost<FutureCost>("volunteer.futureCosts.update", { idToken, estimateId, ...payload }),
     futureCostsList: (idToken: string) => apiGet<FutureCost[]>("volunteer.futureCosts.list", { idToken }),
     adminSetResidentPin: (idToken: string, mobile: string, pin: string) =>
       apiPost<{ mobile: string }>("volunteer.residents.setPin", { idToken, mobile, pin }),

@@ -49,6 +49,40 @@ function recordFutureCost(volunteer, { date, amount, purpose, vendorChecked }) {
   });
 }
 
+/** An estimate is a moving projection, so it can be refined as real
+ *  quotes and bills come in. Editing asks for the same vendor-checked
+ *  attestation as recording — a revised number should be as deliberate
+ *  as the first — and the audit entry keeps the old amount, so the
+ *  history of a projection isn't lost when it's overwritten. Open to any
+ *  signed-in admin, same as recording. */
+function updateFutureCost(volunteer, estimateId, { date, amount, purpose, vendorChecked }) {
+  requireFields({ estimateId, date, amount, purpose }, ["estimateId", "date", "amount", "purpose"]);
+  const amountNum = Number(amount);
+  if (!(amountNum > 0)) throw new ApiError("Amount must be greater than 0", 400);
+  if (vendorChecked !== true) {
+    throw new ApiError("Confirm you've checked with the vendor before updating an estimate", 400);
+  }
+
+  return withLock(() => {
+    const sheet = ensureFutureCostsSheet();
+    const rowIndex = findRowIndexById(sheet, "estimate_id", estimateId);
+    if (rowIndex === -1) throw new ApiError("Unknown estimate", 404);
+    const before = getRowObject(sheet, rowIndex);
+
+    updateRowFields(sheet, rowIndex, { date, amount: amountNum, purpose, vendor_checked: true });
+    logAudit(
+      volunteer.email,
+      "Edited future cost estimate",
+      "FutureCosts",
+      estimateId,
+      `₹${before.amount} · ${before.purpose}`,
+      `₹${amountNum} · ${purpose}`
+    );
+    invalidatePublicStatsCache();
+    return Object.assign({}, before, { date, amount: amountNum, purpose, vendor_checked: true });
+  });
+}
+
 function listFutureCosts(volunteer) {
   return rowsToObjects(ensureFutureCostsSheet()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }

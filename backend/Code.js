@@ -123,6 +123,10 @@ const ROUTES = {
   "volunteer.bhogSponsors.list": { auth: true, handler: (p, v) => listBhogSponsors(v) },
 
   "volunteer.futureCosts.record": { auth: true, handler: (p, v) => recordFutureCost(v, p) },
+  "volunteer.futureCosts.update": {
+    auth: true,
+    handler: (p, v) => updateFutureCost(v, p.estimateId, p),
+  },
   "volunteer.futureCosts.list": { auth: true, handler: (p, v) => listFutureCosts(v) },
 
   "volunteer.residents.setPin": { auth: true, handler: (p, v) => adminSetResidentPin(v, p.mobile, p.pin) },

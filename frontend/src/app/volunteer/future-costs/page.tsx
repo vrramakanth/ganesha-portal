@@ -4,9 +4,10 @@ import { useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
-import { formatCurrency, formatEventDate } from "@/lib/date";
+import { formatCurrency, formatEventDate, toDateInputValue } from "@/lib/date";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import type { FutureCost } from "@/lib/types";
 
 function today() {
   return new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd, matches <input type="date">
@@ -34,6 +35,55 @@ export default function FutureCostsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [editAmount, setEditAmount] = useState("");
+  const [editPurpose, setEditPurpose] = useState("");
+  const [editVendorChecked, setEditVendorChecked] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  function startEdit(e: FutureCost) {
+    setEditingId(e.estimate_id);
+    setEditDate(toDateInputValue(e.date));
+    setEditAmount(String(e.amount));
+    setEditPurpose(e.purpose);
+    setEditVendorChecked(false);
+    setEditError(null);
+  }
+
+  async function saveEdit(estimateId: string) {
+    setEditError(null);
+    const amountNum = Number(editAmount);
+    if (!(amountNum > 0)) {
+      setEditError("Enter an amount greater than 0.");
+      return;
+    }
+    if (!editPurpose.trim()) {
+      setEditError("What's this cost for?");
+      return;
+    }
+    if (!editVendorChecked) {
+      setEditError("Confirm you've checked with the vendor before saving.");
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await api.volunteer.updateFutureCost(idToken as string, estimateId, {
+        date: editDate,
+        amount: amountNum,
+        purpose: editPurpose.trim(),
+        vendorChecked: editVendorChecked,
+      });
+      setEditingId(null);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setEditError(err instanceof ApiClientError ? err.message : "Could not update this estimate.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
 
   const total = (estimates ?? []).reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
@@ -148,15 +198,69 @@ export default function FutureCostsPage() {
         )}
         {(estimates ?? []).length > 0 && (
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
-            {(estimates ?? []).map((e) => (
-              <div key={e.estimate_id} className="px-4 py-3 flex items-center justify-between gap-2">
-                <div>
-                  <p className="font-semibold text-sm">{e.purpose}</p>
-                  <p className="text-xs text-muted">{formatEventDate(e.date)}</p>
+            {(estimates ?? []).map((e) =>
+              editingId === e.estimate_id ? (
+                <div key={e.estimate_id} className="px-4 py-3 space-y-2">
+                  <input
+                    type="date"
+                    value={editDate}
+                    onChange={(ev) => setEditDate(ev.target.value)}
+                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    value={editAmount}
+                    onChange={(ev) => setEditAmount(ev.target.value)}
+                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                  />
+                  <input
+                    value={editPurpose}
+                    onChange={(ev) => setEditPurpose(ev.target.value)}
+                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                  />
+                  <label className="flex items-start gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={editVendorChecked}
+                      onChange={(ev) => setEditVendorChecked(ev.target.checked)}
+                      className="mt-0.5"
+                    />
+                    I&apos;ve checked with the vendor and this amount is close to actuals.
+                  </label>
+                  {editError && <p className="text-xs text-red-600">{editError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={savingEdit || !editVendorChecked}
+                      onClick={() => saveEdit(e.estimate_id)}
+                      className="flex-1 rounded-lg bg-maroon py-2 text-xs font-semibold text-white disabled:opacity-60"
+                    >
+                      {savingEdit ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(null)}
+                      className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-                <p className="font-semibold text-maroon">{formatCurrency(Number(e.amount))}</p>
-              </div>
-            ))}
+              ) : (
+                <div key={e.estimate_id} className="px-4 py-3 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-sm">{e.purpose}</p>
+                    <p className="text-xs text-muted">{formatEventDate(e.date)}</p>
+                    <button type="button" onClick={() => startEdit(e)} className="mt-1 text-xs font-semibold text-maroon">
+                      Edit
+                    </button>
+                  </div>
+                  <p className="font-semibold text-maroon">{formatCurrency(Number(e.amount))}</p>
+                </div>
+              )
+            )}
             <div className="px-4 py-3 flex items-center justify-between gap-2 bg-background">
               <p className="text-sm font-semibold">Total estimated future costs</p>
               <p className="font-semibold text-maroon">{formatCurrency(total)}</p>
