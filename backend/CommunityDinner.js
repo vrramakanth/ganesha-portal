@@ -157,6 +157,85 @@ function registerCommunityDinner({ residentName, mobile, block, flatNumber, adul
   });
 }
 
+/** Admin-only late registration, for a resident who reached out (e.g.
+ *  over WhatsApp) after registrations closed. Works whether registration
+ *  is open or closed. No guests -> confirmed immediately, same as the
+ *  resident flow. Guests -> a real payment is owed, so the admin records
+ *  its reference (screenshot optional) and it goes to MANUAL_REVIEW for a
+ *  Finance admin to verify, never straight to CONFIRMED (Decision 4).
+ *  Refuses if the mobile or flat already has a live registration — that
+ *  one should be edited instead of duplicated. */
+function addCommunityDinnerRegistration(
+  volunteer,
+  { residentName, mobile, block, flatNumber, adults, children, guestAdults, guestChildren, reference, screenshot, mimeType }
+) {
+  requirePermission(volunteer, "Dinner");
+  requireFields({ residentName, mobile, block, flatNumber }, ["residentName", "mobile", "block", "flatNumber"]);
+  validateMobile(mobile);
+  validateBlock(block);
+
+  const adultsNum = Number(adults) || 0;
+  const childrenNum = Number(children) || 0;
+  const guestAdultsNum = Number(guestAdults) || 0;
+  const guestChildrenNum = Number(guestChildren) || 0;
+  if (adultsNum + childrenNum + guestAdultsNum + guestChildrenNum <= 0) {
+    throw new ApiError("Please add at least one person attending", 400);
+  }
+  const guestAmount = communityDinnerGuestAmount(guestAdultsNum, guestChildrenNum);
+  if (guestAmount > 0) requireFields({ reference }, ["reference"]);
+
+  upsertResident({ name: residentName, mobile, block, flatNumber });
+
+  return withLock(() => {
+    const sheet = ensureCommunityDinnerSheet();
+    const live = rowsToObjects(sheet).find(
+      (r) =>
+        ["CONFIRMED", "MANUAL_REVIEW", "PAYMENT_PENDING"].includes(r.status) &&
+        (String(r.mobile) === String(mobile) ||
+          (String(r.block) === String(block) && String(r.flat_number) === String(flatNumber)))
+    );
+    if (live) {
+      throw new ApiError(
+        `This mobile number or flat is already registered (${live.registration_id}). Edit that registration instead.`,
+        409
+      );
+    }
+
+    const now = new Date();
+    const registration = {
+      registration_id: generateCommunityDinnerId(),
+      resident_name: String(residentName).trim(),
+      mobile,
+      block,
+      flat_number: flatNumber,
+      adults: adultsNum,
+      children: childrenNum,
+      guest_adults: guestAdultsNum,
+      guest_children: guestChildrenNum,
+      guest_amount: guestAmount,
+      payment_reference: guestAmount > 0 ? String(reference).trim() : "",
+      payment_screenshot_url: guestAmount > 0 && screenshot ? savePaymentScreenshot(screenshot, mimeType) : "",
+      status: guestAmount > 0 ? "MANUAL_REVIEW" : "CONFIRMED",
+      reviewed_by: guestAmount > 0 ? "" : volunteer.email,
+      reviewed_at: guestAmount > 0 ? "" : now,
+      admin_notes: `Added by ${volunteer.email}`,
+      created_at: now,
+      updated_at: now,
+    };
+    appendObject(sheet, registration);
+    logAudit(
+      volunteer.email,
+      "Added Community Dinner registration",
+      "CommunityDinner",
+      registration.registration_id,
+      "",
+      registration.status
+    );
+    invalidateCommunityDinnerCountCache();
+    return registration;
+  });
+}
+
 /** Public headcount for the Home page's live "X already registered"
  *  figure — sums adults + children + guest_adults + guest_children
  *  across every registration that hasn't fallen through (REJECTED/

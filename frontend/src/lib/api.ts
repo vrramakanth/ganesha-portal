@@ -439,6 +439,22 @@ export const api = {
       apiGet<CommunityDinnerRegistration[]>("volunteer.communityDinner.list", { idToken }),
     communityDinnerPayments: (idToken: string) =>
       apiGet<CommunityDinnerRegistration[]>("volunteer.communityDinner.payments", { idToken }),
+    addCommunityDinnerRegistration: (
+      idToken: string,
+      payload: {
+        residentName: string;
+        mobile: string;
+        block: string;
+        flatNumber: string;
+        adults: number;
+        children: number;
+        guestAdults: number;
+        guestChildren: number;
+        reference?: string;
+        screenshot?: string;
+        mimeType?: string;
+      }
+    ) => apiPost<CommunityDinnerRegistration>("volunteer.communityDinner.add", { idToken, ...payload }),
     setCommunityDinnerRegistrationOpen: (idToken: string, open: boolean) =>
       apiPost<{ open: boolean }>("volunteer.communityDinner.setOpen", { idToken, open }),
     attachCommunityDinnerScreenshot: (idToken: string, registrationId: string, screenshot: string, mimeType: string) =>

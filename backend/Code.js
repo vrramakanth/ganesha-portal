@@ -94,6 +94,10 @@ const ROUTES = {
     auth: true,
     handler: (p, v) => attachCommunityDinnerScreenshot(v, p.registrationId, p.screenshot, p.mimeType),
   },
+  "volunteer.communityDinner.add": {
+    auth: true,
+    handler: (p, v) => addCommunityDinnerRegistration(v, p),
+  },
   "volunteer.communityDinner.setOpen": {
     auth: true,
     handler: (p, v) => setCommunityDinnerRegistrationOpen(v, p.open),

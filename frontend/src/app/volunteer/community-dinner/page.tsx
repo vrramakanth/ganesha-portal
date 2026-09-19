@@ -8,6 +8,7 @@ import { formatCurrency } from "@/lib/date";
 import { fileToBase64 } from "@/lib/file";
 import type { CommunityDinnerRegistration } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
+import AddRegistrationForm from "./AddRegistrationForm";
 import StatTile from "@/components/StatTile";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
@@ -315,6 +316,7 @@ export default function VolunteerCommunityDinnerPage() {
           <p className="text-xs text-muted">
             Edits here are for WhatsApp-requested changes — residents can&apos;t self-edit once registered.
           </p>
+          <AddRegistrationForm idToken={idToken as string} onAdded={() => setRefreshKey((k) => k + 1)} />
           <input
             type="tel"
             inputMode="numeric"
