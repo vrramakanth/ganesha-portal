@@ -14,7 +14,7 @@ export default function NavBar({ items }: { items: readonly NavItem[] }) {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-20 border-t border-border bg-card">
+    <nav className="print:hidden fixed bottom-0 inset-x-0 z-20 border-t border-border bg-card">
       <div className="max-w-lg mx-auto grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
         {items.map((item) => {
           const active = item.matchPrefix

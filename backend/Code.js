@@ -102,6 +102,14 @@ const ROUTES = {
     auth: true,
     handler: (p, v) => adminCancelCommunityDinnerRegistration(v, p.registrationId, p.reason),
   },
+  "volunteer.communityDinner.tally.get": {
+    auth: true,
+    handler: (p, v) => getCommunityDinnerPlateTally(v),
+  },
+  "volunteer.communityDinner.tally.save": {
+    auth: true,
+    handler: (p, v) => saveCommunityDinnerPlateTally(v, p.counters),
+  },
   "volunteer.communityDinner.counters.save": {
     auth: true,
     handler: (p, v) => saveCommunityDinnerCounterMap(v, p.map),

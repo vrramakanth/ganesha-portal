@@ -145,6 +145,8 @@ export default function VolunteerCommunityDinnerPage() {
   registrations.filter(isLive).forEach((r) => (liveFlatCounts[flatKey(r)] = (liveFlatCounts[flatKey(r)] ?? 0) + 1));
   const isDuplicateFlat = (r: CommunityDinnerRegistration) => isLive(r) && liveFlatCounts[flatKey(r)] > 1;
   const duplicateCount = registrations.filter(isDuplicateFlat).length;
+  const counterOf = (r: CommunityDinnerRegistration): number | null =>
+    r.counter_override ? Number(r.counter_override) : publicCount?.counters?.[String(r.block).trim().toUpperCase()] ?? null;
   const visibleRegistrations = registrations
     .filter((r) => !search || String(r.mobile).includes(search))
     .sort(compareByBlockThenFlat);
@@ -240,12 +242,26 @@ export default function VolunteerCommunityDinnerPage() {
       />
 
       {hasDinner && (
-        <Link
-          href="/volunteer/community-dinner/counters"
-          className="block rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-maroon"
-        >
-          Plate counters: assign blocks →
-        </Link>
+        <div className="grid grid-cols-1 gap-2">
+          <Link
+            href="/volunteer/community-dinner/counters"
+            className="block rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-maroon"
+          >
+            Plate counters: assign blocks →
+          </Link>
+          <Link
+            href="/volunteer/community-dinner/sheets"
+            className="block rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-maroon"
+          >
+            Counter sheets: print →
+          </Link>
+          <Link
+            href="/volunteer/community-dinner/tally"
+            className="block rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-maroon"
+          >
+            Plate tally: enter plates issued →
+          </Link>
+        </div>
       )}
 
       {!hasDinner && !hasFinance && (
@@ -487,6 +503,7 @@ export default function VolunteerCommunityDinnerPage() {
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <StatusBadge label={r.status.replace(/_/g, " ")} tone={STATUS_TONE[r.status] ?? "neutral"} />
+                      {isLive(r) && counterOf(r) !== null && <StatusBadge label={`Counter ${counterOf(r)}`} tone="info" />}
                       {isDuplicateFlat(r) && <StatusBadge label="Same flat as another" tone="warning" />}
                     </div>
                   </div>

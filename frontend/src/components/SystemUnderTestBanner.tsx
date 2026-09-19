@@ -11,7 +11,7 @@ export default function SystemUnderTestBanner() {
   if (!isUnderTest) return null;
 
   return (
-    <div className="sticky top-0 z-50 flex items-center justify-center gap-2 bg-saffron px-3 py-1.5 text-center text-xs font-semibold tracking-wide text-white">
+    <div className="print:hidden sticky top-0 z-50 flex items-center justify-center gap-2 bg-saffron px-3 py-1.5 text-center text-xs font-semibold tracking-wide text-white">
       <svg
         viewBox="0 0 24 24"
         fill="none"

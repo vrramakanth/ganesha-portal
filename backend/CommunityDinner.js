@@ -104,6 +104,44 @@ function saveCommunityDinnerCounterMap(volunteer, map) {
   return clean;
 }
 
+const COMMUNITY_DINNER_TALLY_KEY = "community_dinner_plate_tally";
+
+/** Plates issued at each counter, as reported by the counter volunteers.
+ *  Stored as one JSON setting; the last save wins, and every save is
+ *  audited with the old and new numbers. */
+function getCommunityDinnerPlateTally(volunteer) {
+  requirePermission(volunteer, "Dinner");
+  try {
+    const parsed = JSON.parse(getConfig(COMMUNITY_DINNER_TALLY_KEY, "") || "{}");
+    return parsed && typeof parsed === "object" && parsed.counters ? parsed : { counters: {}, updatedBy: "", updatedAt: "" };
+  } catch (e) {
+    return { counters: {}, updatedBy: "", updatedAt: "" };
+  }
+}
+
+function saveCommunityDinnerPlateTally(volunteer, counters) {
+  requirePermission(volunteer, "Dinner");
+  if (!counters || typeof counters !== "object") throw new ApiError("Plate counts are required", 400);
+  const clean = {};
+  for (let c = 1; c <= COMMUNITY_DINNER_COUNTER_COUNT; c++) {
+    const n = Number(counters[c]);
+    if (!Number.isInteger(n) || n < 0) throw new ApiError(`Enter a whole number of plates for Counter ${c}`, 400);
+    clean[c] = n;
+  }
+  const before = getConfig(COMMUNITY_DINNER_TALLY_KEY, "");
+  const value = { counters: clean, updatedBy: volunteer.email, updatedAt: new Date().toISOString() };
+  setConfig(COMMUNITY_DINNER_TALLY_KEY, JSON.stringify(value));
+  logAudit(
+    volunteer.email,
+    "Updated Community Dinner plate tally",
+    "Configuration",
+    COMMUNITY_DINNER_TALLY_KEY,
+    before,
+    JSON.stringify(clean)
+  );
+  return value;
+}
+
 function ensureCommunityDinnerSheet() {
   const spreadsheet = getSpreadsheet();
   let sheet = spreadsheet.getSheetByName(SHEETS.COMMUNITY_DINNER);

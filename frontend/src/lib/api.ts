@@ -461,6 +461,16 @@ export const api = {
         registrationId,
         reason,
       }),
+    getCommunityDinnerTally: (idToken: string) =>
+      apiGet<{ counters: Record<string, number>; updatedBy: string; updatedAt: string }>(
+        "volunteer.communityDinner.tally.get",
+        { idToken }
+      ),
+    saveCommunityDinnerTally: (idToken: string, counters: Record<number, number>) =>
+      apiPost<{ counters: Record<string, number>; updatedBy: string; updatedAt: string }>(
+        "volunteer.communityDinner.tally.save",
+        { idToken, counters }
+      ),
     saveCommunityDinnerCounters: (idToken: string, map: Record<string, number>) =>
       apiPost<Record<string, number>>("volunteer.communityDinner.counters.save", { idToken, map }),
     setCommunityDinnerRegistrationOpen: (idToken: string, open: boolean) =>

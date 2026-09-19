@@ -39,7 +39,7 @@ function VolunteerGate({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <div className="w-full max-w-lg mx-auto flex items-center justify-between px-5 pt-3 text-xs text-muted">
+      <div className="print:hidden w-full max-w-lg mx-auto flex items-center justify-between px-5 pt-3 text-xs text-muted">
         <span>{volunteer.email}</span>
         <div className="flex items-center gap-3">
           <Link href="/" className="font-semibold text-maroon">
@@ -50,7 +50,7 @@ function VolunteerGate({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </div>
-      <main className="flex-1 w-full max-w-lg mx-auto pb-20">{children}</main>
+      <main className="flex-1 w-full max-w-lg mx-auto pb-20 print:max-w-none print:pb-0">{children}</main>
       <VolunteerNav />
     </>
   );

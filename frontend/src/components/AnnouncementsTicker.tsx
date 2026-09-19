@@ -16,7 +16,7 @@ export default function AnnouncementsTicker() {
   const duration = Math.max(15, text.length / 8);
 
   return (
-    <div className="overflow-hidden whitespace-nowrap bg-saffron py-1.5" aria-live="polite">
+    <div className="print:hidden overflow-hidden whitespace-nowrap bg-saffron py-1.5" aria-live="polite">
       <div className="inline-flex animate-marquee" style={{ animationDuration: `${duration}s` }}>
         <span className="px-4 text-xs font-semibold text-white">{text}</span>
         <span className="px-4 text-xs font-semibold text-white" aria-hidden="true">
