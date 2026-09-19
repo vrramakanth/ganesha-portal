@@ -19,6 +19,7 @@ function getFestivalInfo() {
     "contact",
     "upi_vpa",
     "upi_payee_name",
+    "community_dinner_counter_map",
   ];
   const info = {};
   keys.forEach((k) => (info[k] = getConfig(k, "")));

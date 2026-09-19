@@ -98,6 +98,10 @@ const ROUTES = {
     auth: true,
     handler: (p, v) => addCommunityDinnerRegistration(v, p),
   },
+  "volunteer.communityDinner.counters.save": {
+    auth: true,
+    handler: (p, v) => saveCommunityDinnerCounterMap(v, p.map),
+  },
   "volunteer.communityDinner.setOpen": {
     auth: true,
     handler: (p, v) => setCommunityDinnerRegistrationOpen(v, p.open),

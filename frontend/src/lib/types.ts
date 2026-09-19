@@ -17,6 +17,7 @@ export type FestivalInfo = {
   upi_vpa: string;
   upi_payee_name: string;
   admin_whatsapp_number: string;
+  community_dinner_counter_map: string;
 };
 
 export type Block = {
@@ -385,6 +386,7 @@ export type CommunityDinnerRegistration = {
   reviewed_by: string;
   reviewed_at: string;
   admin_notes: string;
+  counter_override: number | "";
   created_at: string;
   updated_at: string;
 };

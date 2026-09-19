@@ -45,6 +45,55 @@ function setCommunityDinnerRegistrationOpen(volunteer, open) {
   return { open: value === "true" };
 }
 
+/** Households added by an admin after registrations closed all go to one
+ *  counter, whatever their block, so the block-based split stays stable.
+ *  The marker is the "Added by ..." note addCommunityDinnerRegistration
+ *  writes; listCommunityDinnerRegistrations turns it into counter_override
+ *  so the frontend never has to know about the note. */
+const COMMUNITY_DINNER_LATE_COUNTER = 4;
+const COMMUNITY_DINNER_LATE_NOTE_PREFIX = "Added by ";
+
+function isLateCommunityDinnerRegistration(registration) {
+  return String(registration.admin_notes || "").indexOf(COMMUNITY_DINNER_LATE_NOTE_PREFIX) === 0;
+}
+
+const COMMUNITY_DINNER_COUNTER_MAP_KEY = "community_dinner_counter_map";
+const COMMUNITY_DINNER_COUNTER_COUNT = 4;
+
+/** Which plate-distribution counter (1-4) serves each block, stored as a
+ *  JSON object {"A":1,"B":1,...} in Configuration. Public by design
+ *  (getFestivalInfo) — it maps a block to a counter and carries no
+ *  household data. Every active block must be assigned, so no resident
+ *  is ever shown "no counter". */
+function saveCommunityDinnerCounterMap(volunteer, map) {
+  requirePermission(volunteer, "Dinner");
+  if (!map || typeof map !== "object") throw new ApiError("Counter assignments are required", 400);
+
+  const clean = {};
+  listBlocks().forEach((b) => {
+    const counter = Number(map[b.block_name]);
+    if (!Number.isInteger(counter) || counter < 1 || counter > COMMUNITY_DINNER_COUNTER_COUNT) {
+      throw new ApiError(
+        `Assign block ${b.block_name} to a counter from 1 to ${COMMUNITY_DINNER_COUNTER_COUNT}`,
+        400
+      );
+    }
+    clean[b.block_name] = counter;
+  });
+
+  const before = getConfig(COMMUNITY_DINNER_COUNTER_MAP_KEY, "");
+  setConfig(COMMUNITY_DINNER_COUNTER_MAP_KEY, JSON.stringify(clean));
+  logAudit(
+    volunteer.email,
+    "Updated Community Dinner counter assignments",
+    "Configuration",
+    COMMUNITY_DINNER_COUNTER_MAP_KEY,
+    before,
+    JSON.stringify(clean)
+  );
+  return clean;
+}
+
 function ensureCommunityDinnerSheet() {
   const spreadsheet = getSpreadsheet();
   let sheet = spreadsheet.getSheetByName(SHEETS.COMMUNITY_DINNER);
@@ -218,7 +267,7 @@ function addCommunityDinnerRegistration(
       status: guestAmount > 0 ? "MANUAL_REVIEW" : "CONFIRMED",
       reviewed_by: guestAmount > 0 ? "" : volunteer.email,
       reviewed_at: guestAmount > 0 ? "" : now,
-      admin_notes: `Added by ${volunteer.email}`,
+      admin_notes: COMMUNITY_DINNER_LATE_NOTE_PREFIX + volunteer.email,
       created_at: now,
       updated_at: now,
     };
@@ -337,7 +386,9 @@ function listMyCommunityDinnerRegistration(mobile) {
  *  as the lookup list behind editCommunityDinnerRegistration below. */
 function listCommunityDinnerRegistrations(volunteer) {
   requirePermission(volunteer, "Dinner");
-  return rowsToObjects(ensureCommunityDinnerSheet()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  return rowsToObjects(ensureCommunityDinnerSheet())
+    .map((r) => Object.assign({}, r, { counter_override: isLateCommunityDinnerRegistration(r) ? COMMUNITY_DINNER_LATE_COUNTER : "" }))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
 /** Payment verification is Finance-gated, same as every other payment

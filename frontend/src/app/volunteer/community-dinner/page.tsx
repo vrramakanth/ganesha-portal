@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
@@ -201,6 +202,15 @@ export default function VolunteerCommunityDinnerPage() {
         backHref="/volunteer"
         backLabel="← Dashboard"
       />
+
+      {hasDinner && (
+        <Link
+          href="/volunteer/community-dinner/counters"
+          className="block rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-maroon"
+        >
+          Plate counters: assign blocks →
+        </Link>
+      )}
 
       {!hasDinner && !hasFinance && (
         <p className="text-sm text-muted">You don&apos;t have access to Community Dinner registrations.</p>
