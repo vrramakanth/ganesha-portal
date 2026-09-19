@@ -7,6 +7,7 @@ import { useAsync } from "@/lib/useAsync";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import LinkifiedText from "@/components/LinkifiedText";
+import FindYourCounter from "@/components/FindYourCounter";
 
 export default function MorePage() {
   const { data, loading, error } = useAsync(
@@ -73,6 +74,8 @@ export default function MorePage() {
         </div>
         <span className="text-muted">›</span>
       </Link>
+
+      <FindYourCounter counters={dinnerCount?.counters} lateCounter={dinnerCount?.lateCounter} />
 
       <a
         href="https://photos.app.goo.gl/ZhCpaqaWJnbeGdkk9"

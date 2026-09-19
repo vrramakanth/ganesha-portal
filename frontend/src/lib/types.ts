@@ -367,6 +367,8 @@ export type BhogSponsor = {
 export type CommunityDinnerPublicCount = {
   registered: number;
   open: boolean;
+  counters: Record<string, number>;
+  lateCounter: number;
 };
 
 export type CommunityDinnerRegistration = {
@@ -387,6 +389,7 @@ export type CommunityDinnerRegistration = {
   reviewed_at: string;
   admin_notes: string;
   counter_override: number | "";
+  counter?: number | null;
   created_at: string;
   updated_at: string;
 };

@@ -15,6 +15,7 @@ import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import DinnerCounterMessage from "@/components/DinnerCounterMessage";
 
 const MAX_SONG_BYTES = 10 * 1024 * 1024; // 10MB — comfortably covers a full song at typical MP3 bitrates
 const DEFAULT_WHATSAPP_NUMBER = "919880766321";
@@ -26,6 +27,7 @@ const PIN_RESET_WHATSAPP_NUMBER = "919880766321";
 export default function MyStuffPage() {
   const { profile, loaded } = useResidentProfile();
   const { data: festival } = useAsync(() => api.festival.get(), []);
+  const { data: dinnerCounts } = useAsync(() => api.communityDinner.publicCount(), []);
   const whatsappNumber = festival?.admin_whatsapp_number || DEFAULT_WHATSAPP_NUMBER;
   const [mobileInput, setMobileInput] = useState("");
   const [mobile, setMobile] = useState<string | null>(null);
@@ -368,6 +370,15 @@ export default function MyStuffPage() {
                     tone={statusTone(communityDinner.status)}
                   />
                 </div>
+                {communityDinner.counter &&
+                  dinnerCounts?.counters &&
+                  Object.keys(dinnerCounts.counters).length > 0 &&
+                  communityDinner.status !== "CANCELLED" &&
+                  communityDinner.status !== "REJECTED" && (
+                    <div className="rounded-lg border border-border bg-background p-3">
+                      <DinnerCounterMessage counter={communityDinner.counter} counters={dinnerCounts.counters} />
+                    </div>
+                  )}
                 <a
                   href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
                     `Hi, I'd like to request a change to my Community Dinner registration.\nRegistration ID: ${communityDinner.registration_id}\nName: ${communityDinner.resident_name}\nBlock/Flat: ${communityDinner.block} ${communityDinner.flat_number}\n\nWhat needs to change: `

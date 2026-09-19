@@ -58,6 +58,16 @@ function isLateCommunityDinnerRegistration(registration) {
 }
 
 const COMMUNITY_DINNER_COUNTER_MAP_KEY = "community_dinner_counter_map";
+
+/** The saved block -> counter map, or {} if none is saved (or it's unreadable). */
+function getCommunityDinnerCounterMap() {
+  try {
+    const parsed = JSON.parse(getConfig(COMMUNITY_DINNER_COUNTER_MAP_KEY, "") || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
 const COMMUNITY_DINNER_COUNTER_COUNT = 4;
 
 /** Which plate-distribution counter (1-4) serves each block, stored as a
@@ -300,7 +310,7 @@ function addCommunityDinnerRegistration(
 function getCommunityDinnerPublicCount() {
   const cache = CacheService.getScriptCache();
   const cached = cache.get(COMMUNITY_DINNER_COUNT_CACHE_KEY);
-  if (cached != null) return { registered: Number(cached), open: isCommunityDinnerRegistrationOpen() };
+  if (cached != null) return communityDinnerPublicCount(Number(cached));
 
   const rows = rowsToObjects(ensureCommunityDinnerSheet()).filter(
     (r) => r.status !== "REJECTED" && r.status !== "CANCELLED"
@@ -316,7 +326,19 @@ function getCommunityDinnerPublicCount() {
   );
 
   cache.put(COMMUNITY_DINNER_COUNT_CACHE_KEY, String(registered), COMMUNITY_DINNER_COUNT_CACHE_SECONDS);
-  return { registered, open: isCommunityDinnerRegistrationOpen() };
+  return communityDinnerPublicCount(registered);
+}
+
+/** Open/closed and the block -> counter map are read live (config is
+ *  already cached and invalidated on write); only the headcount is cached
+ *  here, so a saved counter change shows up immediately. */
+function communityDinnerPublicCount(registered) {
+  return {
+    registered,
+    open: isCommunityDinnerRegistrationOpen(),
+    counters: getCommunityDinnerCounterMap(),
+    lateCounter: COMMUNITY_DINNER_LATE_COUNTER,
+  };
 }
 
 function invalidateCommunityDinnerCountCache() {
@@ -418,7 +440,17 @@ function listMyCommunityDinnerRegistration(mobile) {
   // page's "resume where I left off" flow rely on.
   const active = matches.filter((r) => r.status !== "REJECTED" && r.status !== "CANCELLED");
   const pool = active.length > 0 ? active : matches;
-  return pool.reduce((latest, r) => (new Date(r.created_at) > new Date(latest.created_at) ? r : latest));
+  const mine = pool.reduce((latest, r) => (new Date(r.created_at) > new Date(latest.created_at) ? r : latest));
+
+  // Admin notes hold admin emails and internal reasons — never for a resident.
+  const resident = Object.assign({}, mine);
+  delete resident.admin_notes;
+  delete resident.reviewed_by;
+  const map = getCommunityDinnerCounterMap();
+  resident.counter = isLateCommunityDinnerRegistration(mine)
+    ? COMMUNITY_DINNER_LATE_COUNTER
+    : map[String(mine.block).trim().toUpperCase()] || null;
+  return resident;
 }
 
 /** Full roster — Dinner permission, for general admin visibility and

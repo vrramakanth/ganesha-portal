@@ -12,6 +12,7 @@ import MobileInput from "@/components/MobileInput";
 import PaymentReferenceStep from "@/components/PaymentReferenceStep";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import FindYourCounter from "@/components/FindYourCounter";
 
 const GUEST_ADULT_PRICE = 200;
 const GUEST_CHILD_PRICE = 100;
@@ -216,6 +217,9 @@ export default function CommunityDinnerPage() {
         <Link href="/my-stuff" className="text-sm font-semibold text-maroon underline">
           Check status in My Stuff
         </Link>
+        <div className="w-full text-left">
+          <FindYourCounter counters={dinnerCount?.counters} lateCounter={dinnerCount?.lateCounter} />
+        </div>
       </div>
     );
   }
@@ -251,6 +255,9 @@ export default function CommunityDinnerPage() {
           <br />
           Registration ID: {registrationId}
         </p>
+        <div className="w-full text-left">
+          <FindYourCounter counters={dinnerCount?.counters} lateCounter={dinnerCount?.lateCounter} />
+        </div>
       </div>
     );
   }
@@ -288,6 +295,9 @@ export default function CommunityDinnerPage() {
         <p className="text-sm text-muted">
           Community Dinner registrations are now closed. Thank you to everyone who signed up!
         </p>
+        <div className="w-full text-left">
+          <FindYourCounter counters={dinnerCount?.counters} lateCounter={dinnerCount?.lateCounter} />
+        </div>
         <Link href="/my-stuff" className="text-sm font-semibold text-maroon underline">
           Already registered? Check status in My Stuff
         </Link>

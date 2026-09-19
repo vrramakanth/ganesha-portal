@@ -9,6 +9,7 @@ import { formatCurrency, formatEventWhen, formatEventTime } from "@/lib/date";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
 import LinkifiedText from "@/components/LinkifiedText";
+import FindYourCounter from "@/components/FindYourCounter";
 
 // Traffic-light read on (spent + worst-case costs ahead) vs collected —
 // a resident-facing signal that stays honest (the estimate is real, so
@@ -230,6 +231,7 @@ export default function Home() {
             Register
           </Link>
         )}
+        <FindYourCounter counters={dinnerCount?.counters} lateCounter={dinnerCount?.lateCounter} />
       </section>
 
       {!announcementsError && news.length > 0 && (
