@@ -5,7 +5,7 @@ import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
-import { formatCurrency } from "@/lib/date";
+import { formatCurrency, formatEventDate } from "@/lib/date";
 import { fileToBase64 } from "@/lib/file";
 import type { CommunityDinnerRegistration } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
@@ -72,6 +72,9 @@ export default function VolunteerCommunityDinnerPage() {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [togglingOpen, setTogglingOpen] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [savingCancel, setSavingCancel] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const { data: allRegistrations, loading: loadingAll } = useAsync(
@@ -108,7 +111,40 @@ export default function VolunteerCommunityDinnerPage() {
     }
   }
 
+  async function confirmCancel(r: CommunityDinnerRegistration) {
+    if (!cancelReason.trim()) {
+      setActionError("Enter a reason for cancelling.");
+      return;
+    }
+    if (
+      Number(r.guest_amount) > 0 &&
+      !window.confirm("This registration includes a guest payment. Cancelling it doesn't refund anything. Continue?")
+    ) {
+      return;
+    }
+    setActionError(null);
+    setSavingCancel(true);
+    try {
+      await api.volunteer.adminCancelCommunityDinnerRegistration(idToken as string, r.registration_id, cancelReason.trim());
+      setCancellingId(null);
+      setCancelReason("");
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not cancel this registration.");
+    } finally {
+      setSavingCancel(false);
+    }
+  }
+
   const registrations = allRegistrations ?? [];
+  // Live entries sharing a block and flat (flats compared as numbers, since
+  // the sheet drops leading zeros) are likely one household registered twice.
+  const flatKey = (r: CommunityDinnerRegistration) => `${String(r.block).trim().toUpperCase()}-${Number(r.flat_number)}`;
+  const isLive = (r: CommunityDinnerRegistration) => r.status !== "CANCELLED" && r.status !== "REJECTED";
+  const liveFlatCounts: Record<string, number> = {};
+  registrations.filter(isLive).forEach((r) => (liveFlatCounts[flatKey(r)] = (liveFlatCounts[flatKey(r)] ?? 0) + 1));
+  const isDuplicateFlat = (r: CommunityDinnerRegistration) => isLive(r) && liveFlatCounts[flatKey(r)] > 1;
+  const duplicateCount = registrations.filter(isDuplicateFlat).length;
   const visibleRegistrations = registrations
     .filter((r) => !search || String(r.mobile).includes(search))
     .sort(compareByBlockThenFlat);
@@ -341,6 +377,11 @@ export default function VolunteerCommunityDinnerPage() {
               ? `${visibleRegistrations.length} of ${registrations.length} registrations`
               : "Sorted by block (A to S), then flat number."}
           </p>
+          {duplicateCount > 0 && (
+            <p className="text-xs font-semibold text-amber-600">
+              {duplicateCount} registrations share a flat with another. Look for &quot;Same flat as another&quot;.
+            </p>
+          )}
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
             {registrations.length === 0 && !loadingAll && (
               <p className="px-4 py-3 text-sm text-muted">No registrations yet.</p>
@@ -436,19 +477,74 @@ export default function VolunteerCommunityDinnerPage() {
                         {r.block} · {r.flat_number} · {r.mobile}
                       </p>
                       <p className="text-xs text-muted">
+                        {r.registration_id} · {formatEventDate(r.created_at)}
+                      </p>
+                      <p className="text-xs text-muted">
                         {r.adults} adult{r.adults === 1 ? "" : "s"}, {r.children} child{r.children === 1 ? "" : "ren"}
                         {(r.guest_adults > 0 || r.guest_children > 0) &&
                           ` + ${r.guest_adults} guest adult${r.guest_adults === 1 ? "" : "s"}, ${r.guest_children} guest child${r.guest_children === 1 ? "" : "ren"}`}
                       </p>
                     </div>
-                    <StatusBadge label={r.status.replace(/_/g, " ")} tone={STATUS_TONE[r.status] ?? "neutral"} />
+                    <div className="flex flex-col items-end gap-1">
+                      <StatusBadge label={r.status.replace(/_/g, " ")} tone={STATUS_TONE[r.status] ?? "neutral"} />
+                      {isDuplicateFlat(r) && <StatusBadge label="Same flat as another" tone="warning" />}
+                    </div>
                   </div>
-                  <button
-                    onClick={() => startEdit(r)}
-                    className="text-xs font-semibold text-maroon"
-                  >
-                    Edit
-                  </button>
+                  {cancellingId === r.registration_id ? (
+                    <div className="space-y-2 pt-1">
+                      <input
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        placeholder="Reason for cancelling"
+                        autoComplete="off"
+                        className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCancelReason("Duplicate registration for the same flat")}
+                        className="text-xs font-semibold text-maroon"
+                      >
+                        Use: Duplicate registration
+                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={savingCancel}
+                          onClick={() => confirmCancel(r)}
+                          className="flex-1 rounded-lg bg-maroon py-2 text-xs font-semibold text-white disabled:opacity-60"
+                        >
+                          {savingCancel ? "Cancelling…" : "Cancel this registration"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCancellingId(null);
+                            setCancelReason("");
+                          }}
+                          className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted"
+                        >
+                          Keep it
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-4">
+                      <button onClick={() => startEdit(r)} className="text-xs font-semibold text-maroon">
+                        Edit
+                      </button>
+                      {isLive(r) && (
+                        <button
+                          onClick={() => {
+                            setCancellingId(r.registration_id);
+                            setCancelReason("");
+                          }}
+                          className="text-xs font-semibold text-red-600"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             )}

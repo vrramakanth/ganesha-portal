@@ -455,6 +455,12 @@ export const api = {
         mimeType?: string;
       }
     ) => apiPost<CommunityDinnerRegistration>("volunteer.communityDinner.add", { idToken, ...payload }),
+    adminCancelCommunityDinnerRegistration: (idToken: string, registrationId: string, reason: string) =>
+      apiPost<{ registrationId: string; status: string }>("volunteer.communityDinner.adminCancel", {
+        idToken,
+        registrationId,
+        reason,
+      }),
     saveCommunityDinnerCounters: (idToken: string, map: Record<string, number>) =>
       apiPost<Record<string, number>>("volunteer.communityDinner.counters.save", { idToken, map }),
     setCommunityDinnerRegistrationOpen: (idToken: string, open: boolean) =>

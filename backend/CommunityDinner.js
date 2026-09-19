@@ -237,11 +237,15 @@ function addCommunityDinnerRegistration(
 
   return withLock(() => {
     const sheet = ensureCommunityDinnerSheet();
+    // Flats compare numerically: the sheet stores "007" as 7, so a plain
+    // string compare would miss the very duplicates this check exists for.
+    const sameFlat = (r) =>
+      String(r.block).trim().toUpperCase() === String(block).trim().toUpperCase() &&
+      Number(r.flat_number) === Number(flatNumber);
     const live = rowsToObjects(sheet).find(
       (r) =>
         ["CONFIRMED", "MANUAL_REVIEW", "PAYMENT_PENDING"].includes(r.status) &&
-        (String(r.mobile) === String(mobile) ||
-          (String(r.block) === String(block) && String(r.flat_number) === String(flatNumber)))
+        (String(r.mobile) === String(mobile) || sameFlat(r))
     );
     if (live) {
       throw new ApiError(
@@ -360,6 +364,41 @@ function cancelCommunityDinnerRegistration(registrationId) {
       throw new ApiError("This registration is already confirmed — please message an admin on WhatsApp to cancel it", 400);
     }
     updateRowFields(sheet, rowIndex, { status: "CANCELLED", updated_at: new Date() });
+    invalidateCommunityDinnerCountCache();
+    return { registrationId, status: "CANCELLED" };
+  });
+}
+
+/** Admin cancellation with a mandatory reason — for duplicates and other
+ *  corrections. Unlike the resident's own cancel above, this works on a
+ *  CONFIRMED registration. The row is kept (status CANCELLED, reason
+ *  appended to admin_notes, audit entry), never deleted, so it can be
+ *  traced or restored, and it drops out of the headcount. */
+function adminCancelCommunityDinnerRegistration(volunteer, registrationId, reason) {
+  requirePermission(volunteer, "Dinner");
+  requireFields({ registrationId, reason }, ["registrationId", "reason"]);
+  const why = String(reason).trim();
+  if (!why) throw new ApiError("Enter a reason for cancelling", 400);
+
+  return withLock(() => {
+    const sheet = ensureCommunityDinnerSheet();
+    const rowIndex = findRowIndexById(sheet, "registration_id", registrationId);
+    if (rowIndex === -1) throw new ApiError("Unknown registration", 404);
+    const before = getRowObject(sheet, rowIndex);
+    if (["CANCELLED", "REJECTED"].includes(before.status)) {
+      throw new ApiError(`This registration is already ${before.status.toLowerCase()}`, 400);
+    }
+
+    const note = (before.admin_notes ? before.admin_notes + " | " : "") + `Cancelled by ${volunteer.email}: ${why}`;
+    updateRowFields(sheet, rowIndex, { status: "CANCELLED", admin_notes: note, updated_at: new Date() });
+    logAudit(
+      volunteer.email,
+      "Cancelled Community Dinner registration",
+      "CommunityDinner",
+      registrationId,
+      before.status,
+      `CANCELLED: ${why}`
+    );
     invalidateCommunityDinnerCountCache();
     return { registrationId, status: "CANCELLED" };
   });
