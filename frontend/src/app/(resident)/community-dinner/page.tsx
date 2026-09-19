@@ -26,7 +26,7 @@ type Step = "checking" | "form" | "creating" | "payment" | "confirmed" | "submit
 export default function CommunityDinnerPage() {
   const { profile, saveProfile, loaded } = useResidentProfile();
   const { data: festival } = useAsync(() => api.festival.get(), []);
-  const { data: dinnerCount } = useAsync(() => api.communityDinner.publicCount(), []);
+  const { data: dinnerCount, loading: loadingCount } = useAsync(() => api.communityDinner.publicCount(), []);
 
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
@@ -270,6 +270,39 @@ export default function CommunityDinnerPage() {
     return (
       <div className="flex flex-col gap-4 px-5 pt-8 text-center items-center">
         <PageHeader title="Registration Cancelled" backHref="/more" backLabel="← More" />
+      </div>
+    );
+  }
+
+  if (loadingCount && !dinnerCount) {
+    return <LoadingIndicator className="px-5 pt-8" />;
+  }
+
+  // Only the fresh-registration form is closed off — a resident already
+  // registered or mid-payment was routed to their own step above.
+  if (dinnerCount?.open === false) {
+    const whatsappNumber = festival?.admin_whatsapp_number;
+    return (
+      <div className="flex flex-col gap-4 px-5 pt-8 text-center items-center">
+        <PageHeader title="Registrations Closed" backHref="/more" backLabel="← More" />
+        <p className="text-sm text-muted">
+          Community Dinner registrations are now closed. Thank you to everyone who signed up!
+        </p>
+        <Link href="/my-stuff" className="text-sm font-semibold text-maroon underline">
+          Already registered? Check status in My Stuff
+        </Link>
+        {whatsappNumber && (
+          <a
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+              "Hi, I'd like to ask about registering for the Community Dinner after registrations closed.\nName: \nBlock/Flat: \nNumber of people: "
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-semibold text-maroon underline"
+          >
+            Need help? Message an admin
+          </a>
+        )}
       </div>
     );
   }

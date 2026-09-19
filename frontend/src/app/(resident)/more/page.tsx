@@ -14,6 +14,7 @@ export default function MorePage() {
     []
   );
   const [festival, announcements] = data ?? [null, null];
+  const { data: dinnerCount } = useAsync(() => api.communityDinner.publicCount(), []);
   const [cleared, setCleared] = useState(false);
 
   function clearSavedInfo() {
@@ -66,7 +67,9 @@ export default function MorePage() {
       >
         <div>
           <p className="font-semibold text-sm">Community Dinner</p>
-          <p className="text-xs text-muted">Register your household — one time only</p>
+          <p className="text-xs text-muted">
+            {dinnerCount?.open === false ? "Registrations are closed" : "Register your household — one time only"}
+          </p>
         </div>
         <span className="text-muted">›</span>
       </Link>

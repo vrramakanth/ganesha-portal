@@ -69,6 +69,7 @@ export default function VolunteerCommunityDinnerPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [togglingOpen, setTogglingOpen] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const { data: allRegistrations, loading: loadingAll } = useAsync(
@@ -79,6 +80,31 @@ export default function VolunteerCommunityDinnerPage() {
     () => (hasFinance ? api.volunteer.communityDinnerPayments(idToken as string) : Promise.resolve([])),
     [idToken, hasFinance, refreshKey]
   );
+
+  const { data: publicCount } = useAsync(() => api.communityDinner.publicCount(), [refreshKey]);
+  const registrationOpen = publicCount?.open ?? true;
+
+  async function handleToggleOpen() {
+    const opening = !registrationOpen;
+    if (
+      !opening &&
+      !window.confirm(
+        "Close Community Dinner registrations? Residents won't be able to register any more, but anyone already paying for guests can finish, and you can reopen this any time."
+      )
+    ) {
+      return;
+    }
+    setActionError(null);
+    setTogglingOpen(true);
+    try {
+      await api.volunteer.setCommunityDinnerRegistrationOpen(idToken as string, opening);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not change registration status.");
+    } finally {
+      setTogglingOpen(false);
+    }
+  }
 
   const registrations = allRegistrations ?? [];
   const visibleRegistrations = registrations
@@ -180,6 +206,27 @@ export default function VolunteerCommunityDinnerPage() {
       )}
       {(loadingAll || loadingReview) && <LoadingIndicator />}
       {actionError && <p className="text-sm text-red-600">{actionError}</p>}
+
+      {hasDinner && publicCount && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold">Registration is {registrationOpen ? "open" : "closed"}</p>
+            <p className="text-xs text-muted">
+              {registrationOpen
+                ? "Residents can register for the dinner."
+                : "New registrations are blocked. Edits and in-progress payments still work."}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={togglingOpen}
+            onClick={handleToggleOpen}
+            className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-maroon disabled:opacity-60"
+          >
+            {togglingOpen ? "Saving…" : registrationOpen ? "Close registration" : "Reopen registration"}
+          </button>
+        </div>
+      )}
 
       {hasDinner && allRegistrations && (
         <div className="grid grid-cols-2 gap-3">

@@ -17,6 +17,34 @@ const COMMUNITY_DINNER_COUNT_CACHE_KEY = "community_dinner_public_count";
 // principle (§13, §55).
 const COMMUNITY_DINNER_COUNT_CACHE_SECONDS = 600;
 
+const COMMUNITY_DINNER_OPEN_KEY = "community_dinner_registration_open";
+
+/** Open unless explicitly set to "false" in Configuration, so a missing
+ *  row (the state before anyone's ever closed it) means open. */
+function isCommunityDinnerRegistrationOpen() {
+  return String(getConfig(COMMUNITY_DINNER_OPEN_KEY, "true")).trim().toLowerCase() !== "false";
+}
+
+/** Closing only stops NEW registrations (enforced in
+ *  registerCommunityDinner, not just hidden in the UI). Someone already
+ *  mid-registration can still pay for their guests, existing
+ *  registrations stay visible, and admins can still edit them. */
+function setCommunityDinnerRegistrationOpen(volunteer, open) {
+  requirePermission(volunteer, "Dinner");
+  const value = open === true || String(open).toLowerCase() === "true" ? "true" : "false";
+  const before = getConfig(COMMUNITY_DINNER_OPEN_KEY, "true");
+  setConfig(COMMUNITY_DINNER_OPEN_KEY, value);
+  logAudit(
+    volunteer.email,
+    value === "true" ? "Opened Community Dinner registration" : "Closed Community Dinner registration",
+    "Configuration",
+    COMMUNITY_DINNER_OPEN_KEY,
+    before,
+    value
+  );
+  return { open: value === "true" };
+}
+
 function ensureCommunityDinnerSheet() {
   const spreadsheet = getSpreadsheet();
   let sheet = spreadsheet.getSheetByName(SHEETS.COMMUNITY_DINNER);
@@ -56,6 +84,23 @@ function registerCommunityDinner({ residentName, mobile, block, flatNumber, adul
   const guestChildrenNum = Number(guestChildren) || 0;
   if (adultsNum + childrenNum + guestAdultsNum + guestChildrenNum <= 0) {
     throw new ApiError("Please add at least one person attending", 400);
+  }
+
+  // Closed: only an already-started (PAYMENT_PENDING) registration may be
+  // picked back up, so nobody's left stranded mid-payment. Checked before
+  // upsertResident so a refused attempt never touches the Residents sheet.
+  if (!isCommunityDinnerRegistrationOpen()) {
+    const pendingWhileClosed = rowsToObjects(ensureCommunityDinnerSheet()).find(
+      (r) =>
+        r.status === "PAYMENT_PENDING" &&
+        (String(r.mobile) === String(mobile) ||
+          (String(r.block) === String(block) && String(r.flat_number) === String(flatNumber)))
+    );
+    if (pendingWhileClosed) return pendingWhileClosed;
+    throw new ApiError(
+      "Community Dinner registrations are now closed. Please message an admin on WhatsApp if you still need to register.",
+      409
+    );
   }
 
   // Every other registration flow (Donations, Dinner, Events,
@@ -123,7 +168,7 @@ function registerCommunityDinner({ residentName, mobile, block, flatNumber, adul
 function getCommunityDinnerPublicCount() {
   const cache = CacheService.getScriptCache();
   const cached = cache.get(COMMUNITY_DINNER_COUNT_CACHE_KEY);
-  if (cached != null) return { registered: Number(cached) };
+  if (cached != null) return { registered: Number(cached), open: isCommunityDinnerRegistrationOpen() };
 
   const rows = rowsToObjects(ensureCommunityDinnerSheet()).filter(
     (r) => r.status !== "REJECTED" && r.status !== "CANCELLED"
@@ -139,7 +184,7 @@ function getCommunityDinnerPublicCount() {
   );
 
   cache.put(COMMUNITY_DINNER_COUNT_CACHE_KEY, String(registered), COMMUNITY_DINNER_COUNT_CACHE_SECONDS);
-  return { registered };
+  return { registered, open: isCommunityDinnerRegistrationOpen() };
 }
 
 function invalidateCommunityDinnerCountCache() {

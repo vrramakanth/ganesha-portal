@@ -211,19 +211,25 @@ export default function Home() {
           <p className="font-semibold">Community Dinner</p>
           <p className="text-xs font-medium text-saffron">20th September, evening — details to follow</p>
           <p className="text-sm font-semibold">Free for all residents</p>
-          <p className="text-sm text-muted">Register your household — one time only. Guests welcome at ₹200/adult, ₹100/child.</p>
+          <p className="text-sm text-muted">
+            {dinnerCount?.open === false
+              ? "Registrations are now closed. Thank you to everyone who signed up!"
+              : "Register your household — one time only. Guests welcome at ₹200/adult, ₹100/child."}
+          </p>
           {!!dinnerCount && dinnerCount.registered > 0 && (
             <p className="mt-1 text-sm font-semibold text-maroon">
               {dinnerCount.registered} already registered
             </p>
           )}
         </div>
-        <Link
-          href="/community-dinner"
-          className="block w-full rounded-xl bg-maroon py-3 text-center font-semibold text-white active:bg-maroon-dark transition-colors"
-        >
-          Register
-        </Link>
+        {dinnerCount?.open !== false && (
+          <Link
+            href="/community-dinner"
+            className="block w-full rounded-xl bg-maroon py-3 text-center font-semibold text-white active:bg-maroon-dark transition-colors"
+          >
+            Register
+          </Link>
+        )}
       </section>
 
       {!announcementsError && news.length > 0 && (

@@ -365,6 +365,7 @@ export type BhogSponsor = {
 
 export type CommunityDinnerPublicCount = {
   registered: number;
+  open: boolean;
 };
 
 export type CommunityDinnerRegistration = {
