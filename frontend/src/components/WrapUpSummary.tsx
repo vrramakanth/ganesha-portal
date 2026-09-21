@@ -4,79 +4,140 @@ import type { PublicStats } from "@/lib/types";
 
 const PHOTOS_URL = "https://photos.app.goo.gl/ZhCpaqaWJnbeGdkk9";
 
-/** The thank-you shown on Home once the festival has wrapped up. Numbers
- *  come from live data, so they stay right until the last payment is
- *  verified. */
+/** 2025 figures from the Ganesh Utsav 2025 master sheet: flats with a
+ *  contribution (169 of about 335) and the sum of the 17 block totals. */
+const LAST_YEAR = { flatsDonated: 169, totalFlats: 335, raised: 165921 };
+
+/** Portal usage as of 21 Sep 2026. Page views and the busiest day are from
+ *  Vercel Web Analytics (it started recording on 15 Sep); the rest are counts
+ *  from the portal's own data. Receipts and RSVPs are passed in live. */
+const PORTAL = {
+  pageViews: "3,200+",
+  busiestDayVisitors: 190,
+  residentsOnPortal: 254,
+  culturalNominations: 22,
+  performers: 15,
+  bhogSponsors: 6,
+  bhogEvenings: 3,
+};
+
+const percentMore = (now: number, before: number) => Math.round((now / before - 1) * 100);
+
+function Tile({ value, label, delta }: { value: string | number; label: string; delta?: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-background px-3 py-2.5 text-center">
+      <p className="text-lg font-bold leading-tight text-maroon">{value}</p>
+      <p className="text-[11px] leading-tight text-muted">{label}</p>
+      {delta && <p className="mt-0.5 text-[11px] font-semibold text-green-700">{delta}</p>}
+    </div>
+  );
+}
+
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold tracking-wide uppercase text-muted">{title}</p>
+      {children}
+    </div>
+  );
+}
+
+/** The thank-you shown on Home once the festival has wrapped up. Money and
+ *  headcount figures come from live data; the comparison is against 2025. */
 export default function WrapUpSummary({
   stats,
   eventsCount,
-  dinnerRegistered,
+  rsvps,
 }: {
   stats: PublicStats;
   eventsCount: number;
-  dinnerRegistered: number;
+  rsvps: number;
 }) {
-  const blocks = stats.byBlock.length;
-  const goalMet = stats.goal > 0 && stats.totalCollected >= stats.goal;
+  const perFlat = stats.families > 0 ? stats.totalCollected / stats.families : 0;
+  const lastPerFlat = LAST_YEAR.raised / LAST_YEAR.flatsDonated;
+  const participation = Math.round((stats.families / LAST_YEAR.totalFlats) * 100);
+  const lastParticipation = Math.round((LAST_YEAR.flatsDonated / LAST_YEAR.totalFlats) * 100);
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5 space-y-4">
-      <div className="space-y-1 text-center">
-        <h2 className="text-lg font-bold text-maroon">Thank You, Brigade Woods 🙏</h2>
-        <p className="text-sm text-muted">
-          As we bid Bappa a loving farewell until next year, our hearts are full. Thank you for making Ganesha
-          Chathurthi 2026 a celebration to remember.
-        </p>
+    <section className="rounded-xl border border-border bg-card p-5 space-y-5">
+      <div className="text-center">
+        <h2 className="text-lg font-bold text-maroon">This year, we did it differently</h2>
+        <p className="text-sm text-muted">Thank you, Brigade Woods 🙏 Until next year!</p>
       </div>
 
-      <div className="space-y-2.5 text-sm">
-        <p className="font-semibold">Together, we did this:</p>
-        <p>
-          <span className="font-bold text-maroon">{formatCurrency(stats.totalCollected)}</span> contributed by{" "}
-          <span className="font-bold text-maroon">{stats.families}</span> families
-          {blocks > 0 && <> from {blocks === 17 ? "all 17 blocks" : `${blocks} blocks`}</>}
-          {goalMet && <>, going past our {formatCurrency(stats.goal)} goal</>}
-        </p>
-        {dinnerRegistered > 0 && (
-          <p>
-            <span className="font-bold text-maroon">{dinnerRegistered}</span> of us together at the Community Dinner
-          </p>
-        )}
-        {eventsCount > 0 && (
-          <p>
-            <span className="font-bold text-maroon">{eventsCount}</span> poojas, aarthis, bhajans and cultural
-            programmes across the festival
-          </p>
-        )}
-      </div>
+      <Group title="Giving, vs last year">
+        <div className="grid grid-cols-2 gap-2">
+          <Tile
+            value={formatCurrency(stats.totalCollected)}
+            label="raised"
+            delta={`+${percentMore(stats.totalCollected, LAST_YEAR.raised)}%`}
+          />
+          <Tile
+            value={stats.families}
+            label={`flats donated, all ${stats.byBlock.length} blocks`}
+            delta={`+${percentMore(stats.families, LAST_YEAR.flatsDonated)}%`}
+          />
+          <Tile
+            value={formatCurrency(perFlat)}
+            label="average per flat"
+            delta={`+${percentMore(perFlat, lastPerFlat)}%`}
+          />
+          <Tile value={`${participation}%`} label="of flats donated" delta={`was ${lastParticipation}%`} />
+        </div>
+      </Group>
 
-      <p className="text-sm">
-        Our sincere thanks to every donor, volunteer, performer and sponsor, including Aster Whitefield Hospital. This
-        happened because you showed up.
+      <Group title="Community Dinner">
+        <div className="grid grid-cols-2 gap-2">
+          <Tile value="500+" label="dinners served" />
+          <Tile value="< 90 min" label="was 150 min" delta="40%+ faster" />
+        </div>
+        <ul className="space-y-0.5 text-sm">
+          <li>✓ Online registration</li>
+          <li>✓ No physical tokens to distribute</li>
+          <li>✓ No block reps going door to door</li>
+        </ul>
+      </Group>
+
+      <Group title="Festival">
+        <div className="grid grid-cols-2 gap-2">
+          <Tile value={eventsCount} label="poojas, aarthis, programmes" />
+          <Tile value={PORTAL.bhogSponsors} label={`Bhog sponsors, ${PORTAL.bhogEvenings} evenings`} />
+          <Tile value={PORTAL.culturalNominations} label={`cultural entries, ${PORTAL.performers} performers`} />
+          {rsvps > 0 && <Tile value={rsvps} label="one-tap RSVPs" />}
+        </div>
+      </Group>
+
+      <Group title="Portal">
+        <div className="grid grid-cols-2 gap-2">
+          <Tile value={PORTAL.pageViews} label="page views, last 7 days" />
+          <Tile value={PORTAL.busiestDayVisitors} label="online on busiest day" />
+          <Tile value={PORTAL.residentsOnPortal} label="residents on portal" />
+          <Tile value={stats.donationCount} label="digital receipts" />
+        </div>
+      </Group>
+
+      <p className="text-center text-sm">
+        Thank you: donors · volunteers · performers · sponsors, incl. Aster Whitefield Hospital
       </p>
 
-      <div className="space-y-2">
-        <p className="text-sm font-semibold">A little more from you</p>
-        <div className="grid grid-cols-2 gap-2">
-          <a
-            href={PHOTOS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-xl bg-saffron py-3 text-center text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
-          >
-            Add your photos
-          </a>
-          <Link
-            href="/feedback"
-            className="rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon"
-          >
-            Share your experience
-          </Link>
-        </div>
+      <div className="grid grid-cols-2 gap-2">
+        <a
+          href={PHOTOS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-xl bg-saffron py-3 text-center text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
+        >
+          Add your photos
+        </a>
+        <Link href="/feedback" className="rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon">
+          Share your experience
+        </Link>
       </div>
 
-      <p className="text-xs text-muted text-center">Full accounts will be shared once the final bills are settled.</p>
-      <p className="text-sm font-semibold text-maroon text-center">Ganpati Bappa Morya! Pudhchya Varshi Lavkar Ya! 🙏</p>
+      <div className="space-y-0.5 text-center">
+        <p className="text-xs text-muted">Full accounts soon</p>
+        <p className="text-sm font-semibold text-maroon">Ganpati Bappa Morya! Pudhchya Varshi Lavkar Ya! 🙏</p>
+      </div>
     </section>
   );
 }

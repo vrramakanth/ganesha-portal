@@ -107,7 +107,11 @@ export default function Home() {
       </header>
 
       {stats?.wrappedUp && (
-        <WrapUpSummary stats={stats} eventsCount={(events ?? []).length} dinnerRegistered={dinnerCount?.registered ?? 0} />
+        <WrapUpSummary
+          stats={stats}
+          eventsCount={(events ?? []).length}
+          rsvps={(events ?? []).reduce((sum, e) => sum + (Number(e.rsvp_yes) || 0), 0)}
+        />
       )}
 
       {stats?.donationsOpen === false ? (
