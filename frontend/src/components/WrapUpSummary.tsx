@@ -103,7 +103,7 @@ export default function WrapUpSummary({
           <Tile value={PORTAL.bhogSponsors} label={`Bhog sponsors, ${PORTAL.bhogEvenings} evenings`} />
           <Tile value="20+" label="active volunteers doing seva every day" />
           <Tile value="150+" label="residents every day for evening aarti and bhog" />
-          <Tile value={FESTIVAL.days} label="days, 14 to 20 Sep" />
+          <Tile value={FESTIVAL.days} label="days, our longest yet, 14 to 20 Sep" />
           <Tile value={eventsCount} label="poojas, aarthis, programmes" />
           <Tile value={FESTIVAL.aarthis} label="morning and evening aarthis by our residents" />
           <Tile value={PORTAL.culturalNominations} label={`cultural entries, ${PORTAL.performers} performers`} />
