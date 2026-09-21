@@ -8,7 +8,41 @@
  *  on every resident-facing form, including this one. */
 const SPONSOR_BLOCK = "SPONSOR";
 
+const DONATIONS_OPEN_KEY = "donations_open";
+
+/** Open unless explicitly set to "false" in Configuration. */
+function isDonationsOpen() {
+  return String(getConfig(DONATIONS_OPEN_KEY, "true")).trim().toLowerCase() !== "false";
+}
+
+/** Closing stops NEW donations (household and Hundi), enforced server-side.
+ *  Someone already mid-donation can still submit their reference or
+ *  cancel, and admins can still verify payments and record sponsorships. */
+function setDonationsOpen(volunteer, open) {
+  requirePermission(volunteer, "Finance");
+  const value = open === true || String(open).toLowerCase() === "true" ? "true" : "false";
+  const before = getConfig(DONATIONS_OPEN_KEY, "true");
+  setConfig(DONATIONS_OPEN_KEY, value);
+  logAudit(
+    volunteer.email,
+    value === "true" ? "Opened donations" : "Closed donations",
+    "Configuration",
+    DONATIONS_OPEN_KEY,
+    before,
+    value
+  );
+  invalidatePublicStatsCache();
+  return { open: value === "true" };
+}
+
+function requireDonationsOpen() {
+  if (!isDonationsOpen()) {
+    throw new ApiError("Donations are now closed. Thank you for your generosity!", 409);
+  }
+}
+
 function createDonation({ name, mobile, email, block, flatNumber, amount }) {
+  requireDonationsOpen();
   requireFields({ name, mobile, block, flatNumber, amount }, [
     "name",
     "mobile",
@@ -133,6 +167,7 @@ function recordSponsorship(volunteer, { name, mobile, amount, reference, screens
  *  still applies exactly as it does for a named donation; anonymity only
  *  removes whose name goes on it, not the verification step. */
 function createHundiDonation({ amount }) {
+  requireDonationsOpen();
   requireFields({ amount }, ["amount"]);
   const amountNum = Number(amount);
   if (!(amountNum > 0)) {

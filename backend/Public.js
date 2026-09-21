@@ -31,6 +31,7 @@ function getFestivalInfo() {
   // unauthenticated call. The row itself gets created for editing the
   // first time an Operations admin opens Settings (listConfig).
   info.admin_whatsapp_number = getConfig("admin_whatsapp_number", ADMIN_WHATSAPP_DEFAULT);
+  info.donations_open = isDonationsOpen() ? "true" : "false";
   return info;
 }
 
@@ -64,7 +65,9 @@ function listBlocks() {
 function getPublicStats() {
   const cache = CacheService.getScriptCache();
   const cached = cache.get(PUBLIC_STATS_CACHE_KEY);
-  if (cached) return JSON.parse(cached);
+  // donationsOpen is read live (config is already cached), never baked
+  // into the cached stats, so closing donations shows up immediately.
+  if (cached) return Object.assign(JSON.parse(cached), { donationsOpen: isDonationsOpen() });
 
   const transactions = rowsToObjects(getSheet(SHEETS.TRANSACTIONS)).filter((t) =>
     SUCCESS_STATUSES.includes(t.status)
@@ -106,7 +109,7 @@ function getPublicStats() {
   };
 
   cache.put(PUBLIC_STATS_CACHE_KEY, JSON.stringify(stats), PUBLIC_STATS_CACHE_SECONDS);
-  return stats;
+  return Object.assign({}, stats, { donationsOpen: isDonationsOpen() });
 }
 
 /** Called after any action that changes the verified-donation totals

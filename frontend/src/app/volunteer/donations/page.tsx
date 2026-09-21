@@ -44,6 +44,32 @@ export default function VolunteerDonationsPage() {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  const [togglingOpen, setTogglingOpen] = useState(false);
+  const { data: festivalInfo } = useAsync(() => api.festival.get(), [refreshKey]);
+  const donationsOpen = festivalInfo ? festivalInfo.donations_open !== "false" : null;
+
+  async function handleToggleDonations() {
+    const opening = !donationsOpen;
+    if (
+      !opening &&
+      !window.confirm(
+        "Close donations? Residents won't be able to start a new donation, including through the Hundi page. Anyone already paying can finish, and you can still verify payments. You can reopen this any time."
+      )
+    ) {
+      return;
+    }
+    setActionError(null);
+    setTogglingOpen(true);
+    try {
+      await api.volunteer.setDonationsOpen(idToken as string, opening);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not change donations status.");
+    } finally {
+      setTogglingOpen(false);
+    }
+  }
+
   const { data: transactions, loading, error } = useAsync(
     () => api.volunteer.transactions(idToken as string),
     [idToken, refreshKey]
@@ -110,6 +136,27 @@ export default function VolunteerDonationsPage() {
       <Link href="/volunteer/donations/screenshots" className="text-xs font-medium text-maroon underline -mt-4">
         Attach Missing Screenshots
       </Link>
+
+      {donationsOpen !== null && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold">Donations are {donationsOpen ? "open" : "closed"}</p>
+            <p className="text-xs text-muted">
+              {donationsOpen
+                ? "Residents can donate."
+                : "New donations are blocked. Payment review and sponsorships still work."}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={togglingOpen}
+            onClick={handleToggleDonations}
+            className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-maroon disabled:opacity-60"
+          >
+            {togglingOpen ? "Saving…" : donationsOpen ? "Close donations" : "Reopen donations"}
+          </button>
+        </div>
+      )}
 
       {loading && <LoadingIndicator />}
       {error && <p className="text-sm text-red-600">{error}</p>}

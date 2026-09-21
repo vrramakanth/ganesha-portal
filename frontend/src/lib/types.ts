@@ -18,6 +18,7 @@ export type FestivalInfo = {
   upi_payee_name: string;
   admin_whatsapp_number: string;
   community_dinner_counter_map: string;
+  donations_open: string;
 };
 
 export type Block = {
@@ -57,6 +58,7 @@ export type PublicStats = {
   byBlock: { block: string; amount: number }[];
   totalExpenses: number;
   futureCosts: number;
+  donationsOpen: boolean;
 };
 
 export type Announcement = {

@@ -10,6 +10,8 @@ import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
 import PaymentReferenceStep from "@/components/PaymentReferenceStep";
+import DonationsClosed from "@/components/DonationsClosed";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
@@ -17,7 +19,7 @@ type Step = "form" | "creating" | "reference" | "submitted" | "cancelled";
 
 export default function DonatePage() {
   const { profile, saveProfile, loaded } = useResidentProfile();
-  const { data: festival } = useAsync(() => api.festival.get(), []);
+  const { data: festival, loading: festivalLoading } = useAsync(() => api.festival.get(), []);
 
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
@@ -156,6 +158,11 @@ export default function DonatePage() {
       </div>
     );
   }
+
+  // Only the fresh-donation form is closed off — anyone already at the
+  // payment or confirmation step was routed to those steps above.
+  if (festivalLoading) return <LoadingIndicator className="px-5 pt-8" />;
+  if (festival?.donations_open === "false") return <DonationsClosed />;
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">

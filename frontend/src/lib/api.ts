@@ -290,6 +290,8 @@ export const api = {
         transactionId,
         notes,
       }),
+    setDonationsOpen: (idToken: string, open: boolean) =>
+      apiPost<{ open: boolean }>("volunteer.donations.setOpen", { idToken, open }),
     recordSponsorship: (
       idToken: string,
       payload: {

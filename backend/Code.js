@@ -54,6 +54,7 @@ const ROUTES = {
     auth: true,
     handler: (p, v) => attachPaymentScreenshot(v, p.transactionId, p.screenshot, p.mimeType),
   },
+  "volunteer.donations.setOpen": { auth: true, handler: (p, v) => setDonationsOpen(v, p.open) },
   "volunteer.sponsorships.record": { auth: true, handler: (p, v) => recordSponsorship(v, p) },
   "volunteer.events.create": { auth: true, handler: (p, v) => createEvent(v, p) },
   "volunteer.events.update": { auth: true, handler: (p, v) => updateEvent(v, p.eventId, p) },
