@@ -6,6 +6,7 @@ import { fileToBase64 } from "@/lib/file";
 import { toDateInputValue } from "@/lib/date";
 import type { FutureCost } from "@/lib/types";
 import MobileInput from "@/components/MobileInput";
+import ReceiptLinks from "@/components/ReceiptLinks";
 
 const inputClass = "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm";
 
@@ -100,10 +101,12 @@ export default function DraftExpenseEditor({
       <div className="space-y-1">
         <label className="text-xs font-medium">Receipt (optional)</label>
         <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="w-full text-xs" />
-        {draft.screenshot_url && !file && (
-          <a href={draft.screenshot_url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-maroon">
-            View saved receipt
-          </a>
+        {draft.screenshot_url && (
+          <div className="flex flex-wrap items-center gap-x-2 text-xs">
+            <span className="text-muted">Saved:</span>
+            <ReceiptLinks value={draft.screenshot_url} />
+            <span className="text-muted">(saving with a new file adds another)</span>
+          </div>
         )}
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}

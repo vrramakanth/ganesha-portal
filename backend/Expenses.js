@@ -69,6 +69,14 @@ function ensureExpensesSheet() {
   return sheet;
 }
 
+/** An expense can have several receipts (a caterer's bill plus a payment
+ *  slip, say). They're kept in the one receipt field as a comma-separated
+ *  list of Drive links, which are comma-free, so a single link and the
+ *  rows from before this remain valid as they are. */
+function addReceiptUrl(existing, url) {
+  return existing ? `${existing},${url}` : url;
+}
+
 function getExpenseReceiptsFolder() {
   const rootName = getConfig("festival_name", "Ganesha Chathurthi 2026");
   const root = getOrCreateFolder(DriveApp.getRootFolder(), rootName);
@@ -306,7 +314,10 @@ function updateDraftExpense(volunteer, expenseId, { date, amount, purpose, spend
       spender_mobile: spenderMobile || "",
       upi_id: upiId || "",
     };
-    if (screenshot) fields.screenshot_url = saveExpenseScreenshot(screenshot, mimeType);
+    if (screenshot) {
+      const url = saveExpenseScreenshot(screenshot, mimeType);
+      if (url) fields.screenshot_url = addReceiptUrl(expense.screenshot_url, url);
+    }
     updateRowFields(sheet, rowIndex, fields);
     logAudit(
       volunteer.email,
@@ -343,7 +354,8 @@ function submitDraftExpense(volunteer, expenseId) {
  *  WhatsApp instead of attaching it. Same shape as attachPaymentScreenshot
  *  for donations: Finance-gated, and it touches only screenshot_url, never
  *  the status, amount or payment fields, so it can't approve, change or
- *  re-count anything. Works on an expense in any live state. */
+ *  re-count anything. Works on an expense in any live state, and adds to
+ *  the receipts already there rather than replacing them. */
 function attachExpenseReceipt(volunteer, expenseId, screenshot, mimeType) {
   requirePermission(volunteer, "Finance");
   requireFields({ expenseId, screenshot }, ["expenseId", "screenshot"]);
@@ -353,8 +365,9 @@ function attachExpenseReceipt(volunteer, expenseId, screenshot, mimeType) {
 
     const url = saveExpenseScreenshot(screenshot, mimeType);
     if (!url) throw new ApiError("Could not save the receipt. Please try again.", 500);
-    updateRowFields(sheet, rowIndex, { screenshot_url: url });
-    logAudit(volunteer.email, "Attached expense receipt", "Expense", expenseId, expense.screenshot_url ? "replaced" : "", url);
-    return { expenseId, receiptUrl: url };
+    const all = addReceiptUrl(expense.screenshot_url, url);
+    updateRowFields(sheet, rowIndex, { screenshot_url: all });
+    logAudit(volunteer.email, "Attached expense receipt", "Expense", expenseId, "", url);
+    return { expenseId, receiptUrl: url, receiptUrls: all };
   });
 }

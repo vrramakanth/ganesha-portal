@@ -16,6 +16,7 @@ import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import DinnerCounterMessage from "@/components/DinnerCounterMessage";
+import ReceiptLinks from "@/components/ReceiptLinks";
 
 const MAX_SONG_BYTES = 10 * 1024 * 1024; // 10MB — comfortably covers a full song at typical MP3 bitrates
 const DEFAULT_WHATSAPP_NUMBER = "919880766321";
@@ -438,11 +439,7 @@ export default function MyStuffPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-maroon">{formatCurrency(Number(e.amount))}</p>
-                  {e.screenshot_url && (
-                    <a href={e.screenshot_url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-maroon">
-                      Receipt
-                    </a>
-                  )}
+                  <ReceiptLinks value={e.screenshot_url} />
                   <StatusBadge
                     label={e.status}
                     tone={e.status === "APPROVED" ? "success" : e.status === "REJECTED" ? "danger" : "warning"}

@@ -10,6 +10,7 @@ import StatTile from "@/components/StatTile";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import ReceiptUpload from "./ReceiptUpload";
+import ReceiptLinks from "@/components/ReceiptLinks";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   APPROVED: "success",
@@ -157,26 +158,19 @@ export default function ReviewExpensesPage() {
                       </div>
                       <p className="font-semibold text-maroon shrink-0">{formatCurrency(Number(e.amount))}</p>
                     </div>
-                    {e.screenshot_url && (
-                      <a
-                        href={e.screenshot_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block text-xs font-semibold text-maroon"
-                      >
-                        View Receipt
-                      </a>
-                    )}
-                    {!e.screenshot_url && (
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      {e.screenshot_url ? (
+                        <ReceiptLinks value={e.screenshot_url} singleLabel="View Receipt" />
+                      ) : (
                         <span className="text-xs text-muted">No receipt attached.</span>
-                        <ReceiptUpload
-                          idToken={idToken as string}
-                          expenseId={e.expense_id}
-                          onUploaded={() => setRefreshKey((k) => k + 1)}
-                        />
-                      </div>
-                    )}
+                      )}
+                      <ReceiptUpload
+                        idToken={idToken as string}
+                        expenseId={e.expense_id}
+                        onUploaded={() => setRefreshKey((k) => k + 1)}
+                        label={e.screenshot_url ? "Add another receipt" : "Upload Receipt"}
+                      />
+                    </div>
                     <div className="flex gap-2">
                       <button
                         disabled={actioning === e.expense_id}
@@ -280,24 +274,13 @@ export default function ReviewExpensesPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-maroon">{formatCurrency(Number(e.amount))}</p>
-                    {e.screenshot_url && (
-                      <a
-                        href={e.screenshot_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-semibold text-maroon underline"
-                      >
-                        Receipt
-                      </a>
-                    )}
-                    {!e.screenshot_url && (
-                      <ReceiptUpload
-                        idToken={idToken as string}
-                        expenseId={e.expense_id}
-                        onUploaded={() => setRefreshKey((k) => k + 1)}
-                        label="Add receipt"
-                      />
-                    )}
+                    <ReceiptLinks value={e.screenshot_url} className="text-xs font-semibold text-maroon underline" />
+                    <ReceiptUpload
+                      idToken={idToken as string}
+                      expenseId={e.expense_id}
+                      onUploaded={() => setRefreshKey((k) => k + 1)}
+                      label={e.screenshot_url ? "+ Add" : "Add receipt"}
+                    />
                     <StatusBadge label={e.status} tone={STATUS_TONE[e.status] ?? "neutral"} />
                     {e.status === "APPROVED" && (
                       <StatusBadge

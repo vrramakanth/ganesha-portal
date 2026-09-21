@@ -20,16 +20,23 @@ export default function ReceiptUpload({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleFile(file: File | undefined) {
-    if (!file) return;
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
     setError(null);
     setUploading(true);
+    let added = 0;
     try {
-      await api.volunteer.attachExpenseReceipt(idToken, expenseId, await fileToBase64(file), file.type || "image/jpeg");
-      onUploaded();
+      // One request per file keeps each upload small; each is added to the
+      // receipts already on the expense.
+      for (const file of Array.from(files)) {
+        await api.volunteer.attachExpenseReceipt(idToken, expenseId, await fileToBase64(file), file.type || "image/jpeg");
+        added += 1;
+      }
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Could not upload the receipt.");
+      const message = err instanceof ApiClientError ? err.message : "Could not upload the receipt.";
+      setError(added > 0 ? `${added} uploaded, then: ${message}` : message);
     } finally {
+      if (added > 0) onUploaded();
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
     }
@@ -41,8 +48,9 @@ export default function ReceiptUpload({
         ref={inputRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0])}
+        onChange={(e) => handleFiles(e.target.files)}
       />
       <button
         type="button"
