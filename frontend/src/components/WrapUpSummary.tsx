@@ -135,7 +135,7 @@ export default function WrapUpSummary({
       </div>
 
       <div className="space-y-0.5 text-center">
-        <p className="text-xs text-muted">Full accounts soon</p>
+        <p className="text-xs font-semibold text-muted">Final accounts: coming in a day or two</p>
         <p className="text-sm font-semibold text-maroon">Ganpati Bappa Morya! Pudhchya Varshi Lavkar Ya! 🙏</p>
       </div>
     </section>

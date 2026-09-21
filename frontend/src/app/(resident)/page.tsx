@@ -167,8 +167,7 @@ export default function Home() {
                       {stats.donationsOpen === false ? (
                         <>
                           *Worst-case estimate for remaining bills — volunteers are working to optimize costs, and
-                          final costs are typically lower. Full accounts will be shared once the final bills are
-                          settled.
+                          final costs are typically lower. Final accounts are coming in a day or two.
                         </>
                       ) : (
                         <>
