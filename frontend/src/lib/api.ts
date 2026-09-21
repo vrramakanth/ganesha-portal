@@ -524,6 +524,30 @@ export const api = {
       idToken: string,
       payload: { date: string; amount: number; purpose: string; vendorChecked: boolean }
     ) => apiPost<FutureCost>("volunteer.futureCosts.record", { idToken, ...payload }),
+    moveFutureCost: (idToken: string, estimateId: string) =>
+      apiPost<{ estimateId: string; expenseId: string }>("volunteer.futureCosts.move", { idToken, estimateId }),
+    discardFutureCost: (idToken: string, estimateId: string, reason: string) =>
+      apiPost<{ estimateId: string; status: string }>("volunteer.futureCosts.discard", { idToken, estimateId, reason }),
+    returnFutureCostDraft: (idToken: string, estimateId: string) =>
+      apiPost<{ estimateId: string; status: string }>("volunteer.futureCosts.returnDraft", { idToken, estimateId }),
+    setFutureCostsClosed: (idToken: string, closed: boolean) =>
+      apiPost<{ closed: boolean }>("volunteer.futureCosts.setClosed", { idToken, closed }),
+    updateDraftExpense: (
+      idToken: string,
+      expenseId: string,
+      payload: {
+        date: string;
+        amount: number;
+        purpose: string;
+        spenderName?: string;
+        spenderMobile?: string;
+        upiId?: string;
+        screenshot?: string;
+        mimeType?: string;
+      }
+    ) => apiPost<unknown>("volunteer.expenses.updateDraft", { idToken, expenseId, ...payload }),
+    submitDraftExpense: (idToken: string, expenseId: string) =>
+      apiPost<{ expenseId: string; status: string }>("volunteer.expenses.submitDraft", { idToken, expenseId }),
     updateFutureCost: (
       idToken: string,
       estimateId: string,

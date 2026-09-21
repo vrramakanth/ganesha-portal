@@ -70,7 +70,10 @@ const SHEET_SCHEMAS = {
     "sponsor_id", "mobile", "resident_name", "transaction_id", "amount",
     "bhog_date", "recorded_by", "created_at",
   ],
-  [SHEETS.FUTURE_COSTS]: ["estimate_id", "date", "amount", "purpose", "vendor_checked", "recorded_by", "created_at"],
+  [SHEETS.FUTURE_COSTS]: [
+    "estimate_id", "date", "amount", "purpose", "vendor_checked", "recorded_by", "created_at",
+    "status", "expense_id", "closed_note",
+  ],
 };
 
 function setupSheets() {

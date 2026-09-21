@@ -33,6 +33,7 @@ function getFestivalInfo() {
   info.admin_whatsapp_number = getConfig("admin_whatsapp_number", ADMIN_WHATSAPP_DEFAULT);
   info.donations_open = isDonationsOpen() ? "true" : "false";
   info.festival_wrapped_up = isFestivalWrappedUp() ? "true" : "false";
+  info.future_costs_closed = isFutureCostsClosed() ? "true" : "false";
   return info;
 }
 

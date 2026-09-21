@@ -7,7 +7,9 @@ import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 import { formatCurrency, formatEventDate, toDateInputValue } from "@/lib/date";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import StatusBadge from "@/components/StatusBadge";
 import type { FutureCost } from "@/lib/types";
+import DraftExpenseEditor from "./DraftExpenseEditor";
 
 function today() {
   return new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd, matches <input type="date">
@@ -85,7 +87,74 @@ export default function FutureCostsPage() {
     }
   }
 
-  const total = (estimates ?? []).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const { data: festivalInfo } = useAsync(() => api.festival.get(), [refreshKey]);
+  const closed = festivalInfo?.future_costs_closed === "true";
+
+  const openEstimates = (estimates ?? []).filter((e) => e.status === "OPEN");
+  const movedEstimates = (estimates ?? []).filter((e) => e.status === "MOVED");
+  const discardedEstimates = (estimates ?? []).filter((e) => e.status === "DISCARDED");
+  const unfinishedDrafts = movedEstimates.filter((e) => e.expense?.status === "DRAFT");
+  const total = openEstimates.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actioningId, setActioningId] = useState<string | null>(null);
+  const [discardingId, setDiscardingId] = useState<string | null>(null);
+  const [discardReason, setDiscardReason] = useState("");
+  const [togglingClosed, setTogglingClosed] = useState(false);
+
+  async function handleMove(e: FutureCost) {
+    if (
+      !window.confirm(
+        "Move this estimate to Expenses? It becomes a draft you can edit to the actual cost before submitting it for approval."
+      )
+    ) {
+      return;
+    }
+    setActionError(null);
+    setActioningId(e.estimate_id);
+    try {
+      await api.volunteer.moveFutureCost(idToken as string, e.estimate_id);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not move this estimate.");
+    } finally {
+      setActioningId(null);
+    }
+  }
+
+  async function handleDiscard(e: FutureCost) {
+    if (!discardReason.trim()) {
+      setActionError("Enter a reason for discarding this estimate.");
+      return;
+    }
+    setActionError(null);
+    setActioningId(e.estimate_id);
+    try {
+      await api.volunteer.discardFutureCost(idToken as string, e.estimate_id, discardReason.trim());
+      setDiscardingId(null);
+      setDiscardReason("");
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not discard this estimate.");
+    } finally {
+      setActioningId(null);
+    }
+  }
+
+  async function handleToggleClosed() {
+    const closing = !closed;
+    if (closing && !window.confirm("Close future costs? No new estimates can be added. You can reopen this later.")) return;
+    setActionError(null);
+    setTogglingClosed(true);
+    try {
+      await api.volunteer.setFutureCostsClosed(idToken as string, closing);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError(err instanceof ApiClientError ? err.message : "Could not change future costs status.");
+    } finally {
+      setTogglingClosed(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -134,6 +203,13 @@ export default function FutureCostsPage() {
         backLabel="← Dashboard"
       />
 
+      {closed && (
+        <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">
+          Future costs are closed. Everything has been moved to Expenses.
+        </p>
+      )}
+
+      {!closed && (
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Expected Date</label>
@@ -189,16 +265,21 @@ export default function FutureCostsPage() {
           {submitting ? "Saving…" : "Record Estimate"}
         </button>
       </form>
+      )}
+
+      {actionError && <p className="text-sm text-red-600">{actionError}</p>}
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">All Estimates</h2>
+        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Open Estimates</h2>
         {loadingList && <LoadingIndicator />}
-        {!loadingList && (estimates ?? []).length === 0 && (
-          <p className="text-sm text-muted">No future costs recorded yet.</p>
+        {!loadingList && openEstimates.length === 0 && (
+          <p className="text-sm text-muted">
+            {(estimates ?? []).length === 0 ? "No future costs recorded yet." : "No open estimates."}
+          </p>
         )}
-        {(estimates ?? []).length > 0 && (
+        {openEstimates.length > 0 && (
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
-            {(estimates ?? []).map((e) =>
+            {openEstimates.map((e) =>
               editingId === e.estimate_id ? (
                 <div key={e.estimate_id} className="px-4 py-3 space-y-2">
                   <input
@@ -249,24 +330,156 @@ export default function FutureCostsPage() {
                   </div>
                 </div>
               ) : (
-                <div key={e.estimate_id} className="px-4 py-3 flex items-center justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-sm">{e.purpose}</p>
-                    <p className="text-xs text-muted">{formatEventDate(e.date)}</p>
-                    <button type="button" onClick={() => startEdit(e)} className="mt-1 text-xs font-semibold text-maroon">
-                      Edit
-                    </button>
+                <div key={e.estimate_id} className="px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-sm">{e.purpose}</p>
+                      <p className="text-xs text-muted">{formatEventDate(e.date)}</p>
+                    </div>
+                    <p className="font-semibold text-maroon">{formatCurrency(Number(e.amount))}</p>
                   </div>
-                  <p className="font-semibold text-maroon">{formatCurrency(Number(e.amount))}</p>
+                  {discardingId === e.estimate_id ? (
+                    <div className="space-y-2">
+                      <input
+                        value={discardReason}
+                        onChange={(ev) => setDiscardReason(ev.target.value)}
+                        placeholder="Why is this no longer needed?"
+                        className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={actioningId === e.estimate_id}
+                          onClick={() => handleDiscard(e)}
+                          className="flex-1 rounded-lg bg-maroon py-2 text-xs font-semibold text-white disabled:opacity-60"
+                        >
+                          Discard estimate
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDiscardingId(null);
+                            setDiscardReason("");
+                          }}
+                          className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted"
+                        >
+                          Keep it
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-4">
+                      <button type="button" onClick={() => startEdit(e)} className="text-xs font-semibold text-maroon">
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        disabled={actioningId === e.estimate_id}
+                        onClick={() => handleMove(e)}
+                        className="text-xs font-semibold text-maroon disabled:opacity-60"
+                      >
+                        {actioningId === e.estimate_id ? "Moving…" : "Move to Expenses"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDiscardingId(e.estimate_id);
+                          setDiscardReason("");
+                        }}
+                        className="text-xs font-semibold text-red-600"
+                      >
+                        Discard
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             )}
             <div className="px-4 py-3 flex items-center justify-between gap-2 bg-background">
-              <p className="text-sm font-semibold">Total estimated future costs</p>
+              <p className="text-sm font-semibold">Total open estimates</p>
               <p className="font-semibold text-maroon">{formatCurrency(total)}</p>
             </div>
           </div>
         )}
+      </section>
+
+      {movedEstimates.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Moved to Expenses</h2>
+          <p className="text-xs text-muted">
+            A draft is editable until you submit it. Once submitted, Finance approves it under Review Expenses, and it
+            then counts as Spent.
+          </p>
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {movedEstimates.map((e) => (
+              <div key={e.estimate_id} className="px-4 py-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-sm">{e.purpose}</p>
+                    <p className="text-xs text-muted">{e.expense_id}</p>
+                  </div>
+                  <StatusBadge
+                    label={e.expense?.status ?? "MOVED"}
+                    tone={
+                      e.expense?.status === "APPROVED"
+                        ? "success"
+                        : e.expense?.status === "REJECTED"
+                          ? "danger"
+                          : e.expense?.status === "PENDING"
+                            ? "warning"
+                            : "info"
+                    }
+                  />
+                </div>
+                {e.expense?.status === "DRAFT" ? (
+                  <DraftExpenseEditor
+                    idToken={idToken as string}
+                    estimate={e}
+                    onChanged={() => setRefreshKey((k) => k + 1)}
+                  />
+                ) : (
+                  e.expense && <p className="text-xs text-muted">{formatCurrency(Number(e.expense.amount))}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {discardedEstimates.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Discarded</h2>
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {discardedEstimates.map((e) => (
+              <div key={e.estimate_id} className="px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm">{e.purpose}</p>
+                  <p className="text-sm text-muted line-through">{formatCurrency(Number(e.amount))}</p>
+                </div>
+                {e.closed_note && <p className="text-xs text-muted">{e.closed_note}</p>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="space-y-2 border-t border-border pt-4">
+        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Close Future Costs</h2>
+        <p className="text-xs text-muted">
+          {closed
+            ? "Future costs are closed. Reopen only if a new estimate is needed."
+            : openEstimates.length + unfinishedDrafts.length > 0
+              ? `To close, move or discard the ${openEstimates.length} open estimate(s) and submit or return ${unfinishedDrafts.length} draft(s).`
+              : "Everything has been moved or discarded. Closing stops new estimates and ends future costs."}
+        </p>
+        <button
+          type="button"
+          disabled={togglingClosed || (!closed && openEstimates.length + unfinishedDrafts.length > 0)}
+          onClick={handleToggleClosed}
+          className="w-full rounded-xl border border-border py-3 text-sm font-semibold text-maroon disabled:opacity-60"
+        >
+          {togglingClosed ? "Saving…" : closed ? "Reopen future costs" : "Close future costs"}
+        </button>
       </section>
     </div>
   );

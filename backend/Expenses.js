@@ -8,7 +8,11 @@
  *  settlement once a Finance admin approves it (Decision 4 applies to
  *  spending claims too, not just payment claims). */
 
-const EXPENSE_STATUSES = ["PENDING", "APPROVED", "REJECTED"];
+// DRAFT (an expense moved from a future-cost estimate, still being
+// edited) and CANCELLED (a draft sent back to estimates) must be listed
+// here: expenseStatus() below reads any unrecognised status as APPROVED,
+// so an unlisted DRAFT would silently count as real spending.
+const EXPENSE_STATUSES = ["DRAFT", "PENDING", "APPROVED", "REJECTED", "CANCELLED"];
 const PAYMENT_STATUSES = ["UNPAID", "PAID"];
 
 /** Rows recorded before this approval workflow existed have no status
@@ -51,7 +55,7 @@ function ensureExpensesSheet() {
   const headers = [
     "expense_id", "date", "amount", "purpose", "screenshot_url",
     "spender_name", "spender_mobile", "upi_id", "status", "admin_notes",
-    "recorded_by", "created_at", "payment_status", "paid_at",
+    "recorded_by", "created_at", "payment_status", "paid_at", "from_estimate_id",
   ];
   const existing = getHeaders(sheet);
   if (existing.length === 0) {
@@ -132,6 +136,7 @@ function recordExpense(volunteer, { date, amount, purpose, screenshot, mimeType,
 function listExpenses(volunteer) {
   requirePermission(volunteer, "Finance");
   return rowsToObjects(ensureExpensesSheet())
+    .filter((e) => !["DRAFT", "CANCELLED"].includes(expenseStatus(e)))
     .map((e) => ({ ...e, status: expenseStatus(e), payment_status: paymentStatus(e) }))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
@@ -241,6 +246,7 @@ function listMyExpenses(mobile) {
   requireFields({ mobile }, ["mobile"]);
   return rowsToObjects(ensureExpensesSheet())
     .filter((e) => String(e.spender_mobile) === String(mobile))
+    .filter((e) => !["DRAFT", "CANCELLED"].includes(expenseStatus(e)))
     .map((e) => ({ ...e, status: expenseStatus(e), payment_status: paymentStatus(e) }))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
@@ -256,4 +262,79 @@ function getExpensesTotal() {
   return rowsToObjects(ensureExpensesSheet())
     .filter((e) => expenseStatus(e) === "APPROVED")
     .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+}
+
+/** Money moved from a future-cost estimate that hasn't reached Spent yet
+ *  (still a draft, or submitted and awaiting approval). Counted alongside
+ *  the open estimates so the projection doesn't dip while an estimate is
+ *  in transit; it drops out the moment the expense is approved (then it's
+ *  in Spent) or rejected. */
+function getInFlightEstimateExpensesTotal() {
+  return rowsToObjects(ensureExpensesSheet())
+    .filter((e) => e.from_estimate_id && ["DRAFT", "PENDING"].includes(expenseStatus(e)))
+    .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+}
+
+function getExpenseById(expenseId) {
+  const sheet = ensureExpensesSheet();
+  const rowIndex = findRowIndexById(sheet, "expense_id", expenseId);
+  if (rowIndex === -1) throw new ApiError("Unknown expense", 404);
+  return { sheet, rowIndex, expense: getRowObject(sheet, rowIndex) };
+}
+
+/** Edits a draft (an expense moved from a future-cost estimate). Open to
+ *  any signed-in admin, like recording an expense. Only a DRAFT can be
+ *  edited here — once submitted, changes go through Finance's review.
+ *  Spender details can stay blank until the draft is submitted. */
+function updateDraftExpense(volunteer, expenseId, { date, amount, purpose, spenderName, spenderMobile, upiId, screenshot, mimeType }) {
+  requireFields({ expenseId, date, amount, purpose }, ["expenseId", "date", "amount", "purpose"]);
+  const amountNum = Number(amount);
+  if (!(amountNum > 0)) throw new ApiError("Amount must be greater than 0", 400);
+  if (spenderMobile && !/^[6-9]\d{9}$/.test(spenderMobile)) {
+    throw new ApiError("Enter a valid 10-digit mobile number for who spent this", 400);
+  }
+
+  return withLock(() => {
+    const { sheet, rowIndex, expense } = getExpenseById(expenseId);
+    if (expenseStatus(expense) !== "DRAFT") throw new ApiError("Only a draft can be edited here", 400);
+
+    const fields = {
+      date,
+      amount: amountNum,
+      purpose,
+      spender_name: spenderName || "",
+      spender_mobile: spenderMobile || "",
+      upi_id: upiId || "",
+    };
+    if (screenshot) fields.screenshot_url = saveExpenseScreenshot(screenshot, mimeType);
+    updateRowFields(sheet, rowIndex, fields);
+    logAudit(
+      volunteer.email,
+      "Edited draft expense",
+      "Expense",
+      expenseId,
+      `₹${expense.amount} — ${expense.purpose}`,
+      `₹${amountNum} — ${purpose}`
+    );
+    invalidatePublicStatsCache();
+    return Object.assign({}, expense, fields);
+  });
+}
+
+/** Sends a finished draft to Finance for approval, the same PENDING state
+ *  as any recorded expense. Needs the spender's mobile, which settlement
+ *  and My Stuff group by. */
+function submitDraftExpense(volunteer, expenseId) {
+  requireFields({ expenseId }, ["expenseId"]);
+  return withLock(() => {
+    const { sheet, rowIndex, expense } = getExpenseById(expenseId);
+    if (expenseStatus(expense) !== "DRAFT") throw new ApiError("This expense is not a draft", 400);
+    if (!/^[6-9]\d{9}$/.test(String(expense.spender_mobile || ""))) {
+      throw new ApiError("Add who spent this (a 10-digit mobile number) before submitting", 400);
+    }
+    updateRowFields(sheet, rowIndex, { status: "PENDING" });
+    logAudit(volunteer.email, "Submitted draft expense", "Expense", expenseId, "DRAFT", "PENDING");
+    invalidatePublicStatsCache();
+    return { expenseId, status: "PENDING" };
+  });
 }

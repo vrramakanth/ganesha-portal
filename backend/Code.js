@@ -141,6 +141,12 @@ const ROUTES = {
   "volunteer.bhogSponsors.list": { auth: true, handler: (p, v) => listBhogSponsors(v) },
 
   "volunteer.futureCosts.record": { auth: true, handler: (p, v) => recordFutureCost(v, p) },
+  "volunteer.futureCosts.move": { auth: true, handler: (p, v) => moveFutureCostToExpense(v, p.estimateId) },
+  "volunteer.futureCosts.discard": { auth: true, handler: (p, v) => discardFutureCost(v, p.estimateId, p.reason) },
+  "volunteer.futureCosts.returnDraft": { auth: true, handler: (p, v) => returnDraftToEstimate(v, p.estimateId) },
+  "volunteer.futureCosts.setClosed": { auth: true, handler: (p, v) => setFutureCostsClosed(v, p.closed) },
+  "volunteer.expenses.updateDraft": { auth: true, handler: (p, v) => updateDraftExpense(v, p.expenseId, p) },
+  "volunteer.expenses.submitDraft": { auth: true, handler: (p, v) => submitDraftExpense(v, p.expenseId) },
   "volunteer.futureCosts.update": {
     auth: true,
     handler: (p, v) => updateFutureCost(v, p.estimateId, p),

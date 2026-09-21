@@ -20,6 +20,7 @@ export type FestivalInfo = {
   community_dinner_counter_map: string;
   donations_open: string;
   festival_wrapped_up: string;
+  future_costs_closed: string;
 };
 
 export type Block = {
@@ -240,6 +241,18 @@ export type VolunteerDashboard = {
   };
 };
 
+export type FutureCostExpense = {
+  expense_id: string;
+  status: string;
+  amount: number;
+  purpose: string;
+  date?: string;
+  spender_name?: string;
+  spender_mobile?: string;
+  upi_id?: string;
+  screenshot_url?: string;
+};
+
 export type FutureCost = {
   estimate_id: string;
   date: string;
@@ -248,6 +261,10 @@ export type FutureCost = {
   vendor_checked: boolean;
   recorded_by: string;
   created_at: string;
+  status: "OPEN" | "MOVED" | "DISCARDED";
+  expense_id?: string;
+  closed_note?: string;
+  expense?: FutureCostExpense;
 };
 
 export type Expense = {
