@@ -1,3 +1,4 @@
+import { CACHED_PUBLIC_ACTIONS } from "@/lib/publicCache";
 import type {
   Announcement,
   AuditLogEntry,
@@ -92,7 +93,31 @@ async function parseJsonResponse<T>(res: Response): Promise<T> {
  *  later page visit still fetches fresh data, never stale. */
 const inFlightGets = new Map<string, Promise<unknown>>();
 
+/** Resident pages read these public, parameterless numbers through the CDN
+ *  cache (see /api/public). Volunteer pages go straight to the backend so
+ *  what an admin has just changed shows immediately. */
+function usesCdnCache(action: string, params: Params): boolean {
+  if (!CACHED_PUBLIC_ACTIONS.has(action) || Object.keys(params).length > 0) return false;
+  if (typeof window === "undefined") return false;
+  return !window.location.pathname.startsWith("/volunteer");
+}
+
 async function apiGet<T>(action: string, params: Params = {}): Promise<T> {
+  if (usesCdnCache(action, params)) {
+    const cachedKey = `/api/public?action=${encodeURIComponent(action)}`;
+    const existing = inFlightGets.get(cachedKey);
+    if (existing) return existing as Promise<T>;
+    const promise = (async () => {
+      try {
+        return await parseJsonResponse<T>(await fetch(cachedKey));
+      } finally {
+        inFlightGets.delete(cachedKey);
+      }
+    })();
+    inFlightGets.set(cachedKey, promise);
+    return promise;
+  }
+
   const url = new URL(apiUrl());
   url.searchParams.set("action", action);
   Object.entries(params).forEach(([key, value]) => {

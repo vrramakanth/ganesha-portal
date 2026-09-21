@@ -20,7 +20,7 @@ const PORTAL = {
   residentsOnPortal: 254,
   culturalNominations: 22,
   performers: 15,
-  bhogSponsors: 6,
+  bhogSponsors: 4,
   bhogEvenings: 3,
 };
 
@@ -97,18 +97,6 @@ export default function WrapUpSummary({
         </div>
       </Group>
 
-      <Group title="Community Dinner">
-        <div className="grid grid-cols-2 gap-2">
-          <Tile value="500+" label="dinners served" />
-          <Tile value="< 90 min" label="was 150 min" delta="40%+ faster" />
-        </div>
-        <ul className="space-y-0.5 text-sm">
-          <li>✓ Online registration</li>
-          <li>✓ No physical tokens to distribute</li>
-          <li>✓ No block reps going door to door</li>
-        </ul>
-      </Group>
-
       <Group title="Festival">
         <div className="grid grid-cols-2 gap-2">
           <Tile value={1} label="idol fully sponsored by one resident" />
@@ -127,6 +115,18 @@ export default function WrapUpSummary({
           <li>✓ Dance, singing and recitation on cultural night</li>
           <li>✓ Aster Whitefield Hospital launch on cultural night</li>
           <li>✓ A sacred farewell to Bappa at Visarjan</li>
+        </ul>
+      </Group>
+
+      <Group title="Community Dinner">
+        <div className="grid grid-cols-2 gap-2">
+          <Tile value="500+" label="dinners served" />
+          <Tile value="< 90 min" label="was 150+ min" delta="40%+ faster" />
+        </div>
+        <ul className="space-y-0.5 text-sm">
+          <li>✓ Online registration</li>
+          <li>✓ No physical tokens to distribute</li>
+          <li>✓ No block reps going door to door</li>
         </ul>
       </Group>
 
