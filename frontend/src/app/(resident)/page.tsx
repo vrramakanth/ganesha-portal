@@ -110,7 +110,6 @@ export default function Home() {
         <WrapUpSummary
           stats={stats}
           eventsCount={(events ?? []).length}
-          rsvps={(events ?? []).reduce((sum, e) => sum + (Number(e.rsvp_yes) || 0), 0)}
         />
       )}
 

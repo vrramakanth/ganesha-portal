@@ -10,7 +10,10 @@ const LAST_YEAR = { flatsDonated: 169, totalFlats: 335, raised: 165921 };
 
 /** Portal usage as of 21 Sep 2026. Page views and the busiest day are from
  *  Vercel Web Analytics (it started recording on 15 Sep); the rest are counts
- *  from the portal's own data. Receipts and RSVPs are passed in live. */
+ *  from the portal's own data. Receipts are passed in live. */
+/** Festival facts from the events list and the cultural nominations. */
+const FESTIVAL = { days: 7, aarthis: 11 };
+
 const PORTAL = {
   pageViews: "3,200+",
   busiestDayVisitors: 190,
@@ -23,9 +26,19 @@ const PORTAL = {
 
 const percentMore = (now: number, before: number) => Math.round((now / before - 1) * 100);
 
-function Tile({ value, label, delta }: { value: string | number; label: string; delta?: string }) {
+function Tile({
+  value,
+  label,
+  delta,
+  wide,
+}: {
+  value: string | number;
+  label: string;
+  delta?: string;
+  wide?: boolean;
+}) {
   return (
-    <div className="rounded-lg border border-border bg-background px-3 py-2.5 text-center">
+    <div className={`rounded-lg border border-border bg-background px-3 py-2.5 text-center ${wide ? "col-span-2" : ""}`}>
       <p className="text-lg font-bold leading-tight text-maroon">{value}</p>
       <p className="text-[11px] leading-tight text-muted">{label}</p>
       {delta && <p className="mt-0.5 text-[11px] font-semibold text-green-700">{delta}</p>}
@@ -47,11 +60,9 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
 export default function WrapUpSummary({
   stats,
   eventsCount,
-  rsvps,
 }: {
   stats: PublicStats;
   eventsCount: number;
-  rsvps: number;
 }) {
   const perFlat = stats.families > 0 ? stats.totalCollected / stats.families : 0;
   const lastPerFlat = LAST_YEAR.raised / LAST_YEAR.flatsDonated;
@@ -100,11 +111,23 @@ export default function WrapUpSummary({
 
       <Group title="Festival">
         <div className="grid grid-cols-2 gap-2">
-          <Tile value={eventsCount} label="poojas, aarthis, programmes" />
+          <Tile value={1} label="idol fully sponsored by one resident" />
           <Tile value={PORTAL.bhogSponsors} label={`Bhog sponsors, ${PORTAL.bhogEvenings} evenings`} />
+          <Tile value="20+" label="active volunteers doing seva every day" />
+          <Tile value="150+" label="residents every day for evening aarti and bhog" />
+          <Tile value={FESTIVAL.days} label="days, 14 to 20 Sep" />
+          <Tile value={eventsCount} label="poojas, aarthis, programmes" />
+          <Tile value={FESTIVAL.aarthis} label="morning and evening aarthis" />
           <Tile value={PORTAL.culturalNominations} label={`cultural entries, ${PORTAL.performers} performers`} />
-          {rsvps > 0 && <Tile value={rsvps} label="one-tap RSVPs" />}
         </div>
+        <ul className="space-y-0.5 text-sm">
+          <li>✓ Several unique bhog daily, for 6 days</li>
+          <li>✓ All building up to the grand dinner</li>
+          <li>✓ Residents&apos; own bhajan evening</li>
+          <li>✓ Dance, singing and recitation on cultural night</li>
+          <li>✓ Aster Whitefield Hospital launch on cultural night</li>
+          <li>✓ A sacred farewell to Bappa at Visarjan</li>
+        </ul>
       </Group>
 
       <Group title="Portal">
