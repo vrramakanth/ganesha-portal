@@ -113,6 +113,40 @@ function setConfig(key, value) {
   CacheService.getScriptCache().remove(CONFIG_CACHE_KEY);
 }
 
+const FESTIVAL_WRAPPED_UP_KEY = "festival_wrapped_up";
+
+/** Off unless explicitly set to "true". */
+function isFestivalWrappedUp() {
+  return String(getConfig(FESTIVAL_WRAPPED_UP_KEY, "false")).trim().toLowerCase() === "true";
+}
+
+/** Once the festival has wrapped up, residents can no longer RSVP,
+ *  register, upload songs, sign up for Seva or register for a dinner —
+ *  enforced in those handlers, not just hidden in the UI. Donations have
+ *  their own switch (donations_open), and viewing (My Stuff, receipts,
+ *  feedback, photos) is unaffected. */
+function requireFestivalActive() {
+  if (isFestivalWrappedUp()) {
+    throw new ApiError("The festival has wrapped up. Thank you for celebrating with us!", 409);
+  }
+}
+
+function setFestivalWrappedUp(volunteer, wrapped) {
+  requirePermission(volunteer, "Operations");
+  const value = wrapped === true || String(wrapped).toLowerCase() === "true" ? "true" : "false";
+  const before = getConfig(FESTIVAL_WRAPPED_UP_KEY, "false");
+  setConfig(FESTIVAL_WRAPPED_UP_KEY, value);
+  logAudit(
+    volunteer.email,
+    value === "true" ? "Marked festival wrapped up" : "Reopened festival",
+    "Configuration",
+    FESTIVAL_WRAPPED_UP_KEY,
+    before,
+    value
+  );
+  return { wrappedUp: value === "true" };
+}
+
 /** Configuration keys that touch money — where it goes (upi_vpa,
  *  upi_payee_name) or how much (donation_goal, min/maximum_donation).
  *  An Operations-only admin (no Finance permission) can manage every

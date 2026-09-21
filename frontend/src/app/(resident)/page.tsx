@@ -11,6 +11,7 @@ import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
 import LinkifiedText from "@/components/LinkifiedText";
 import FindYourCounter from "@/components/FindYourCounter";
 import DonationsClosed from "@/components/DonationsClosed";
+import WrapUpSummary from "@/components/WrapUpSummary";
 
 // Traffic-light read on (spent + worst-case costs ahead) vs collected —
 // a resident-facing signal that stays honest (the estimate is real, so
@@ -105,10 +106,16 @@ export default function Home() {
         <p className="text-muted text-sm">Celebrate. Participate. Contribute.</p>
       </header>
 
+      {stats?.wrappedUp && (
+        <WrapUpSummary stats={stats} eventsCount={(events ?? []).length} dinnerRegistered={dinnerCount?.registered ?? 0} />
+      )}
+
       {stats?.donationsOpen === false ? (
-        <div className="rounded-xl border border-border bg-card pb-5">
-          <DonationsClosed />
-        </div>
+        !stats.wrappedUp && (
+          <div className="rounded-xl border border-border bg-card pb-5">
+            <DonationsClosed />
+          </div>
+        )
       ) : (
         <Link
           href="/donate"
@@ -177,6 +184,7 @@ export default function Home() {
         )}
       </div>
 
+      {!stats?.wrappedUp && (
       <section className="space-y-3">
         <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
           Upcoming
@@ -228,7 +236,9 @@ export default function Home() {
           View all events →
         </Link>
       </section>
+      )}
 
+      {!stats?.wrappedUp && (
       <section className="rounded-xl border border-border bg-card p-5 space-y-3">
         <div>
           <p className="font-semibold">Community Dinner</p>
@@ -255,6 +265,7 @@ export default function Home() {
         )}
         <FindYourCounter counters={dinnerCount?.counters} lateCounter={dinnerCount?.lateCounter} />
       </section>
+      )}
 
       {!announcementsError && news.length > 0 && (
         <section className="space-y-3">

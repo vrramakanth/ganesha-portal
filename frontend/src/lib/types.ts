@@ -19,6 +19,7 @@ export type FestivalInfo = {
   admin_whatsapp_number: string;
   community_dinner_counter_map: string;
   donations_open: string;
+  festival_wrapped_up: string;
 };
 
 export type Block = {
@@ -59,6 +60,7 @@ export type PublicStats = {
   totalExpenses: number;
   futureCosts: number;
   donationsOpen: boolean;
+  wrappedUp: boolean;
 };
 
 export type Announcement = {
@@ -371,6 +373,7 @@ export type CommunityDinnerPublicCount = {
   open: boolean;
   counters: Record<string, number>;
   lateCounter: number;
+  wrappedUp: boolean;
 };
 
 export type CommunityDinnerRegistration = {

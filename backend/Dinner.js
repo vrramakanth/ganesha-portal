@@ -23,6 +23,7 @@ function checkDinnerCapacity(event, requestedMeals) {
 }
 
 function registerDinner({ eventId, name, mobile, email, block, flatNumber, adults, children }) {
+  requireFestivalActive();
   requireFields({ eventId, name, mobile, block, flatNumber }, [
     "eventId",
     "name",

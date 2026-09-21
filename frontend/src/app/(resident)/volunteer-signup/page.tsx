@@ -140,6 +140,18 @@ export default function VolunteerSignupPage() {
     }
   }
 
+  if (festival?.festival_wrapped_up === "true" && !done) {
+    return (
+      <div className="flex flex-col gap-4 px-5 pt-8 text-center items-center">
+        <PageHeader title="Thank You for Your Seva 🙏" />
+        <p className="text-sm text-muted">
+          Seva sign-up is now closed, as the festival has wrapped up. Thank you to every volunteer who gave their time
+          and heart to make Ganesha Chathurthi 2026 so special.
+        </p>
+      </div>
+    );
+  }
+
   if (done) {
     return (
       <div className="flex flex-col gap-3 px-5 pt-8 text-center">

@@ -117,6 +117,8 @@ type SubmitOutcome =
 
 export default function EventDetailClient({ eventId }: { eventId: string }) {
   const { data: events, loading, error } = useAsync(() => api.events.list(), []);
+  const { data: festivalInfo } = useAsync(() => api.festival.get(), []);
+  const wrappedUp = festivalInfo?.festival_wrapped_up === "true";
   const event = (events ?? []).find((e) => e.event_id === eventId);
   const { profile, saveProfile, loaded } = useResidentProfile();
 
@@ -153,7 +155,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
 
   const fields = { participantName, mobile, block, flatNumber };
 
-  const canRegister = event.status === "OPEN" && Number(event.fee || 0) === 0;
+  const canRegister = event.status === "OPEN" && Number(event.fee || 0) === 0 && !wrappedUp;
   const isCultural = event.category === "Cultural";
 
   function updatePerformance(key: string, patch: Partial<Performance>) {
@@ -279,7 +281,13 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       />
       {event.description && <p className="text-sm text-muted">{event.description}</p>}
 
-      {event.status !== "CANCELLED" && event.status !== "COMPLETED" && <RsvpSection event={event} />}
+      {wrappedUp ? (
+        <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">
+          This event has ended. Thank you for celebrating with us! 🙏
+        </p>
+      ) : (
+        event.status !== "CANCELLED" && event.status !== "COMPLETED" && <RsvpSection event={event} />
+      )}
 
       {isCultural && !canRegister && (
         <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">

@@ -4,6 +4,7 @@
  *  sheet (spec §34 keeps "Volunteers" and "Admins/Permissions" distinct). */
 
 function registerVolunteer({ name, mobile, email, block, flatNumber, areas, availability }) {
+  requireFestivalActive();
   requireFields({ name, mobile, block, flatNumber, areas }, [
     "name",
     "mobile",

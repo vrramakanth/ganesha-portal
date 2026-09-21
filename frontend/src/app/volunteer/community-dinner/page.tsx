@@ -87,6 +87,14 @@ export default function VolunteerCommunityDinnerPage() {
   );
 
   const { data: publicCount } = useAsync(() => api.communityDinner.publicCount(), [refreshKey]);
+  const { data: festivalForCounters } = useAsync(() => api.festival.get(), []);
+  const counterMap = (() => {
+    try {
+      return JSON.parse(festivalForCounters?.community_dinner_counter_map || "{}") as Record<string, number>;
+    } catch {
+      return {} as Record<string, number>;
+    }
+  })();
   const registrationOpen = publicCount?.open ?? true;
 
   async function handleToggleOpen() {
@@ -146,7 +154,7 @@ export default function VolunteerCommunityDinnerPage() {
   const isDuplicateFlat = (r: CommunityDinnerRegistration) => isLive(r) && liveFlatCounts[flatKey(r)] > 1;
   const duplicateCount = registrations.filter(isDuplicateFlat).length;
   const counterOf = (r: CommunityDinnerRegistration): number | null =>
-    r.counter_override ? Number(r.counter_override) : publicCount?.counters?.[String(r.block).trim().toUpperCase()] ?? null;
+    r.counter_override ? Number(r.counter_override) : counterMap[String(r.block).trim().toUpperCase()] ?? null;
   const visibleRegistrations = registrations
     .filter((r) => !search || String(r.mobile).includes(search))
     .sort(compareByBlockThenFlat);

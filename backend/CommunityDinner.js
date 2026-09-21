@@ -371,10 +371,14 @@ function getCommunityDinnerPublicCount() {
  *  already cached and invalidated on write); only the headcount is cached
  *  here, so a saved counter change shows up immediately. */
 function communityDinnerPublicCount(registered) {
+  const wrappedUp = isFestivalWrappedUp();
   return {
     registered,
     open: isCommunityDinnerRegistrationOpen(),
-    counters: getCommunityDinnerCounterMap(),
+    wrappedUp,
+    // Once the festival is over there's no counter to find, so the public
+    // map is withheld; every "Find your counter" surface hides when empty.
+    counters: wrappedUp ? {} : getCommunityDinnerCounterMap(),
     lateCounter: COMMUNITY_DINNER_LATE_COUNTER,
   };
 }

@@ -291,17 +291,25 @@ export default function CommunityDinnerPage() {
     const whatsappNumber = festival?.admin_whatsapp_number;
     return (
       <div className="flex flex-col gap-4 px-5 pt-8 text-center items-center">
-        <PageHeader title="Registrations Closed" backHref="/more" backLabel="← More" />
+        <PageHeader
+          title={dinnerCount.wrappedUp ? "Thank You 🙏" : "Registrations Closed"}
+          backHref="/more"
+          backLabel="← More"
+        />
         <p className="text-sm text-muted">
-          Community Dinner registrations are now closed. Thank you to everyone who signed up!
+          {dinnerCount.wrappedUp
+            ? "The Community Dinner is over. Thank you for joining us!"
+            : "Community Dinner registrations are now closed. Thank you to everyone who signed up!"}
         </p>
         <div className="w-full text-left">
           <FindYourCounter counters={dinnerCount?.counters} lateCounter={dinnerCount?.lateCounter} />
         </div>
-        <Link href="/my-stuff" className="text-sm font-semibold text-maroon underline">
-          Already registered? Check status in My Stuff
-        </Link>
-        {whatsappNumber && (
+        {!dinnerCount.wrappedUp && (
+          <Link href="/my-stuff" className="text-sm font-semibold text-maroon underline">
+            Already registered? Check status in My Stuff
+          </Link>
+        )}
+        {whatsappNumber && !dinnerCount.wrappedUp && (
           <a
             href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
               "Hi, I'd like to ask about registering for the Community Dinner after registrations closed.\nName: \nBlock/Flat: \nNumber of people: "

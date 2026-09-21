@@ -187,6 +187,7 @@ function updateEventStatus(volunteer, eventId, status) {
  *  audited, same reasoning as not collecting identity: there's no "who"
  *  to log against. */
 function rsvpEvent(eventId, response) {
+  requireFestivalActive();
   if (response !== "YES" && response !== "NO") {
     throw new ApiError(`Invalid RSVP response: ${response}`, 400);
   }
@@ -250,6 +251,7 @@ function countRegistrations(eventId) {
  *  `parentMobile` are kept separate and optional, for the children's-event
  *  form fields in spec §15 — they're display-only, not used for lookup. */
 function registerForEvent({ eventId, participantName, participantAge, block, flatNumber, mobile, parentName, parentMobile, subCategory, song, songMimeType, comments }) {
+  requireFestivalActive();
   requireFields({ eventId, participantName, block, flatNumber, mobile }, [
     "eventId",
     "participantName",
@@ -323,6 +325,7 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
  *  lookup in this app, not a new security bar. Blocked once a
  *  registration is REJECTED/CANCELLED — nothing to prepare for anymore. */
 function updateRegistrationSong({ registrationId, mobile, song, songMimeType }) {
+  requireFestivalActive();
   requireFields({ registrationId, mobile, song }, ["registrationId", "mobile", "song"]);
   return withLock(() => {
     const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);

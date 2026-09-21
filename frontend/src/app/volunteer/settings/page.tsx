@@ -14,6 +14,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [togglingWrap, setTogglingWrap] = useState(false);
+  const [wrapError, setWrapError] = useState<string | null>(null);
   const [backingUp, setBackingUp] = useState(false);
   const [backupError, setBackupError] = useState<string | null>(null);
   const [backupResult, setBackupResult] = useState<{ name: string; url: string; created: boolean } | null>(null);
@@ -22,6 +24,31 @@ export default function SettingsPage() {
     () => api.volunteer.listConfig(idToken as string),
     [idToken, refreshKey]
   );
+
+  const { data: festivalInfo } = useAsync(() => api.festival.get(), [refreshKey]);
+  const wrappedUp = festivalInfo ? festivalInfo.festival_wrapped_up === "true" : null;
+
+  async function handleToggleWrapUp() {
+    const wrapping = !wrappedUp;
+    if (
+      wrapping &&
+      !window.confirm(
+        "Mark the festival as wrapped up? Residents will no longer be able to RSVP, register for events, upload songs, or sign up for Seva, and Home will show the thank-you summary. Donations have their own switch. You can reverse this any time."
+      )
+    ) {
+      return;
+    }
+    setWrapError(null);
+    setTogglingWrap(true);
+    try {
+      await api.volunteer.setFestivalWrappedUp(idToken as string, wrapping);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setWrapError(err instanceof ApiClientError ? err.message : "Could not change the festival status.");
+    } finally {
+      setTogglingWrap(false);
+    }
+  }
 
   async function handleSave() {
     if (Object.keys(edits).length === 0) return;
@@ -86,6 +113,25 @@ export default function SettingsPage() {
       >
         {saving ? "Saving…" : "Save Changes"}
       </button>
+
+      {wrappedUp !== null && (
+        <div className="space-y-2 border-t border-border pt-6">
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Festival Wrap-up</h2>
+          <p className="text-xs text-muted">
+            {wrappedUp
+              ? "The festival is marked as wrapped up. Residents see the thank-you summary on Home, and RSVPs, event registration, song uploads and Seva sign-up are closed."
+              : "When the festival is over, this closes RSVPs, event registration, song uploads and Seva sign-up, and shows the thank-you summary on Home. Donations have their own switch on the Donations page."}
+          </p>
+          <button
+            onClick={handleToggleWrapUp}
+            disabled={togglingWrap}
+            className="w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon disabled:opacity-60"
+          >
+            {togglingWrap ? "Saving…" : wrappedUp ? "Reopen festival" : "Mark festival as wrapped up"}
+          </button>
+          {wrapError && <p className="text-sm text-red-600">{wrapError}</p>}
+        </div>
+      )}
 
       <div className="space-y-2 border-t border-border pt-6">
         <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Backup</h2>

@@ -290,6 +290,8 @@ export const api = {
         transactionId,
         notes,
       }),
+    setFestivalWrappedUp: (idToken: string, wrapped: boolean) =>
+      apiPost<{ wrappedUp: boolean }>("volunteer.festival.setWrappedUp", { idToken, wrapped }),
     setDonationsOpen: (idToken: string, open: boolean) =>
       apiPost<{ open: boolean }>("volunteer.donations.setOpen", { idToken, open }),
     recordSponsorship: (

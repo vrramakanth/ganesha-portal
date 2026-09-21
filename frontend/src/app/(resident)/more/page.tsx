@@ -62,6 +62,7 @@ export default function MorePage() {
         </section>
       )}
 
+      {!dinnerCount?.wrappedUp && (
       <Link
         href="/community-dinner"
         className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3.5"
@@ -74,6 +75,7 @@ export default function MorePage() {
         </div>
         <span className="text-muted">›</span>
       </Link>
+      )}
 
       <FindYourCounter counters={dinnerCount?.counters} lateCounter={dinnerCount?.lateCounter} />
 
