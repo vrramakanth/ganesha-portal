@@ -97,7 +97,7 @@ export default function WrapUpSummary({
         </div>
       </Group>
 
-      <Group title="Festival">
+      <Group title="Festival Week">
         <div className="grid grid-cols-2 gap-2">
           <Tile value={1} label="idol fully sponsored by one resident" />
           <Tile value={PORTAL.bhogSponsors} label={`Bhog sponsors, ${PORTAL.bhogEvenings} evenings`} />
