@@ -532,6 +532,8 @@ export const api = {
       apiPost<{ estimateId: string; status: string }>("volunteer.futureCosts.returnDraft", { idToken, estimateId }),
     setFutureCostsClosed: (idToken: string, closed: boolean) =>
       apiPost<{ closed: boolean }>("volunteer.futureCosts.setClosed", { idToken, closed }),
+    deleteExpense: (idToken: string, expenseId: string, reason: string) =>
+      apiPost<{ expenseId: string; status: string }>("volunteer.expenses.delete", { idToken, expenseId, reason }),
     attachExpenseReceipt: (idToken: string, expenseId: string, screenshot: string, mimeType: string) =>
       apiPost<{ expenseId: string; receiptUrl: string }>("volunteer.expenses.attachReceipt", {
         idToken,

@@ -10,6 +10,7 @@ import StatTile from "@/components/StatTile";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import ReceiptUpload from "./ReceiptUpload";
+import DeleteExpense from "./DeleteExpense";
 import ReceiptLinks from "@/components/ReceiptLinks";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
@@ -187,6 +188,11 @@ export default function ReviewExpensesPage() {
                         Reject
                       </button>
                     </div>
+                    <DeleteExpense
+                      idToken={idToken as string}
+                      expense={e}
+                      onDeleted={() => setRefreshKey((k) => k + 1)}
+                    />
                   </div>
                 ))}
               </div>
@@ -265,7 +271,8 @@ export default function ReviewExpensesPage() {
             <div className="rounded-xl border border-border bg-card divide-y divide-border">
               {expenses.length === 0 && <p className="px-4 py-3 text-sm text-muted">No expenses recorded yet.</p>}
               {expenses.map((e) => (
-                <div key={e.expense_id} className="px-4 py-3 flex items-center justify-between gap-2">
+                <div key={e.expense_id} className="px-4 py-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="font-semibold text-sm">{e.purpose}</p>
                     <p className="text-xs text-muted">
@@ -289,6 +296,8 @@ export default function ReviewExpensesPage() {
                       />
                     )}
                   </div>
+                </div>
+                <DeleteExpense idToken={idToken as string} expense={e} onDeleted={() => setRefreshKey((k) => k + 1)} />
                 </div>
               ))}
             </div>

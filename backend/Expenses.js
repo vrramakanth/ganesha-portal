@@ -371,3 +371,37 @@ function attachExpenseReceipt(volunteer, expenseId, screenshot, mimeType) {
     return { expenseId, receiptUrl: url, receiptUrls: all };
   });
 }
+
+/** Removes an expense that shouldn't be there (a duplicate, a mistaken
+ *  entry, a purchase that fell through). It's a soft delete: the row is
+ *  kept as CANCELLED with the reason and an audit entry, and it drops out
+ *  of every list and total. Only an unpaid expense can be deleted — once
+ *  the money has been paid out, the record has to stay. Finance-gated,
+ *  since deleting an approved expense lowers Spent. */
+function deleteExpense(volunteer, expenseId, reason) {
+  requirePermission(volunteer, "Finance");
+  requireFields({ expenseId, reason }, ["expenseId", "reason"]);
+  const why = String(reason).trim();
+  if (!why) throw new ApiError("Enter a reason for deleting this expense", 400);
+
+  return withLock(() => {
+    const { sheet, rowIndex, expense } = getExpenseById(expenseId);
+    const before = expenseStatus(expense);
+    if (before === "CANCELLED") throw new ApiError("This expense was already deleted", 400);
+    if (paymentStatus(expense) === "PAID") {
+      throw new ApiError("This expense has already been paid, so it can't be deleted", 400);
+    }
+    const note = (expense.admin_notes ? expense.admin_notes + " | " : "") + `Deleted by ${volunteer.email}: ${why}`;
+    updateRowFields(sheet, rowIndex, { status: "CANCELLED", admin_notes: note });
+    logAudit(
+      volunteer.email,
+      "Deleted expense",
+      "Expense",
+      expenseId,
+      `${before} ₹${expense.amount} — ${expense.purpose}`,
+      `CANCELLED: ${why}`
+    );
+    invalidatePublicStatsCache();
+    return { expenseId, status: "CANCELLED" };
+  });
+}
