@@ -65,7 +65,7 @@ export default function WrapUpSummary({
         <p className="text-sm text-muted">Thank you, Brigade Woods 🙏 Until next year!</p>
       </div>
 
-      <Group title="Giving, vs last year">
+      <Group title="Donations vs last year">
         <div className="grid grid-cols-2 gap-2">
           <Tile
             value={formatCurrency(stats.totalCollected)}
