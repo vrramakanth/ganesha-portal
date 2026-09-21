@@ -145,6 +145,10 @@ const ROUTES = {
   "volunteer.futureCosts.discard": { auth: true, handler: (p, v) => discardFutureCost(v, p.estimateId, p.reason) },
   "volunteer.futureCosts.returnDraft": { auth: true, handler: (p, v) => returnDraftToEstimate(v, p.estimateId) },
   "volunteer.futureCosts.setClosed": { auth: true, handler: (p, v) => setFutureCostsClosed(v, p.closed) },
+  "volunteer.expenses.attachReceipt": {
+    auth: true,
+    handler: (p, v) => attachExpenseReceipt(v, p.expenseId, p.screenshot, p.mimeType),
+  },
   "volunteer.expenses.updateDraft": { auth: true, handler: (p, v) => updateDraftExpense(v, p.expenseId, p) },
   "volunteer.expenses.submitDraft": { auth: true, handler: (p, v) => submitDraftExpense(v, p.expenseId) },
   "volunteer.futureCosts.update": {

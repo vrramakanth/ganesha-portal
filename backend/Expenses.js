@@ -338,3 +338,23 @@ function submitDraftExpense(volunteer, expenseId) {
     return { expenseId, status: "PENDING" };
   });
 }
+
+/** Backfills a missing receipt while reviewing — the spender sent it over
+ *  WhatsApp instead of attaching it. Same shape as attachPaymentScreenshot
+ *  for donations: Finance-gated, and it touches only screenshot_url, never
+ *  the status, amount or payment fields, so it can't approve, change or
+ *  re-count anything. Works on an expense in any live state. */
+function attachExpenseReceipt(volunteer, expenseId, screenshot, mimeType) {
+  requirePermission(volunteer, "Finance");
+  requireFields({ expenseId, screenshot }, ["expenseId", "screenshot"]);
+  return withLock(() => {
+    const { sheet, rowIndex, expense } = getExpenseById(expenseId);
+    if (expenseStatus(expense) === "CANCELLED") throw new ApiError("This expense was cancelled", 400);
+
+    const url = saveExpenseScreenshot(screenshot, mimeType);
+    if (!url) throw new ApiError("Could not save the receipt. Please try again.", 500);
+    updateRowFields(sheet, rowIndex, { screenshot_url: url });
+    logAudit(volunteer.email, "Attached expense receipt", "Expense", expenseId, expense.screenshot_url ? "replaced" : "", url);
+    return { expenseId, receiptUrl: url };
+  });
+}

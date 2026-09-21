@@ -9,6 +9,7 @@ import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import ReceiptUpload from "./ReceiptUpload";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   APPROVED: "success",
@@ -166,6 +167,16 @@ export default function ReviewExpensesPage() {
                         View Receipt
                       </a>
                     )}
+                    {!e.screenshot_url && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted">No receipt attached.</span>
+                        <ReceiptUpload
+                          idToken={idToken as string}
+                          expenseId={e.expense_id}
+                          onUploaded={() => setRefreshKey((k) => k + 1)}
+                        />
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <button
                         disabled={actioning === e.expense_id}
@@ -278,6 +289,14 @@ export default function ReviewExpensesPage() {
                       >
                         Receipt
                       </a>
+                    )}
+                    {!e.screenshot_url && (
+                      <ReceiptUpload
+                        idToken={idToken as string}
+                        expenseId={e.expense_id}
+                        onUploaded={() => setRefreshKey((k) => k + 1)}
+                        label="Add receipt"
+                      />
                     )}
                     <StatusBadge label={e.status} tone={STATUS_TONE[e.status] ?? "neutral"} />
                     {e.status === "APPROVED" && (
