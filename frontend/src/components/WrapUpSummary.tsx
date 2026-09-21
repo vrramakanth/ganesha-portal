@@ -1,6 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/date";
-import type { PublicStats } from "@/lib/types";
+import type { FeedbackReport, PublicStats } from "@/lib/types";
 
 const PHOTOS_URL = "https://photos.app.goo.gl/ZhCpaqaWJnbeGdkk9";
 
@@ -60,10 +63,13 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
 export default function WrapUpSummary({
   stats,
   eventsCount,
+  voices,
 }: {
   stats: PublicStats;
   eventsCount: number;
+  voices: FeedbackReport[];
 }) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const perFlat = stats.families > 0 ? stats.totalCollected / stats.families : 0;
   const lastPerFlat = LAST_YEAR.raised / LAST_YEAR.flatsDonated;
   const participation = Math.round((stats.families / LAST_YEAR.totalFlats) * 100);
@@ -139,6 +145,31 @@ export default function WrapUpSummary({
         </div>
       </Group>
 
+      {voices.length > 0 && (
+        <Group title="Community Voices">
+          <div className="space-y-2">
+            {voices.map((f) => {
+              const open = !!expanded[f.feedback_id];
+              return (
+                <div key={f.feedback_id} className="rounded-lg border border-border bg-background px-3 py-2.5">
+                  <p className={`text-sm ${open ? "" : "line-clamp-3"}`}>&ldquo;{f.message}&rdquo;</p>
+                  <p className="mt-1 text-xs text-muted">— {f.reporter_name || "A Brigade Woods resident"}</p>
+                  {f.message.length > 120 && (
+                    <button
+                      type="button"
+                      onClick={() => setExpanded((prev) => ({ ...prev, [f.feedback_id]: !prev[f.feedback_id] }))}
+                      className="mt-1 text-xs font-semibold text-maroon"
+                    >
+                      {open ? "Show less" : "Read more"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Group>
+      )}
+
       <p className="text-center text-sm">
         Thank you: donors · volunteers · performers · sponsors, incl. Aster Whitefield Hospital
       </p>
@@ -153,14 +184,11 @@ export default function WrapUpSummary({
           Add your photos
         </a>
         <Link href="/feedback" className="rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon">
-          Share your experience
+          Tell us how you felt
         </Link>
       </div>
 
-      <div className="space-y-0.5 text-center">
-        <p className="text-xs font-semibold text-muted">Final accounts: coming in a day or two</p>
-        <p className="text-sm font-semibold text-maroon">Ganpati Bappa Morya! Pudhchya Varshi Lavkar Ya! 🙏</p>
-      </div>
+      <p className="text-center text-sm font-semibold text-maroon">Ganpati Bappa Morya! Pudhchya Varshi Lavkar Ya! 🙏</p>
     </section>
   );
 }

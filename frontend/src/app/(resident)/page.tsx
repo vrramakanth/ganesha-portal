@@ -110,6 +110,7 @@ export default function Home() {
         <WrapUpSummary
           stats={stats}
           eventsCount={(events ?? []).length}
+          voices={feedback ?? []}
         />
       )}
 
@@ -166,7 +167,7 @@ export default function Home() {
                       {stats.donationsOpen === false ? (
                         <>
                           *Worst-case estimate for remaining bills — volunteers are working to optimize costs, and
-                          final costs are typically lower. Final accounts are coming in a day or two.
+                          final costs are typically lower.
                         </>
                       ) : (
                         <>
@@ -177,6 +178,12 @@ export default function Home() {
                       )}
                     </p>
                   </>
+                )}
+
+                {stats.wrappedUp && (
+                  <p className="mt-3 rounded-lg bg-maroon/10 px-3 py-2 text-sm font-semibold text-maroon">
+                    Statement of accounts: coming soon
+                  </p>
                 )}
 
                 <p className="mt-2 text-sm text-foreground">{stats.families} families participating</p>
@@ -304,7 +311,7 @@ export default function Home() {
         </section>
       )}
 
-      {feedback && feedback.length > 0 && (
+      {!stats?.wrappedUp && feedback && feedback.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Community Voices</h2>
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
