@@ -112,6 +112,11 @@ const ROUTES = {
     auth: true,
     handler: (p, v) => saveCommunityDinnerPlateTally(v, p.counters),
   },
+  "volunteer.communityDinner.sheetScans.upload": {
+    auth: true,
+    handler: (p, v) => uploadCounterSheetScan(v, p.counter, p.image, p.mimeType, p.notes),
+  },
+  "volunteer.communityDinner.sheetScans.list": { auth: true, handler: (p, v) => listCounterSheetScans(v) },
   "volunteer.communityDinner.counters.save": {
     auth: true,
     handler: (p, v) => saveCommunityDinnerCounterMap(v, p.map),

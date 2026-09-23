@@ -27,6 +27,7 @@ const SHEETS = {
   COMMUNITY_DINNER: "Community Dinner",
   BHOG_SPONSORS: "Bhog Sponsors",
   FUTURE_COSTS: "Future Costs",
+  COUNTER_SHEET_SCANS: "Counter Sheet Scans",
 };
 
 function getScriptProperty(key) {

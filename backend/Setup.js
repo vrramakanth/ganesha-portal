@@ -74,6 +74,9 @@ const SHEET_SCHEMAS = {
     "estimate_id", "date", "amount", "purpose", "vendor_checked", "recorded_by", "created_at",
     "status", "expense_id", "closed_note",
   ],
+  [SHEETS.COUNTER_SHEET_SCANS]: [
+    "scan_id", "counter", "file_url", "notes", "uploaded_by", "uploaded_at",
+  ],
 };
 
 function setupSheets() {

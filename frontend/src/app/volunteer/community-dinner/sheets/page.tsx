@@ -9,6 +9,7 @@ import { buildHouseholds, parseMap } from "@/lib/dinnerHouseholds";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import CounterSheet from "@/components/CounterSheet";
+import ScannedSheets from "./ScannedSheets";
 
 const COUNTERS = [1, 2, 3, 4];
 
@@ -106,6 +107,8 @@ export default function DinnerSheetsPage() {
             </p>
           </>
         )}
+
+        {hasDinner && idToken && <ScannedSheets idToken={idToken} />}
       </div>
 
       {data && mapSaved && (

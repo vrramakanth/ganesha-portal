@@ -93,3 +93,8 @@ function generateFutureCostId() {
   const seq = nextSequence("counter_future_cost");
   return `GWG-FC-${pad(seq, 4)}`;
 }
+
+function generateCounterSheetScanId() {
+  const seq = nextSequence("counter_sheet_scan");
+  return `GWG-SCAN-${pad(seq, 4)}`;
+}

@@ -241,6 +241,15 @@ export type VolunteerDashboard = {
   };
 };
 
+export type CounterSheetScan = {
+  scan_id: string;
+  counter: number;
+  file_url: string;
+  notes: string;
+  uploaded_by: string;
+  uploaded_at: string;
+};
+
 export type FutureCostExpense = {
   expense_id: string;
   status: string;

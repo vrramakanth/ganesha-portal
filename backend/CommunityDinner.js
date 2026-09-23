@@ -610,3 +610,74 @@ function editCommunityDinnerRegistration(volunteer, registrationId, fields) {
     return Object.assign({}, before, update, { registration_id: registrationId });
   });
 }
+
+/** Physical counter sheets are printed, ticked by hand during the dinner,
+ *  then scanned and kept here as the permanent record of what actually
+ *  happened at each counter — separate from the plate tally (a number
+ *  entered by hand) and the digital registration data (what the counter
+ *  SHOULD have shown at print time). No status/approval workflow: this is
+ *  an archive, not a claim that needs review. Any signed-in admin with the
+ *  Dinner permission can add one; nothing here feeds into any total. */
+
+function getCounterSheetScansFolder() {
+  const rootName = getConfig("festival_name", "Ganesha Chathurthi 2026");
+  const root = getOrCreateFolder(DriveApp.getRootFolder(), rootName);
+  return getOrCreateFolder(root, "Counter Sheet Scans");
+}
+
+function ensureCounterSheetScansSheet() {
+  const spreadsheet = getSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(SHEETS.COUNTER_SHEET_SCANS);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(SHEETS.COUNTER_SHEET_SCANS);
+    const headers = SHEET_SCHEMAS[SHEETS.COUNTER_SHEET_SCANS];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+/** Saves the image itself; failure here throws (unlike a payment/expense
+ *  screenshot, there's no separate claim this could quietly still succeed
+ *  without — the scan IS the whole point of the action). */
+function saveCounterSheetScan(base64Image, mimeType) {
+  if (!base64Image) throw new ApiError("Choose a photo or scan to upload", 400);
+  const bytes = Utilities.base64Decode(base64Image);
+  const blob = Utilities.newBlob(bytes, mimeType || "image/jpeg", "counter-sheet-scan");
+  const file = getCounterSheetScansFolder().createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return file.getUrl();
+}
+
+// 0 is a reserved value meaning "all counters" — for the common case of one
+// combined scan/PDF covering every counter's sheet, rather than one file per
+// counter.
+function uploadCounterSheetScan(volunteer, counter, image, mimeType, notes) {
+  requirePermission(volunteer, "Dinner");
+  requireFields({ image }, ["image"]);
+  const counterNum = counter === undefined || counter === "" ? 0 : Number(counter);
+  if (!Number.isInteger(counterNum) || counterNum < 0 || counterNum > COMMUNITY_DINNER_COUNTER_COUNT) {
+    throw new ApiError(`Counter must be 0 (all counters) or from 1 to ${COMMUNITY_DINNER_COUNTER_COUNT}`, 400);
+  }
+
+  return withLock(() => {
+    const scan = {
+      scan_id: generateCounterSheetScanId(),
+      counter: counterNum,
+      file_url: saveCounterSheetScan(image, mimeType),
+      notes: notes || "",
+      uploaded_by: volunteer.email,
+      uploaded_at: new Date(),
+    };
+    appendObject(ensureCounterSheetScansSheet(), scan);
+    logAudit(volunteer.email, "Uploaded counter sheet scan", "CounterSheetScan", scan.scan_id, "", counterNum === 0 ? "All counters" : `Counter ${counterNum}`);
+    return scan;
+  });
+}
+
+function listCounterSheetScans(volunteer) {
+  requirePermission(volunteer, "Dinner");
+  return rowsToObjects(ensureCounterSheetScansSheet()).sort(
+    (a, b) => new Date(b.uploaded_at) - new Date(a.uploaded_at)
+  );
+}

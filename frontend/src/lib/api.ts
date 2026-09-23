@@ -9,6 +9,7 @@ import type {
   CancelResult,
   CommunityDinnerPublicCount,
   CommunityDinnerRegistration,
+  CounterSheetScan,
   ConfigEntry,
   CreateDonationResult,
   DinnerDashboard,
@@ -502,6 +503,12 @@ export const api = {
       ),
     saveCommunityDinnerCounters: (idToken: string, map: Record<string, number>) =>
       apiPost<Record<string, number>>("volunteer.communityDinner.counters.save", { idToken, map }),
+    uploadCounterSheetScan: (
+      idToken: string,
+      payload: { counter: number; image: string; mimeType: string; notes?: string }
+    ) => apiPost<CounterSheetScan>("volunteer.communityDinner.sheetScans.upload", { idToken, ...payload }),
+    listCounterSheetScans: (idToken: string) =>
+      apiGet<CounterSheetScan[]>("volunteer.communityDinner.sheetScans.list", { idToken }),
     setCommunityDinnerRegistrationOpen: (idToken: string, open: boolean) =>
       apiPost<{ open: boolean }>("volunteer.communityDinner.setOpen", { idToken, open }),
     attachCommunityDinnerScreenshot: (idToken: string, registrationId: string, screenshot: string, mimeType: string) =>
