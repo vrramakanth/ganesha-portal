@@ -104,7 +104,6 @@ function seedDefaults() {
     [
       ["festival_name", "Ganesha Chathurthi 2026"],
       ["community_name", "Brigade Woods"],
-      ["tagline", "Celebrate. Participate. Contribute."],
       ["id_prefix", "GWG"],
       ["enabled_modules", JSON.stringify(DEFAULT_ENABLED_MODULES)],
       ["dates", "22-30 Aug 2026"],

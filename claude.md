@@ -2611,7 +2611,7 @@ The album was soft-launched to a small group of volunteers first, deliberately n
 
 # 68. Namma Habba — The Reusable Framework Layer
 
-**Namma Habba** is the platform brand name for this codebase, reused across every Brigade Woods celebration it's deployed for — Ganesha Chathurthi 2026 is the first festival on it, not the product itself (Decision 7, §61). This section documents two passes: the foundational, framework-level extraction (Phase 1 — module registry, centralized config, the mechanism), and the self-service layer built on top of it (Phase 2 — a guided Festival Setup screen so configuring the mechanism doesn't require hand-editing raw Configuration rows or code). Neither pass adds a new *product* feature.
+**Namma Habba** is the platform brand name for this codebase, reused across every Brigade Woods celebration it's deployed for — Ganesha Chathurthi 2026 is the first festival on it, not the product itself (Decision 7, §61). This section documents the foundational, framework-level pass that extracted that reusability out of what had become a fully Ganesha-Chathurthi-specific codebase; it does not add any new product feature.
 
 ## Deployment model
 
@@ -2639,32 +2639,17 @@ On the frontend, `FestivalConfigProvider`/`useFestivalConfig()` (`frontend/src/l
 
 Every generated ID (`GWG-...`, dinner tokens `GW-...`) used to hardcode that literal prefix in each of 15 generator functions. `id_prefix` (Configuration key, seeded `"GWG"`) now drives it, so a future deployment sets its own prefix instead of forking the file. Purely additive — this deployment's IDs are byte-identical, since the default equals the old literal.
 
-## Festival Setup — the self-service layer (Phase 2)
-
-Volunteer → More → **Festival Setup** (still routed at `/volunteer/settings`, `Operations` permission) replaced what used to be a flat, unlabeled list of every Configuration row with sectioned, described fields — **Festival Identity** (name, community name, tagline, dates, venue, contact, ID prefix), **Hero Image**, **Modules** (Phase 1's checkboxes), and **Money** (Finance-gated, only rendered for keys the admin can actually see). Every Configuration key not covered by a named section — `volunteer_requirements`, `super_admin_email`, the seva guideline text, etc. — remains reachable in a collapsed **Advanced settings** escape hatch, so nothing became unreachable by organizing the common fields.
-
-**Hero image upload** (`uploadHeroImage` in `Config.js`, route `volunteer.branding.uploadHeroImage`) is the one genuinely new piece of infrastructure this added: the same decode → Drive folder → `createFile` → `setSharing(ANYONE_WITH_LINK, VIEW)` pattern every other upload in this app already uses (`Bugs.js:reportBug` is the closest twin), stored under `<festival root>/Branding` in Drive. The one deliberate deviation from that existing pattern: every other upload in this app stores `file.getUrl()` and renders it as a clickable link, because `getUrl()` is a Drive *viewer* page, not raw image bytes — it can't be dropped into an `<img src>`. The hero image needs to render inline, so it stores `https://drive.google.com/thumbnail?id=<fileId>&sz=w1000` instead, which Drive serves as actual image bytes to an unauthenticated `<img>` tag once the file is link-shared. The Home page (`(resident)/page.tsx`) falls back to the bundled `/images/ganesha-hero.png` via a plain `<img>` tag (not `next/image` — no `remotePatterns` exist for the Drive domain, matching the same plain-`<img>` precedent the `/hundi` page already used for the bank's QR code) whenever `hero_image_url` is unset, so this is purely additive for the current deployment.
-
-`festival_name`, `community_name`, and the new `tagline` key now also actually drive the Home page's header text (`(resident)/page.tsx:101-109`) — a real gap Phase 1 left open: those config values already existed and were already returned by `festival.get`, but the Home page's most prominent branding text ignored them and stayed hardcoded regardless.
-
 ## Launching the next Brigade Woods celebration on this codebase
 
 1. Create a fresh Google Sheet, bind a copy of this Apps Script project to it (or point `SPREADSHEET_ID` at it), and run `setupSheets()`.
-2. Sign in to Volunteer → More → **Festival Setup** (`/volunteer/settings`) and work through it top to bottom — no raw Configuration editing needed for any of this:
-   - **Festival Identity** — name, community name, tagline, dates, venue, contact, ID prefix.
-   - **Hero Image** — upload a replacement for the resident Home page's hero image directly (stored in this deployment's own Drive `Branding` folder); leave it unset to keep the default Ganesha art.
-   - **Modules** — the checkboxes from Phase 1, for what this celebration actually needs.
-   - **Money** (Finance permission only) — donation goal, min/max, UPI details.
-   - **Advanced settings** — a collapsed escape hatch for any Configuration key not covered above (e.g. `volunteer_requirements`, `super_admin_email`).
-3. What's still genuinely hand-edited, not self-service, because it's either bespoke content or carries real deploy-latency tradeoffs: the page `<title>`/metadata in `layout.tsx` (static, not fetched per-request), and the closing/sign-off copy in `DonationsClosed.tsx` and `WrapUpSummary.tsx` ("Ganpati Bappa Morya," 2025 comparison stats) — genuinely this festival's own voice and bespoke analytics, not generic platform text.
-4. Deploy (`clasp push` + `clasp deploy -i <deploymentId>` for the backend, the usual Vercel deploy for the frontend) against the new Sheet/Configuration.
+2. In Configuration (or Volunteer → More → Settings once deployed): set `festival_name`, `community_name` (if different from Brigade Woods), `dates`, `venue`, `id_prefix`, `upi_vpa`/`upi_payee_name`, and `enabled_modules` for what this celebration actually needs — the Settings → Modules checkboxes do this without touching the sheet directly.
+3. Swap the resident-facing branding assets this pass deliberately left alone as this festival's own content, not framework chrome: the hero image, page `<title>`/metadata, and the closing/sign-off copy in `DonationsClosed.tsx` and `WrapUpSummary.tsx` (genuinely festival-specific voice — "Ganpati Bappa Morya," the Ganesha hero art — not generic platform text, so still hand-edited per festival rather than config-driven).
+4. Deploy (`clasp push` for the backend, the usual Vercel deploy for the frontend) against the new Sheet/Configuration.
 
 ## Not yet built
 
 - The **Guests module** — reserved as a module key, no sheet, no routes, no UI anywhere.
 - A **meal pricing table** (household-free / guest-paid vs. everyone-pays-the-same, configurable per festival) — Community Dinner's guest pricing is still the two hardcoded constants (`GUEST_ADULT_PRICE`, `GUEST_CHILD_PRICE` in `CommunityDinner.js`) from the original build.
-- **Per-festival theme skinning** (the saffron/maroon palette) — still the one hardcoded look from `globals.css`, not yet a configurable per-deployment theme (the hero *image* itself is now self-service — see above — but the color palette isn't).
-- Self-service for **volunteer areas** (`frontend/src/lib/volunteerAreas.ts`, still hardcoded to exactly "Decorate Idol/Pooja/Aarti" / "Bhog/Prasadam/Food") and their seva guideline text (`Volunteers.js`) — still hand-edited per festival.
-- Any **new Google Sheet / Apps Script deployment / Vercel project provisioning from the UI** — deliberately out of scope (a much larger, separate idea involving new API credentials); the Festival Setup screen configures the *content* of an already-provisioned deployment, not the infrastructure itself.
+- **Per-festival theme skinning** (the saffron/maroon palette, hero art) — still the one hardcoded look from `globals.css`, not yet a configurable per-deployment theme.
 - An actual **second festival deployment** — this pass only built the mechanism; Ganesha Chathurthi 2026 remains the only festival that has ever run on this codebase.
 - Four volunteer-only Community Dinner admin pages (`volunteer/community-dinner/page.tsx`, `.../sheets`, `.../tally`, `.../counters`) still call `api.festival.get()` directly inside a permission-gated `Promise.all`, rather than through `useFestivalConfig()` — left alone deliberately since untangling them from their existing `refreshKey`/`Promise.all` wiring carried more risk than the marginal duplication they represent.

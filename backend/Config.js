@@ -104,31 +104,6 @@ function getCommunityName() {
   return getConfig("community_name", "Brigade Woods");
 }
 
-/** Lets an Operations admin replace the resident Home page's hero image
- *  from Settings instead of a developer swapping the bundled
- *  `/images/ganesha-hero.png` asset and redeploying — the same
- *  decode → Drive folder → createFile → setSharing pattern as
- *  `Bugs.js:reportBug`'s screenshot handling, with one deliberate
- *  difference: `file.getUrl()` is a Drive *viewer* page, not raw image
- *  bytes, so it can't be dropped into an `<img src>` the way every other
- *  upload in this app is (they're all rendered as links, never inline).
- *  The `thumbnail?id=` form below is the one that actually serves image
- *  bytes to a public, unauthenticated `<img>` tag. */
-function uploadHeroImage(volunteer, image, mimeType) {
-  requirePermission(volunteer, "Operations");
-  const root = getOrCreateFolder(DriveApp.getRootFolder(), getFestivalName());
-  const folder = getOrCreateFolder(root, "Branding");
-  const bytes = Utilities.base64Decode(image);
-  const blob = Utilities.newBlob(bytes, mimeType || "image/jpeg", "hero-image");
-  const file = folder.createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  const url = `https://drive.google.com/thumbnail?id=${file.getId()}&sz=w1000`;
-  const before = getConfig("hero_image_url", "");
-  setConfig("hero_image_url", url);
-  logAudit(volunteer.email, "Uploaded hero image", "Configuration", "hero_image_url", before, url);
-  return { heroImageUrl: url };
-}
-
 /** The WhatsApp number residents are pointed to for things this app
  *  can't do itself (Report a Bug, requesting a change to a locked
  *  Community Dinner registration). Configurable so it doesn't need a

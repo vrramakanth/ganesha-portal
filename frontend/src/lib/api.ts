@@ -453,8 +453,6 @@ export const api = {
     listModules: (idToken: string) => apiGet<EnabledModules>("volunteer.modules.list", { idToken }),
     updateModules: (idToken: string, updates: Partial<EnabledModules>) =>
       apiPost<EnabledModules>("volunteer.modules.update", { idToken, updates }),
-    uploadHeroImage: (idToken: string, image: string, mimeType: string) =>
-      apiPost<{ heroImageUrl: string }>("volunteer.branding.uploadHeroImage", { idToken, image, mimeType }),
     runBackup: (idToken: string) =>
       apiPost<{ name: string; url: string; created: boolean }>("volunteer.backup.run", { idToken }),
     auditLog: (idToken: string) => apiGet<AuditLogEntry[]>("volunteer.auditLog.list", { idToken }),
