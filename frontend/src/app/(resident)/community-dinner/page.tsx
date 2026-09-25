@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatCurrency } from "@/lib/date";
 import BlockSelect from "@/components/BlockSelect";
@@ -26,7 +27,7 @@ type Step = "checking" | "form" | "creating" | "payment" | "confirmed" | "submit
  *  side (Phase 2) comes later, once registrations are settled. */
 export default function CommunityDinnerPage() {
   const { profile, saveProfile, loaded } = useResidentProfile();
-  const { data: festival } = useAsync(() => api.festival.get(), []);
+  const { festival } = useFestivalConfig();
   const { data: dinnerCount, loading: loadingCount } = useAsync(() => api.communityDinner.publicCount(), []);
 
   const [name, setName] = useState("");

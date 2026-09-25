@@ -4,17 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import LinkifiedText from "@/components/LinkifiedText";
 import FindYourCounter from "@/components/FindYourCounter";
+import NammaHabbaAttribution from "@/components/NammaHabbaAttribution";
 
 export default function MorePage() {
-  const { data, loading, error } = useAsync(
-    () => Promise.all([api.festival.get(), api.announcements.list()]),
-    []
-  );
-  const [festival, announcements] = data ?? [null, null];
+  const { festival } = useFestivalConfig();
+  const { data: announcements, loading, error } = useAsync(() => api.announcements.list(), []);
   const { data: dinnerCount } = useAsync(() => api.communityDinner.publicCount(), []);
   const [cleared, setCleared] = useState(false);
 
@@ -159,6 +158,8 @@ export default function MorePage() {
           affect any donation, registration or dinner token you&apos;ve already submitted.
         </p>
       </section>
+
+      <NammaHabbaAttribution />
     </div>
   );
 }

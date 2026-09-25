@@ -78,7 +78,7 @@ function addReceiptUrl(existing, url) {
 }
 
 function getExpenseReceiptsFolder() {
-  const rootName = getConfig("festival_name", "Ganesha Chathurthi 2026");
+  const rootName = getFestivalName();
   const root = getOrCreateFolder(DriveApp.getRootFolder(), rootName);
   return getOrCreateFolder(root, "Expense Receipts");
 }

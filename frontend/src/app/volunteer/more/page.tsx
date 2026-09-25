@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
+import NammaHabbaAttribution from "@/components/NammaHabbaAttribution";
 
 const links = [
   { href: "/volunteer/reports", label: "Reports", description: "Finance, events, dinner and volunteer reports" },
@@ -38,6 +39,8 @@ export default function VolunteerMorePage() {
       <Link href="/" className="text-center text-xs text-muted underline">
         Switch to Resident View
       </Link>
+
+      <NammaHabbaAttribution />
     </div>
   );
 }

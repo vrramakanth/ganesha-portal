@@ -42,7 +42,7 @@ function extractPaymentReference(base64Image, mimeType) {
 }
 
 function getPaymentScreenshotsFolder() {
-  const rootName = getConfig("festival_name", "Ganesha Chathurthi 2026");
+  const rootName = getFestivalName();
   const root = getOrCreateFolder(DriveApp.getRootFolder(), rootName);
   return getOrCreateFolder(root, "Payment Screenshots");
 }
