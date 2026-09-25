@@ -92,6 +92,7 @@ const ROUTES = {
   "volunteer.config.update": { auth: true, handler: (p, v) => updateConfig(v, p.updates) },
   "volunteer.modules.list": { auth: true, handler: () => getEnabledModules() },
   "volunteer.modules.update": { auth: true, handler: (p, v) => setEnabledModules(v, p.updates || {}) },
+  "volunteer.branding.uploadHeroImage": { auth: true, handler: (p, v) => uploadHeroImage(v, p.image, p.mimeType) },
   "volunteer.backup.run": { auth: true, handler: (p, v) => runBackupNow(v) },
   "volunteer.auditLog.list": { auth: true, handler: (p, v) => listAuditLog(v) },
   "volunteer.auditLog.archive": { auth: true, handler: (p, v) => archiveOldAuditLogEntries(v) },

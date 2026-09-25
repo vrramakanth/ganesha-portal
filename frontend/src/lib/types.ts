@@ -38,6 +38,8 @@ export type FestivalInfo = {
   future_costs_closed: string;
   community_name: string;
   modules: EnabledModules;
+  tagline: string;
+  hero_image_url: string;
 };
 
 export type Block = {
