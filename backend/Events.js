@@ -213,7 +213,7 @@ function rsvpEvent(eventId, response) {
 const MAX_SONG_BASE64_LENGTH = 14 * 1024 * 1024; // ~10MB raw — comfortably covers a full song at typical MP3 bitrates
 
 function getCulturalSongsFolder() {
-  const rootName = getConfig("festival_name", "Ganesha Chathurthi 2026");
+  const rootName = getFestivalName();
   const root = getOrCreateFolder(DriveApp.getRootFolder(), rootName);
   return getOrCreateFolder(root, "Cultural Songs");
 }

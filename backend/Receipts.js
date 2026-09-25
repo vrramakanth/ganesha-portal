@@ -2,7 +2,7 @@
  *  the Sheet itself (spec §35). */
 
 function getReceiptsFolder() {
-  const rootName = getConfig("festival_name", "Ganesha Chathurthi 2026");
+  const rootName = getFestivalName();
   const root = getOrCreateFolder(DriveApp.getRootFolder(), rootName);
   return getOrCreateFolder(root, "Receipts");
 }
@@ -18,8 +18,8 @@ function generateReceipt(transaction) {
   const doc = DocumentApp.create(`Receipt ${receiptId}`);
   const body = doc.getBody();
 
-  body.appendParagraph("BRIGADE WOODS").setHeading(DocumentApp.ParagraphHeading.HEADING2);
-  body.appendParagraph(getConfig("festival_name", "Ganesha Chathurthi 2026"));
+  body.appendParagraph(getCommunityName().toUpperCase()).setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  body.appendParagraph(getFestivalName());
   const isSponsor = transaction.block === SPONSOR_BLOCK;
   body
     .appendParagraph(isSponsor ? "SPONSORSHIP RECEIPT" : "DONATION RECEIPT")

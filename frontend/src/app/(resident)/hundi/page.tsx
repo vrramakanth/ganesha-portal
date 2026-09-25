@@ -1,7 +1,6 @@
 "use client";
 
-import { api } from "@/lib/api";
-import { useAsync } from "@/lib/useAsync";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import DonationsClosed from "@/components/DonationsClosed";
@@ -14,7 +13,7 @@ import DonationsClosed from "@/components/DonationsClosed";
  *  any nav menu — reached only by whoever has this direct URL. Once
  *  donations close, the QR is replaced by a thank-you. */
 export default function HundiPage() {
-  const { data: festival, loading, error } = useAsync(() => api.festival.get(), []);
+  const { festival, loading, error } = useFestivalConfig();
 
   if (loading) return <LoadingIndicator className="px-5 pt-8" />;
   if (festival?.donations_open === "false") return <DonationsClosed />;

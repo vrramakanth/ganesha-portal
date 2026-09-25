@@ -6,6 +6,21 @@
  * normalized here so this file stays an honest mirror of the backend.
  */
 
+/** The Namma Habba module registry (backend/Modules.js) — which
+ *  toggleable feature areas this festival deployment has turned on.
+ *  Guests has no module built yet (always false today), kept here so the
+ *  nav/settings UI already knows its name once it exists. */
+export type ModuleKey =
+  | "donations"
+  | "sponsorships"
+  | "events"
+  | "meal"
+  | "guests"
+  | "volunteers"
+  | "expenses";
+
+export type EnabledModules = Record<ModuleKey, boolean>;
+
 export type FestivalInfo = {
   festival_name: string;
   dates: string;
@@ -21,6 +36,8 @@ export type FestivalInfo = {
   donations_open: string;
   festival_wrapped_up: string;
   future_costs_closed: string;
+  community_name: string;
+  modules: EnabledModules;
 };
 
 export type Block = {

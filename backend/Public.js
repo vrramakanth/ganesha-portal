@@ -34,6 +34,11 @@ function getFestivalInfo() {
   info.donations_open = isDonationsOpen() ? "true" : "false";
   info.festival_wrapped_up = isFestivalWrappedUp() ? "true" : "false";
   info.future_costs_closed = isFutureCostsClosed() ? "true" : "false";
+  // Namma Habba framework additions — community identity and the module
+  // registry (Modules.js), so the frontend can build its nav/pages from
+  // one call instead of hardcoding which festival features exist.
+  info.community_name = getCommunityName();
+  info.modules = getEnabledModules();
   return info;
 }
 

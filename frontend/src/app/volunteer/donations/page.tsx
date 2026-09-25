@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { formatCurrency } from "@/lib/date";
 import { fileToBase64 } from "@/lib/file";
 import PageHeader from "@/components/PageHeader";
@@ -45,7 +46,7 @@ export default function VolunteerDonationsPage() {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [togglingOpen, setTogglingOpen] = useState(false);
-  const { data: festivalInfo } = useAsync(() => api.festival.get(), [refreshKey]);
+  const { festival: festivalInfo, refresh: refreshFestival } = useFestivalConfig();
   const donationsOpen = festivalInfo ? festivalInfo.donations_open !== "false" : null;
 
   async function handleToggleDonations() {
@@ -63,6 +64,7 @@ export default function VolunteerDonationsPage() {
     try {
       await api.volunteer.setDonationsOpen(idToken as string, opening);
       setRefreshKey((k) => k + 1);
+      refreshFestival();
     } catch (err) {
       setActionError(err instanceof ApiClientError ? err.message : "Could not change donations status.");
     } finally {
