@@ -41,7 +41,7 @@ function costsAheadStatus(
 }
 
 export default function Home() {
-  const { modules } = useFestivalConfig();
+  const { festival, modules, communityName } = useFestivalConfig();
   // Each fetched independently — these used to be bundled into one
   // Promise.all, which meant a hiccup in any single one (this backend,
   // Apps Script, occasionally blips) blanked out the totals, Upcoming,
@@ -89,23 +89,32 @@ export default function Home() {
         </a>
       </div>
 
-      <Image
-        src="/images/ganesha-hero.png"
-        alt="Lord Ganesha"
-        width={242}
-        height={306}
-        priority
-        className="mx-auto h-36 w-auto"
-      />
+      {festival?.hero_image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={festival.hero_image_url}
+          alt={festival.festival_name || "Festival hero"}
+          className="mx-auto h-36 w-auto"
+        />
+      ) : (
+        <Image
+          src="/images/ganesha-hero.png"
+          alt="Lord Ganesha"
+          width={242}
+          height={306}
+          priority
+          className="mx-auto h-36 w-auto"
+        />
+      )}
 
       <header className="text-center space-y-1">
         <p className="text-sm font-semibold tracking-widest text-maroon uppercase">
-          Brigade Woods
+          {communityName}
         </p>
         <h1 className="text-2xl font-bold tracking-tight">
-          Ganesha Chathurthi 2026
+          {festival?.festival_name || "Ganesha Chathurthi 2026"}
         </h1>
-        <p className="text-muted text-sm">Celebrate. Participate. Contribute.</p>
+        <p className="text-muted text-sm">{festival?.tagline || "Celebrate. Participate. Contribute."}</p>
       </header>
 
       {stats?.wrappedUp && (
