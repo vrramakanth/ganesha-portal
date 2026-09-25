@@ -96,6 +96,11 @@ function generateFeedbackId() {
   return `${getIdPrefix()}-FB-${pad(seq, 4)}`;
 }
 
+function generateGuestId() {
+  const seq = nextSequence("counter_guest");
+  return `${getIdPrefix()}-GST-${pad(seq, 4)}`;
+}
+
 function generateCommunityDinnerId() {
   const seq = nextSequence("counter_community_dinner");
   return `${getIdPrefix()}-CD-${pad(seq, 4)}`;

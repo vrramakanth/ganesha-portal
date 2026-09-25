@@ -28,6 +28,7 @@ const SHEETS = {
   BHOG_SPONSORS: "Bhog Sponsors",
   FUTURE_COSTS: "Future Costs",
   COUNTER_SHEET_SCANS: "Counter Sheet Scans",
+  GUESTS: "Guests",
 };
 
 function getScriptProperty(key) {
@@ -116,13 +117,7 @@ function getCommunityName() {
  *  bytes to a public, unauthenticated `<img>` tag. */
 function uploadHeroImage(volunteer, image, mimeType) {
   requirePermission(volunteer, "Operations");
-  const root = getOrCreateFolder(DriveApp.getRootFolder(), getFestivalName());
-  const folder = getOrCreateFolder(root, "Branding");
-  const bytes = Utilities.base64Decode(image);
-  const blob = Utilities.newBlob(bytes, mimeType || "image/jpeg", "hero-image");
-  const file = folder.createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  const url = `https://drive.google.com/thumbnail?id=${file.getId()}&sz=w1000`;
+  const url = uploadDriveImage("Branding", image, mimeType, "hero-image");
   const before = getConfig("hero_image_url", "");
   setConfig("hero_image_url", url);
   logAudit(volunteer.email, "Uploaded hero image", "Configuration", "hero_image_url", before, url);
@@ -203,6 +198,9 @@ const FINANCE_ONLY_CONFIG_KEYS = [
   "maximum_donation",
   "upi_vpa",
   "upi_payee_name",
+  "meal_pricing_mode",
+  "meal_adult_price",
+  "meal_child_price",
 ];
 
 /** Festival configuration (spec §43) — lets volunteers change operational

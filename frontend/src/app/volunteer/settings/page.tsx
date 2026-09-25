@@ -20,7 +20,13 @@ const MODULE_LABELS: Record<ModuleKey, string> = {
   expenses: "Expenses",
 };
 
-type Field = { key: string; label: string; description: string; type?: "text" | "number" };
+type Field = {
+  key: string;
+  label: string;
+  description: string;
+  type?: "text" | "number" | "select";
+  options?: { value: string; label: string }[];
+};
 
 /** Festival Identity — the fields a Settings page organized around raw
  *  Configuration keys never explained on its own. This is what a new
@@ -46,6 +52,24 @@ const MONEY_FIELDS: Field[] = [
   { key: "maximum_donation", label: "Maximum donation (₹)", description: "Enforced server-side on every donation.", type: "number" },
   { key: "upi_vpa", label: "UPI ID (VPA)", description: "Where donation/dinner payments are collected." },
   { key: "upi_payee_name", label: "UPI payee name", description: "Shown to residents during payment." },
+];
+
+/** Finance-gated, same as Money — only shown when the Meal module is on.
+ *  A caterer's rate is always subject to negotiation, so these are plain
+ *  editable Configuration values, not a code-level constant. */
+const MEAL_PRICING_FIELDS: Field[] = [
+  {
+    key: "meal_pricing_mode",
+    label: "Pricing model",
+    description: "How Community Dinner charges attendees.",
+    type: "select",
+    options: [
+      { value: "household_free_guest_paid", label: "Household free, guests pay" },
+      { value: "everyone_paid", label: "Everyone pays the same rate" },
+    ],
+  },
+  { key: "meal_adult_price", label: "Adult price (₹)", description: "Per-plate rate for adults (12+).", type: "number" },
+  { key: "meal_child_price", label: "Child price (₹)", description: "Per-plate rate for children (6-12).", type: "number" },
 ];
 
 const MAX_HERO_BYTES = 8 * 1024 * 1024; // 8MB — same guard as the Bug Report screenshot upload
@@ -87,6 +111,7 @@ export default function SettingsPage() {
   const handledKeys = new Set([
     ...IDENTITY_FIELDS.map((f) => f.key),
     ...MONEY_FIELDS.map((f) => f.key),
+    ...MEAL_PRICING_FIELDS.map((f) => f.key),
     "enabled_modules",
     "hero_image_url",
   ]);
@@ -183,16 +208,31 @@ export default function SettingsPage() {
   }
 
   function renderField(field: Field) {
+    const value = fieldValue(field.key, config, edits);
     return (
       <div key={field.key} className="px-4 py-3 space-y-1">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-medium">{field.label}</p>
-          <input
-            type={field.type || "text"}
-            defaultValue={fieldValue(field.key, config, edits)}
-            onChange={(e) => setEdits((prev) => ({ ...prev, [field.key]: e.target.value }))}
-            className="w-1/2 rounded-lg border border-border px-2 py-1.5 text-sm text-right"
-          />
+          {field.type === "select" ? (
+            <select
+              defaultValue={value}
+              onChange={(e) => setEdits((prev) => ({ ...prev, [field.key]: e.target.value }))}
+              className="w-1/2 rounded-lg border border-border px-2 py-1.5 text-sm"
+            >
+              {field.options?.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type={field.type || "text"}
+              defaultValue={value}
+              onChange={(e) => setEdits((prev) => ({ ...prev, [field.key]: e.target.value }))}
+              className="w-1/2 rounded-lg border border-border px-2 py-1.5 text-sm text-right"
+            />
+          )}
         </div>
         <p className="text-xs text-muted">{field.description}</p>
       </div>
@@ -277,6 +317,15 @@ export default function SettingsPage() {
               <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Money</h2>
               <div className="rounded-xl border border-border bg-card divide-y divide-border">
                 {MONEY_FIELDS.filter((f) => config.some((c) => c.key === f.key)).map(renderField)}
+              </div>
+            </div>
+          )}
+
+          {modules.meal && MEAL_PRICING_FIELDS.some((f) => config.some((c) => c.key === f.key)) && (
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Meal Pricing</h2>
+              <div className="rounded-xl border border-border bg-card divide-y divide-border">
+                {MEAL_PRICING_FIELDS.filter((f) => config.some((c) => c.key === f.key)).map(renderField)}
               </div>
             </div>
           )}

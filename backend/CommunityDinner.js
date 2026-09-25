@@ -9,8 +9,6 @@
  *  locked afterward) doesn't map cleanly onto that generic engine, and
  *  forcing it in would make both harder to reason about. */
 
-const GUEST_ADULT_PRICE = 200;
-const GUEST_CHILD_PRICE = 100;
 const COMMUNITY_DINNER_COUNT_CACHE_KEY = "community_dinner_public_count";
 // 10 min — was 5, doubled alongside stats.public's TTL as the
 // operational spreadsheet grew; same public-aggregate caching
@@ -154,8 +152,28 @@ function ensureCommunityDinnerSheet() {
   return sheet;
 }
 
-function communityDinnerGuestAmount(guestAdults, guestChildren) {
-  return Number(guestAdults || 0) * GUEST_ADULT_PRICE + Number(guestChildren || 0) * GUEST_CHILD_PRICE;
+/** Namma Habba: pricing is configurable per festival (Configuration keys
+ *  `meal_pricing_mode`/`meal_adult_price`/`meal_child_price`, editable
+ *  from Settings — a caterer's rate is always subject to negotiation, so
+ *  this was never meant to be a hardcoded constant). Two modes:
+ *  - "household_free_guest_paid" (default — this deployment's original
+ *    behavior): a resident's own adults/children are free, only guests
+ *    are charged.
+ *  - "everyone_paid" (e.g. Kannada Rajyotsava, where the whole festival
+ *    charges one flat per-head rate): adults/children and guests are all
+ *    charged the same way.
+ *  The Sheet column stays named `guest_amount` (no schema migration) even
+ *  though in "everyone_paid" mode it holds the *total* amount due, not
+ *  just a guest portion. */
+function communityDinnerAmountDue(adults, children, guestAdults, guestChildren) {
+  const mode = getConfig("meal_pricing_mode", "household_free_guest_paid");
+  const adultPrice = Number(getConfig("meal_adult_price", "200"));
+  const childPrice = Number(getConfig("meal_child_price", "100"));
+  if (mode === "everyone_paid") {
+    return (Number(adults || 0) + Number(guestAdults || 0)) * adultPrice
+         + (Number(children || 0) + Number(guestChildren || 0)) * childPrice;
+  }
+  return Number(guestAdults || 0) * adultPrice + Number(guestChildren || 0) * childPrice;
 }
 
 /** One-time registration, then locked once it's genuinely settled —
@@ -225,7 +243,7 @@ function registerCommunityDinner({ residentName, mobile, block, flatNumber, adul
       );
     }
 
-    const guestAmount = communityDinnerGuestAmount(guestAdultsNum, guestChildrenNum);
+    const amountDue = communityDinnerAmountDue(adultsNum, childrenNum, guestAdultsNum, guestChildrenNum);
     const registration = {
       registration_id: generateCommunityDinnerId(),
       resident_name: residentName,
@@ -236,12 +254,12 @@ function registerCommunityDinner({ residentName, mobile, block, flatNumber, adul
       children: childrenNum,
       guest_adults: guestAdultsNum,
       guest_children: guestChildrenNum,
-      guest_amount: guestAmount,
+      guest_amount: amountDue,
       payment_reference: "",
       payment_screenshot_url: "",
-      // No guests -> nothing to verify, so it's confirmed immediately.
-      // Guests -> a real payment is owed, so it waits on that first.
-      status: guestAmount > 0 ? "PAYMENT_PENDING" : "CONFIRMED",
+      // Nothing owed -> nothing to verify, so it's confirmed immediately.
+      // Something owed -> a real payment is due, so it waits on that first.
+      status: amountDue > 0 ? "PAYMENT_PENDING" : "CONFIRMED",
       reviewed_by: "",
       reviewed_at: "",
       admin_notes: "",
@@ -278,8 +296,8 @@ function addCommunityDinnerRegistration(
   if (adultsNum + childrenNum + guestAdultsNum + guestChildrenNum <= 0) {
     throw new ApiError("Please add at least one person attending", 400);
   }
-  const guestAmount = communityDinnerGuestAmount(guestAdultsNum, guestChildrenNum);
-  if (guestAmount > 0) requireFields({ reference }, ["reference"]);
+  const amountDue = communityDinnerAmountDue(adultsNum, childrenNum, guestAdultsNum, guestChildrenNum);
+  if (amountDue > 0) requireFields({ reference }, ["reference"]);
 
   upsertResident({ name: residentName, mobile, block, flatNumber });
 
@@ -313,12 +331,12 @@ function addCommunityDinnerRegistration(
       children: childrenNum,
       guest_adults: guestAdultsNum,
       guest_children: guestChildrenNum,
-      guest_amount: guestAmount,
-      payment_reference: guestAmount > 0 ? String(reference).trim() : "",
-      payment_screenshot_url: guestAmount > 0 && screenshot ? savePaymentScreenshot(screenshot, mimeType) : "",
-      status: guestAmount > 0 ? "MANUAL_REVIEW" : "CONFIRMED",
-      reviewed_by: guestAmount > 0 ? "" : volunteer.email,
-      reviewed_at: guestAmount > 0 ? "" : now,
+      guest_amount: amountDue,
+      payment_reference: amountDue > 0 ? String(reference).trim() : "",
+      payment_screenshot_url: amountDue > 0 && screenshot ? savePaymentScreenshot(screenshot, mimeType) : "",
+      status: amountDue > 0 ? "MANUAL_REVIEW" : "CONFIRMED",
+      reviewed_by: amountDue > 0 ? "" : volunteer.email,
+      reviewed_at: amountDue > 0 ? "" : now,
       admin_notes: COMMUNITY_DINNER_LATE_NOTE_PREFIX + volunteer.email,
       created_at: now,
       updated_at: now,
@@ -576,11 +594,14 @@ function rejectCommunityDinnerPayment(volunteer, registrationId, notes) {
 
 /** The only way a locked registration ever changes — a resident
  *  messages an admin on WhatsApp (My Stuff has a pre-filled "Request a
- *  Change" link for this) and the admin applies it here. Recomputes
- *  guest_amount if either guest count changed; does not re-trigger a
- *  payment step even if the amount goes up — reconciling a
- *  higher/lower guest payment after the fact is a manual, off-app
- *  conversation, not something this form automates. */
+ *  Change" link for this) and the admin applies it here. Recomputes the
+ *  amount due if any of the four headcounts changed — under the default
+ *  pricing mode that's a no-op unless a guest count changed (household
+ *  counts don't affect the formula there), but "everyone_paid" mode
+ *  needs household counts recomputed too. Does not re-trigger a payment
+ *  step even if the amount goes up — reconciling a higher/lower payment
+ *  after the fact is a manual, off-app conversation, not something this
+ *  form automates. */
 function editCommunityDinnerRegistration(volunteer, registrationId, fields) {
   requirePermission(volunteer, "Dinner");
   return withLock(() => {
@@ -596,11 +617,15 @@ function editCommunityDinnerRegistration(volunteer, registrationId, fields) {
     ["adults", "children", "guest_adults", "guest_children"].forEach((key) => {
       if (fields[key] !== undefined) update[key] = Number(fields[key]) || 0;
     });
-    if (fields.guest_adults !== undefined || fields.guest_children !== undefined) {
-      const guestAdultsNum = fields.guest_adults !== undefined ? Number(fields.guest_adults) || 0 : Number(before.guest_adults) || 0;
-      const guestChildrenNum =
-        fields.guest_children !== undefined ? Number(fields.guest_children) || 0 : Number(before.guest_children) || 0;
-      update.guest_amount = communityDinnerGuestAmount(guestAdultsNum, guestChildrenNum);
+    const countKeys = ["adults", "children", "guest_adults", "guest_children"];
+    if (countKeys.some((key) => fields[key] !== undefined)) {
+      const countFor = (key) => (fields[key] !== undefined ? Number(fields[key]) || 0 : Number(before[key]) || 0);
+      update.guest_amount = communityDinnerAmountDue(
+        countFor("adults"),
+        countFor("children"),
+        countFor("guest_adults"),
+        countFor("guest_children")
+      );
     }
     update.updated_at = new Date();
 

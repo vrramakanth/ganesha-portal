@@ -13,6 +13,23 @@ function getOrCreateFolder(parent, name) {
   return parent.createFolder(name);
 }
 
+/** Decodes a base64 image, stores it in Drive under `<festival root>/
+ *  <folderName>`, and returns a URL that actually serves image bytes —
+ *  not a Drive *viewer* page like every other upload in this app
+ *  (`file.getUrl()`, rendered as a link) — so it can be dropped straight
+ *  into an `<img src>`. Shared by `uploadHeroImage` (Config.js) and the
+ *  Guests module (Guests.js), the only two places that render an
+ *  uploaded image inline rather than link to it. */
+function uploadDriveImage(folderName, image, mimeType, blobName) {
+  const root = getOrCreateFolder(DriveApp.getRootFolder(), getFestivalName());
+  const folder = getOrCreateFolder(root, folderName);
+  const bytes = Utilities.base64Decode(image);
+  const blob = Utilities.newBlob(bytes, mimeType || "image/jpeg", blobName || "image");
+  const file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return `https://drive.google.com/thumbnail?id=${file.getId()}&sz=w1000`;
+}
+
 function generateReceipt(transaction) {
   const receiptId = generateReceiptId();
   const doc = DocumentApp.create(`Receipt ${receiptId}`);

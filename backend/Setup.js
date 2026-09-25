@@ -77,6 +77,9 @@ const SHEET_SCHEMAS = {
   [SHEETS.COUNTER_SHEET_SCANS]: [
     "scan_id", "counter", "file_url", "notes", "uploaded_by", "uploaded_at",
   ],
+  [SHEETS.GUESTS]: [
+    "guest_id", "name", "title", "photo_url", "sort_order", "created_at",
+  ],
 };
 
 function setupSheets() {
@@ -112,6 +115,9 @@ function seedDefaults() {
       ["donation_goal", "750000"],
       ["minimum_donation", "100"],
       ["contact", "volunteer@brigadewoods.org"],
+      ["meal_pricing_mode", "household_free_guest_paid"],
+      ["meal_adult_price", "200"],
+      ["meal_child_price", "100"],
       ["volunteer_requirements", '{"Food":12,"Events":10,"Parking":8,"Kids":8,"Clean-up":7}'],
     ].forEach(([key, value]) => appendObject(config, { key, value }));
   }

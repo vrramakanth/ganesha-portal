@@ -26,6 +26,7 @@ const ROUTES = {
   "residents.setPin": { handler: (p) => setResidentPin(p.mobile, p.pin, p.block, p.flatNumber) },
   "residents.verifyPin": { handler: (p) => verifyResidentPin(p.mobile, p.pin) },
   "communityDinner.publicCount": { module: "meal", handler: () => getCommunityDinnerPublicCount() },
+  "guests.list": { module: "guests", handler: () => listGuests() },
 
   // --- Resident ---
   "donations.create": { module: "donations", handler: (p) => createDonation(p) },
@@ -167,6 +168,18 @@ const ROUTES = {
   },
   "volunteer.bhogSponsors.record": { auth: true, module: "sponsorships", handler: (p, v) => recordBhogSponsor(v, p) },
   "volunteer.bhogSponsors.list": { auth: true, module: "sponsorships", handler: (p, v) => listBhogSponsors(v) },
+
+  "volunteer.guests.create": {
+    auth: true,
+    module: "guests",
+    handler: (p, v) => createGuest(v, { name: p.name, title: p.title, sortOrder: p.sortOrder, photoImage: p.photoImage, mimeType: p.mimeType }),
+  },
+  "volunteer.guests.update": {
+    auth: true,
+    module: "guests",
+    handler: (p, v) => updateGuest(v, p.guestId, { name: p.name, title: p.title, sortOrder: p.sortOrder, photoImage: p.photoImage, mimeType: p.mimeType }),
+  },
+  "volunteer.guests.delete": { auth: true, module: "guests", handler: (p, v) => deleteGuest(v, p.guestId) },
 
   "volunteer.futureCosts.record": { auth: true, module: "expenses", handler: (p, v) => recordFutureCost(v, p) },
   "volunteer.futureCosts.move": { auth: true, module: "expenses", handler: (p, v) => moveFutureCostToExpense(v, p.estimateId) },

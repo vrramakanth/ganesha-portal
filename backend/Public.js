@@ -22,6 +22,9 @@ function getFestivalInfo() {
     "community_dinner_counter_map",
     "tagline",
     "hero_image_url",
+    "meal_pricing_mode",
+    "meal_adult_price",
+    "meal_child_price",
   ];
   const info = {};
   keys.forEach((k) => (info[k] = getConfig(k, "")));

@@ -9,4 +9,5 @@ export const CACHED_PUBLIC_ACTIONS = new Set([
   "feedback.listPublished",
   "festival.get",
   "blocks.list",
+  "guests.list",
 ]);

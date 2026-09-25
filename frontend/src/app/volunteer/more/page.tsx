@@ -1,21 +1,29 @@
+"use client";
+
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import NammaHabbaAttribution from "@/components/NammaHabbaAttribution";
-
-const links = [
-  { href: "/volunteer/reports", label: "Reports", description: "Finance, events, dinner and volunteer reports" },
-  { href: "/volunteer/announcements", label: "Announcements", description: "Publish updates residents see on Home" },
-  { href: "/volunteer/settings", label: "Settings", description: "Festival configuration" },
-  { href: "/volunteer/audit-log", label: "Audit Log", description: "History of sensitive volunteer actions" },
-  { href: "/volunteer/bugs", label: "Bug Reports", description: "Issues reported by residents and organizers" },
-  {
-    href: "/volunteer/community-dinner",
-    label: "Community Dinner",
-    description: "Registrations, guest payment review, and edits",
-  },
-];
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 
 export default function VolunteerMorePage() {
+  const { modules } = useFestivalConfig();
+
+  const links = [
+    { href: "/volunteer/reports", label: "Reports", description: "Finance, events, dinner and volunteer reports" },
+    { href: "/volunteer/announcements", label: "Announcements", description: "Publish updates residents see on Home" },
+    { href: "/volunteer/settings", label: "Settings", description: "Festival configuration" },
+    { href: "/volunteer/audit-log", label: "Audit Log", description: "History of sensitive volunteer actions" },
+    { href: "/volunteer/bugs", label: "Bug Reports", description: "Issues reported by residents and organizers" },
+    {
+      href: "/volunteer/community-dinner",
+      label: "Community Dinner",
+      description: "Registrations, guest payment review, and edits",
+    },
+    ...(modules.guests
+      ? [{ href: "/volunteer/guests", label: "Guests", description: "Manage the public Chief Guests list" }]
+      : []),
+  ];
+
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="More" />

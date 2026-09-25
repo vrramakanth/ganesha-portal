@@ -2659,10 +2659,37 @@ Volunteer → More → **Festival Setup** (still routed at `/volunteer/settings`
 3. What's still genuinely hand-edited, not self-service, because it's either bespoke content or carries real deploy-latency tradeoffs: the page `<title>`/metadata in `layout.tsx` (static, not fetched per-request), and the closing/sign-off copy in `DonationsClosed.tsx` and `WrapUpSummary.tsx` ("Ganpati Bappa Morya," 2025 comparison stats) — genuinely this festival's own voice and bespoke analytics, not generic platform text.
 4. Deploy (`clasp push` + `clasp deploy -i <deploymentId>` for the backend, the usual Vercel deploy for the frontend) against the new Sheet/Configuration.
 
+## Guests module and configurable meal pricing (Phase 3)
+
+Built for **Kannada Rajyotsava**, which needs both and had neither: a public dignitary
+list, and a meal-pricing shape where everyone pays, not just guests. Both are gated by
+their own toggle in the module registry (`donations`/`meal`/`guests`/etc., §above) and
+change nothing about the current Ganesha Chathurthi 2026 deployment unless explicitly
+configured — **Navratri**, by contrast, needed none of this: donations and meal off,
+everything else on, a pure Configuration exercise.
+
+**Guests** (`backend/Guests.js`, sheet `Guests`): a minimal public-read/`Events`-permission-write
+CRUD list — `name`, `title`, an optional Drive-hosted `photo_url`, and a `sort_order` for
+display order. Resident-facing: a `/guests` page plus a "Chief Guests" teaser card on
+Home, both only rendered when the `guests` module is on. Volunteer-facing:
+`/volunteer/guests` (linked from More), same list/add/edit/remove shape as the
+Announcements admin page. Photo upload reuses `uploadDriveImage()` (`Receipts.js`) — the
+same Drive-thumbnail-URL helper Phase 2's hero image upload introduced, now factored out
+so a third near-identical implementation wasn't needed.
+
+**Meal pricing** (`backend/CommunityDinner.js`): `communityDinnerAmountDue(adults,
+children, guestAdults, guestChildren)` replaced the old `communityDinnerGuestAmount()`,
+which only ever priced guests. Two modes, set via `meal_pricing_mode` (Configuration,
+Finance-gated, editable from Settings → Meal Pricing): `household_free_guest_paid`
+(default — today's exact behavior, a resident's own adults/children are free) and
+`everyone_paid` (Rajyotsava — every attendee, household or guest, is charged the same
+per-head rate). `meal_adult_price`/`meal_child_price` are plain Configuration values, not
+code constants — a caterer's rate is always subject to negotiation. The Sheet column
+stays named `guest_amount` (no schema migration) even though in `everyone_paid` mode it
+holds the total amount due, not a guest-only portion.
+
 ## Not yet built
 
-- The **Guests module** — reserved as a module key, no sheet, no routes, no UI anywhere.
-- A **meal pricing table** (household-free / guest-paid vs. everyone-pays-the-same, configurable per festival) — Community Dinner's guest pricing is still the two hardcoded constants (`GUEST_ADULT_PRICE`, `GUEST_CHILD_PRICE` in `CommunityDinner.js`) from the original build.
 - **Per-festival theme skinning** (the saffron/maroon palette) — still the one hardcoded look from `globals.css`, not yet a configurable per-deployment theme (the hero *image* itself is now self-service — see above — but the color palette isn't).
 - Self-service for **volunteer areas** (`frontend/src/lib/volunteerAreas.ts`, still hardcoded to exactly "Decorate Idol/Pooja/Aarti" / "Bhog/Prasadam/Food") and their seva guideline text (`Volunteers.js`) — still hand-edited per festival.
 - Any **new Google Sheet / Apps Script deployment / Vercel project provisioning from the UI** — deliberately out of scope (a much larger, separate idea involving new API credentials); the Festival Setup screen configures the *content* of an already-provisioned deployment, not the infrastructure itself.

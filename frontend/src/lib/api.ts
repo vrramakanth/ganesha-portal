@@ -27,6 +27,7 @@ import type {
   FeedbackReport,
   FestivalInfo,
   FutureCost,
+  Guest,
   MyDinnerToken,
   PublicStats,
   RedeemResult,
@@ -193,6 +194,9 @@ export const api = {
   },
   announcements: {
     list: () => apiGet<Announcement[]>("announcements.list"),
+  },
+  guests: {
+    list: () => apiGet<Guest[]>("guests.list"),
   },
   bugs: {
     report: (payload: {
@@ -427,6 +431,17 @@ export const api = {
         "volunteer.volunteers.declineArea",
         { idToken, volunteerId, area }
       ),
+    createGuest: (
+      idToken: string,
+      payload: { name: string; title?: string; sortOrder?: number; photoImage?: string; mimeType?: string }
+    ) => apiPost<Guest>("volunteer.guests.create", { idToken, ...payload }),
+    updateGuest: (
+      idToken: string,
+      guestId: string,
+      payload: { name?: string; title?: string; sortOrder?: number; photoImage?: string; mimeType?: string }
+    ) => apiPost<Guest>("volunteer.guests.update", { idToken, guestId, ...payload }),
+    deleteGuest: (idToken: string, guestId: string) =>
+      apiPost<{ guestId: string }>("volunteer.guests.delete", { idToken, guestId }),
     createAnnouncement: (
       idToken: string,
       payload: { title: string; message: string; expiresAt?: string; relatedEventId?: string }

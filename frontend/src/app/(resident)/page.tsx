@@ -51,6 +51,7 @@ export default function Home() {
   const { data: announcements, error: announcementsError } = useAsync(() => api.announcements.list(), []);
   const { data: feedback } = useAsync(() => api.feedback.listPublished(), []);
   const { data: dinnerCount } = useAsync(() => api.communityDinner.publicCount(), []);
+  const { data: guests } = useAsync(() => (modules.guests ? api.guests.list() : Promise.resolve([])), [modules.guests]);
   const [expandedVoices, setExpandedVoices] = useState<Record<string, boolean>>({});
   const [expandedNews, setExpandedNews] = useState<Record<string, boolean>>({});
 
@@ -285,6 +286,19 @@ export default function Home() {
         )}
         <FindYourCounter counters={dinnerCount?.counters} lateCounter={dinnerCount?.lateCounter} />
       </section>
+      )}
+
+      {modules.guests && !!guests && guests.length > 0 && (
+        <Link
+          href="/guests"
+          className="block rounded-xl border border-border bg-card px-4 py-3.5 active:bg-background transition-colors"
+        >
+          <p className="font-semibold text-sm">Chief Guests</p>
+          <p className="text-sm text-muted">
+            {guests[0].name}
+            {guests.length > 1 ? ` · ${guests.length - 1} more →` : " →"}
+          </p>
+        </Link>
       )}
 
       {!announcementsError && news.length > 0 && (

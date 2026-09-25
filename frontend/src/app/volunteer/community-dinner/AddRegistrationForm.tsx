@@ -4,12 +4,11 @@ import { useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { fileToBase64 } from "@/lib/file";
 import { formatCurrency } from "@/lib/date";
+import { mealAmountDue } from "@/lib/mealPricing";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
-
-const GUEST_ADULT_PRICE = 200;
-const GUEST_CHILD_PRICE = 100;
 
 const inputClass = "w-full rounded-lg border border-border bg-card px-3 py-3 text-sm";
 
@@ -18,6 +17,11 @@ const inputClass = "w-full rounded-lg border border-border bg-card px-3 py-3 tex
  *  payment, so the admin records its reference and a Finance admin
  *  verifies it under Needs Review, same as a resident's own payment. */
 export default function AddRegistrationForm({ idToken, onAdded }: { idToken: string; onAdded: () => void }) {
+  const { festival } = useFestivalConfig();
+  const pricingMode = festival?.meal_pricing_mode || "household_free_guest_paid";
+  const adultPrice = Number(festival?.meal_adult_price || "200");
+  const childPrice = Number(festival?.meal_child_price || "100");
+  const everyonePaid = pricingMode === "everyone_paid";
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
@@ -33,8 +37,15 @@ export default function AddRegistrationForm({ idToken, onAdded }: { idToken: str
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<string | null>(null);
 
-  const guestAmount =
-    (Number(guestAdults) || 0) * GUEST_ADULT_PRICE + (Number(guestChildren) || 0) * GUEST_CHILD_PRICE;
+  const amountDue = mealAmountDue(
+    pricingMode,
+    adultPrice,
+    childPrice,
+    Number(adults) || 0,
+    Number(children) || 0,
+    Number(guestAdults) || 0,
+    Number(guestChildren) || 0
+  );
 
   function reset() {
     setName("");
@@ -71,8 +82,8 @@ export default function AddRegistrationForm({ idToken, onAdded }: { idToken: str
       setError("Add at least one person attending.");
       return;
     }
-    if (guestAmount > 0 && !reference.trim()) {
-      setError("Guests are chargeable. Enter the payment reference (UTR, or Cash).");
+    if (amountDue > 0 && !reference.trim()) {
+      setError(everyonePaid ? "A payment is owed. Enter the payment reference (UTR, or Cash)." : "Guests are chargeable. Enter the payment reference (UTR, or Cash).");
       return;
     }
 
@@ -87,14 +98,14 @@ export default function AddRegistrationForm({ idToken, onAdded }: { idToken: str
         children: Number(children) || 0,
         guestAdults: Number(guestAdults) || 0,
         guestChildren: Number(guestChildren) || 0,
-        reference: guestAmount > 0 ? reference.trim() : undefined,
-        screenshot: guestAmount > 0 && file ? await fileToBase64(file) : undefined,
-        mimeType: guestAmount > 0 && file ? file.type : undefined,
+        reference: amountDue > 0 ? reference.trim() : undefined,
+        screenshot: amountDue > 0 && file ? await fileToBase64(file) : undefined,
+        mimeType: amountDue > 0 && file ? file.type : undefined,
       });
       setAdded(
         result.status === "CONFIRMED"
           ? `${result.resident_name} is registered and confirmed (${result.registration_id}).`
-          : `${result.resident_name} is added (${result.registration_id}). The guest payment is waiting under Needs Review.`
+          : `${result.resident_name} is added (${result.registration_id}). The payment is waiting under Needs Review.`
       );
       reset();
       setOpen(false);
@@ -156,10 +167,10 @@ export default function AddRegistrationForm({ idToken, onAdded }: { idToken: str
               <input type="number" min="0" inputMode="numeric" value={guestChildren} onChange={(e) => setGuestChildren(e.target.value)} className={inputClass} />
             </div>
           </div>
-          {guestAmount > 0 && (
+          {amountDue > 0 && (
             <div className="space-y-3 rounded-lg border border-border p-3">
               <p className="text-sm font-semibold text-maroon">
-                Guests owe {formatCurrency(guestAmount)} (₹{GUEST_ADULT_PRICE}/adult, ₹{GUEST_CHILD_PRICE}/child)
+                {everyonePaid ? "Amount due" : "Guests owe"} {formatCurrency(amountDue)} (₹{adultPrice}/adult, ₹{childPrice}/child)
               </p>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Payment reference</label>

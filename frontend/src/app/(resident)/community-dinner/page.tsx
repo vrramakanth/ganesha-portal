@@ -7,6 +7,7 @@ import { useAsync } from "@/lib/useAsync";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatCurrency } from "@/lib/date";
+import { mealAmountDue } from "@/lib/mealPricing";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
@@ -14,9 +15,6 @@ import PaymentReferenceStep from "@/components/PaymentReferenceStep";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import FindYourCounter from "@/components/FindYourCounter";
-
-const GUEST_ADULT_PRICE = 200;
-const GUEST_CHILD_PRICE = 100;
 
 type Step = "checking" | "form" | "creating" | "payment" | "confirmed" | "submitted" | "cancelled" | "already";
 
@@ -96,8 +94,19 @@ export default function CommunityDinnerPage() {
     }
   }, [loaded, hasCheckedExisting, existingLookupMobile, checkingExisting, existingRegistration]);
 
-  const computedGuestAmount =
-    (Number(guestAdults) || 0) * GUEST_ADULT_PRICE + (Number(guestChildren) || 0) * GUEST_CHILD_PRICE;
+  const pricingMode = festival?.meal_pricing_mode || "household_free_guest_paid";
+  const adultPrice = Number(festival?.meal_adult_price || "200");
+  const childPrice = Number(festival?.meal_child_price || "100");
+  const everyonePaid = pricingMode === "everyone_paid";
+  const computedAmountDue = mealAmountDue(
+    pricingMode,
+    adultPrice,
+    childPrice,
+    Number(adults) || 0,
+    Number(children) || 0,
+    hasGuests ? Number(guestAdults) || 0 : 0,
+    hasGuests ? Number(guestChildren) || 0 : 0
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -229,8 +238,10 @@ export default function CommunityDinnerPage() {
     return (
       <div className="flex flex-col gap-6 px-5 pt-8">
         <PageHeader
-          title="Pay for Your Guests"
-          subtitle={`${formatCurrency(guestAmount)} for the guests you added`}
+          title={everyonePaid ? "Pay for Your Registration" : "Pay for Your Guests"}
+          subtitle={
+            everyonePaid ? `${formatCurrency(guestAmount)} for everyone attending` : `${formatCurrency(guestAmount)} for the guests you added`
+          }
           backHref="/more"
           backLabel="← More"
         />
@@ -336,7 +347,9 @@ export default function CommunityDinnerPage() {
       />
       <p className="-mt-4 text-sm font-medium text-saffron">20th September, evening — details to follow</p>
       <p className="-mt-4 text-sm font-semibold">
-        Free for all residents — guests welcome at ₹{GUEST_ADULT_PRICE}/adult, ₹{GUEST_CHILD_PRICE}/child
+        {everyonePaid
+          ? `₹${adultPrice}/adult, ₹${childPrice}/child for everyone attending`
+          : `Free for all residents — guests welcome at ₹${adultPrice}/adult, ₹${childPrice}/child`}
       </p>
       {!!dinnerCount && dinnerCount.registered > 0 && (
         <p className="-mt-4 text-sm font-semibold text-maroon">{dinnerCount.registered} already registered</p>
@@ -424,6 +437,9 @@ export default function CommunityDinnerPage() {
               />
             </div>
           </div>
+          {everyonePaid && !hasGuests && computedAmountDue > 0 && (
+            <p className="text-sm font-semibold text-maroon">Total due: {formatCurrency(computedAmountDue)}</p>
+          )}
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
@@ -432,8 +448,9 @@ export default function CommunityDinnerPage() {
             Bringing guests?
           </label>
           <p className="text-xs text-muted">
-            Guests are chargeable at actuals — ₹{GUEST_ADULT_PRICE}/plate for adults (12+), ₹{GUEST_CHILD_PRICE}/plate
-            for children (6-12).
+            {everyonePaid
+              ? `Guests are charged the same rate as everyone else — ₹${adultPrice}/plate for adults (12+), ₹${childPrice}/plate for children (6-12).`
+              : `Guests are chargeable at actuals — ₹${adultPrice}/plate for adults (12+), ₹${childPrice}/plate for children (6-12).`}
           </p>
           {hasGuests && (
             <>
@@ -461,9 +478,10 @@ export default function CommunityDinnerPage() {
                   />
                 </div>
               </div>
-              {computedGuestAmount > 0 && (
+              {computedAmountDue > 0 && (
                 <p className="text-sm font-semibold text-maroon">
-                  Guest total: {formatCurrency(computedGuestAmount)} — payable right after you submit
+                  {everyonePaid ? "Total due" : "Guest total"}: {formatCurrency(computedAmountDue)} — payable right after
+                  you submit
                 </p>
               )}
             </>

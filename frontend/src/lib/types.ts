@@ -40,6 +40,9 @@ export type FestivalInfo = {
   modules: EnabledModules;
   tagline: string;
   hero_image_url: string;
+  meal_pricing_mode: string;
+  meal_adult_price: string;
+  meal_child_price: string;
 };
 
 export type Block = {
@@ -81,6 +84,15 @@ export type PublicStats = {
   futureCosts: number;
   donationsOpen: boolean;
   wrappedUp: boolean;
+};
+
+export type Guest = {
+  guest_id: string;
+  name: string;
+  title: string;
+  photo_url: string;
+  sort_order: number;
+  created_at: string;
 };
 
 export type Announcement = {
