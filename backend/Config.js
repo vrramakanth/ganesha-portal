@@ -86,24 +86,6 @@ function getConfig(key, fallback) {
   return row ? row.value : fallback;
 }
 
-/** Single source of truth for the festival's display name — was
- *  previously duplicated as an inline `getConfig("festival_name",
- *  "Ganesha Chathurthi 2026")` fallback in 8 separate files (Drive root
- *  folder naming, receipts, WhatsApp templates). A future deployment only
- *  ever needs to change the seeded Configuration row (Setup.js), not any
- *  of these fallback literals. */
-function getFestivalName() {
-  return getConfig("festival_name", "Ganesha Chathurthi 2026");
-}
-
-/** The community/society name — distinct from the festival name (e.g.
- *  "Brigade Woods" vs. "Ganesha Chathurthi 2026") and, unlike it, was
- *  previously hardcoded as a literal string in the receipt generator
- *  with no Configuration key backing it at all. */
-function getCommunityName() {
-  return getConfig("community_name", "Brigade Woods");
-}
-
 /** The WhatsApp number residents are pointed to for things this app
  *  can't do itself (Report a Bug, requesting a change to a locked
  *  Community Dinner registration). Configurable so it doesn't need a

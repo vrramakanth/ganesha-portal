@@ -4,7 +4,6 @@ import { useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
-import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { formatCurrency, formatEventDate, toDateInputValue } from "@/lib/date";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
@@ -88,7 +87,7 @@ export default function FutureCostsPage() {
     }
   }
 
-  const { festival: festivalInfo, refresh: refreshFestival } = useFestivalConfig();
+  const { data: festivalInfo } = useAsync(() => api.festival.get(), [refreshKey]);
   const closed = festivalInfo?.future_costs_closed === "true";
 
   const openEstimates = (estimates ?? []).filter((e) => e.status === "OPEN");
@@ -150,7 +149,6 @@ export default function FutureCostsPage() {
     try {
       await api.volunteer.setFutureCostsClosed(idToken as string, closing);
       setRefreshKey((k) => k + 1);
-      refreshFestival();
     } catch (err) {
       setActionError(err instanceof ApiClientError ? err.message : "Could not change future costs status.");
     } finally {

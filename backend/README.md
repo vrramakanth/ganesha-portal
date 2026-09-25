@@ -108,8 +108,6 @@ real `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET`/`NEXT_PUBLIC_RAZORPAY_KEY_ID`.
 | `GET /volunteer/reports` | `volunteer.reports.export` | ✓ Finance |
 | — | `volunteer.config.list` | ✓ Operations |
 | — | `volunteer.config.update` | ✓ Operations |
-| — | `volunteer.modules.list` | ✓ |
-| — | `volunteer.modules.update` | ✓ Operations |
 | — | `volunteer.auditLog.list` | ✓ Operations |
 
 Permission areas (spec §4.2): `Operations`, `Events`, `Dinner`, `Finance`,

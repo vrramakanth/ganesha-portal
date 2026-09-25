@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
-import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatCurrency } from "@/lib/date";
 import BlockSelect from "@/components/BlockSelect";
@@ -20,7 +19,7 @@ type Step = "form" | "creating" | "reference" | "submitted" | "cancelled";
 
 export default function DonatePage() {
   const { profile, saveProfile, loaded } = useResidentProfile();
-  const { festival, loading: festivalLoading } = useFestivalConfig();
+  const { data: festival, loading: festivalLoading } = useAsync(() => api.festival.get(), []);
 
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");

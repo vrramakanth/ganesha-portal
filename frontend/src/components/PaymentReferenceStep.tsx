@@ -93,7 +93,7 @@ export default function PaymentReferenceStep({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const vpa = festival?.upi_vpa || "";
-  const payeeName = festival?.upi_payee_name || festival?.festival_name || festival?.community_name || "Brigade Woods";
+  const payeeName = festival?.upi_payee_name || festival?.festival_name || "Brigade Woods";
   const upiParams = `pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`;
   // The QR code must always encode the plain "upi://" URI — a UPI app's
   // camera scanner only recognizes that scheme, not an Android intent://

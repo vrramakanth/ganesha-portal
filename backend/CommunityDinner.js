@@ -620,7 +620,7 @@ function editCommunityDinnerRegistration(volunteer, registrationId, fields) {
  *  Dinner permission can add one; nothing here feeds into any total. */
 
 function getCounterSheetScansFolder() {
-  const rootName = getFestivalName();
+  const rootName = getConfig("festival_name", "Ganesha Chathurthi 2026");
   const root = getOrCreateFolder(DriveApp.getRootFolder(), rootName);
   return getOrCreateFolder(root, "Counter Sheet Scans");
 }

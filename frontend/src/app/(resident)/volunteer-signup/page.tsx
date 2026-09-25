@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
-import { useFestivalConfig } from "@/lib/FestivalConfigContext";
+import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { parseFestivalDateRange } from "@/lib/date";
 import { VOLUNTEER_AREAS } from "@/lib/volunteerAreas";
@@ -29,7 +29,7 @@ function newCommitment(): Commitment {
 
 export default function VolunteerSignupPage() {
   const { profile, saveProfile, loaded } = useResidentProfile();
-  const { festival } = useFestivalConfig();
+  const { data: festival } = useAsync(() => api.festival.get(), []);
   const festivalDates = useMemo(() => parseFestivalDateRange(festival?.dates ?? ""), [festival?.dates]);
   const dateLabels = useMemo(
     () => Object.fromEntries(festivalDates.map((d) => [d.iso, d.label])),

@@ -103,9 +103,6 @@ function seedDefaults() {
   if (rowsToObjects(config).length === 0) {
     [
       ["festival_name", "Ganesha Chathurthi 2026"],
-      ["community_name", "Brigade Woods"],
-      ["id_prefix", "GWG"],
-      ["enabled_modules", JSON.stringify(DEFAULT_ENABLED_MODULES)],
       ["dates", "22-30 Aug 2026"],
       ["venue", "Brigade Woods Community Hall"],
       ["donation_goal", "750000"],

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
-import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatEventDate, formatEventTime } from "@/lib/date";
 import { eventSubCategories } from "@/lib/culturalSubCategories";
@@ -118,7 +117,7 @@ type SubmitOutcome =
 
 export default function EventDetailClient({ eventId }: { eventId: string }) {
   const { data: events, loading, error } = useAsync(() => api.events.list(), []);
-  const { festival: festivalInfo } = useFestivalConfig();
+  const { data: festivalInfo } = useAsync(() => api.festival.get(), []);
   const wrappedUp = festivalInfo?.festival_wrapped_up === "true";
   const event = (events ?? []).find((e) => e.event_id === eventId);
   const { profile, saveProfile, loaded } = useResidentProfile();

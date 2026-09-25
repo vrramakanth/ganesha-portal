@@ -17,7 +17,6 @@ import type {
   DinnerSubmitReferenceResult,
   DinnerToken,
   DonationSummary,
-  EnabledModules,
   EntitlementRow,
   EventRecord,
   EventRegistration,
@@ -450,9 +449,6 @@ export const api = {
     listConfig: (idToken: string) => apiGet<ConfigEntry[]>("volunteer.config.list", { idToken }),
     updateConfig: (idToken: string, updates: Record<string, string>) =>
       apiPost<ConfigEntry[]>("volunteer.config.update", { idToken, updates }),
-    listModules: (idToken: string) => apiGet<EnabledModules>("volunteer.modules.list", { idToken }),
-    updateModules: (idToken: string, updates: Partial<EnabledModules>) =>
-      apiPost<EnabledModules>("volunteer.modules.update", { idToken, updates }),
     runBackup: (idToken: string) =>
       apiPost<{ name: string; url: string; created: boolean }>("volunteer.backup.run", { idToken }),
     auditLog: (idToken: string) => apiGet<AuditLogEntry[]>("volunteer.auditLog.list", { idToken }),

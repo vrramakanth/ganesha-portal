@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
-import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatCurrency } from "@/lib/date";
 import { fileToBase64 } from "@/lib/file";
@@ -28,7 +27,7 @@ const PIN_RESET_WHATSAPP_NUMBER = "919880766321";
 
 export default function MyStuffPage() {
   const { profile, loaded } = useResidentProfile();
-  const { festival } = useFestivalConfig();
+  const { data: festival } = useAsync(() => api.festival.get(), []);
   const { data: dinnerCounts } = useAsync(() => api.communityDinner.publicCount(), []);
   const whatsappNumber = festival?.admin_whatsapp_number || DEFAULT_WHATSAPP_NUMBER;
   const [mobileInput, setMobileInput] = useState("");

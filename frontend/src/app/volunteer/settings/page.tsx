@@ -4,24 +4,11 @@ import { useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
-import { useFestivalConfig } from "@/lib/FestivalConfigContext";
-import type { EnabledModules, ModuleKey } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
 
-const MODULE_LABELS: Record<ModuleKey, string> = {
-  donations: "Donations",
-  sponsorships: "Sponsorships",
-  events: "Events",
-  meal: "Meal / Community Dinner",
-  guests: "Guests",
-  volunteers: "Volunteers / Seva",
-  expenses: "Expenses",
-};
-
 export default function SettingsPage() {
   const { idToken } = useVolunteerAuth();
-  const { modules, refresh: refreshFestival } = useFestivalConfig();
   const [refreshKey, setRefreshKey] = useState(0);
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -32,8 +19,6 @@ export default function SettingsPage() {
   const [backingUp, setBackingUp] = useState(false);
   const [backupError, setBackupError] = useState<string | null>(null);
   const [backupResult, setBackupResult] = useState<{ name: string; url: string; created: boolean } | null>(null);
-  const [savingModules, setSavingModules] = useState(false);
-  const [modulesError, setModulesError] = useState<string | null>(null);
 
   const { data: config, loading, error: loadError } = useAsync(
     () => api.volunteer.listConfig(idToken as string),
@@ -42,20 +27,6 @@ export default function SettingsPage() {
 
   const { data: festivalInfo } = useAsync(() => api.festival.get(), [refreshKey]);
   const wrappedUp = festivalInfo ? festivalInfo.festival_wrapped_up === "true" : null;
-
-  async function handleToggleModule(key: ModuleKey) {
-    setModulesError(null);
-    setSavingModules(true);
-    try {
-      const updates: Partial<EnabledModules> = { [key]: !modules[key] };
-      await api.volunteer.updateModules(idToken as string, updates);
-      refreshFestival();
-    } catch (err) {
-      setModulesError(err instanceof ApiClientError ? err.message : "Could not change that module.");
-    } finally {
-      setSavingModules(false);
-    }
-  }
 
   async function handleToggleWrapUp() {
     const wrapping = !wrappedUp;
@@ -72,7 +43,6 @@ export default function SettingsPage() {
     try {
       await api.volunteer.setFestivalWrappedUp(idToken as string, wrapping);
       setRefreshKey((k) => k + 1);
-      refreshFestival();
     } catch (err) {
       setWrapError(err instanceof ApiClientError ? err.message : "Could not change the festival status.");
     } finally {
@@ -90,7 +60,6 @@ export default function SettingsPage() {
       setEdits({});
       setSaved(true);
       setRefreshKey((k) => k + 1);
-      refreshFestival();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not save changes.");
     } finally {
@@ -115,32 +84,6 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader title="Settings" subtitle="Festival configuration" backHref="/volunteer/more" backLabel="← More" />
-
-      <div className="space-y-2">
-        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
-          Modules — Namma Habba
-        </h2>
-        <p className="text-xs text-muted">
-          Which features this festival uses. Turning a module off hides it from residents and
-          volunteers and blocks its actions server-side — it doesn&apos;t delete any data already
-          recorded.
-        </p>
-        <div className="rounded-xl border border-border bg-card divide-y divide-border">
-          {(Object.keys(MODULE_LABELS) as ModuleKey[]).map((key) => (
-            <label key={key} className="px-4 py-3 flex items-center justify-between gap-3">
-              <span className="text-sm">{MODULE_LABELS[key]}</span>
-              <input
-                type="checkbox"
-                checked={modules[key]}
-                disabled={savingModules}
-                onChange={() => handleToggleModule(key)}
-                className="h-5 w-5 accent-maroon"
-              />
-            </label>
-          ))}
-        </div>
-        {modulesError && <p className="text-sm text-red-600">{modulesError}</p>}
-      </div>
 
       {loading && <LoadingIndicator />}
       {loadError && <p className="text-sm text-red-600">{loadError}</p>}

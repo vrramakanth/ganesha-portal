@@ -46,7 +46,7 @@ function getAuditArchiveSpreadsheet() {
       // through and create a fresh one rather than failing archiving.
     }
   }
-  const festivalName = getFestivalName();
+  const festivalName = getConfig("festival_name", "Ganesha Chathurthi 2026");
   const ss = SpreadsheetApp.create(`${festivalName} — Audit Log Archive`);
   const root = getOrCreateFolder(DriveApp.getRootFolder(), festivalName);
   const file = DriveApp.getFileById(ss.getId());

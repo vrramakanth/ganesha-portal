@@ -4,7 +4,7 @@
  *  in the Sheet itself (same pattern as Receipts.js). */
 
 function getBugScreenshotsFolder() {
-  const rootName = getFestivalName();
+  const rootName = getConfig("festival_name", "Ganesha Chathurthi 2026");
   const root = getOrCreateFolder(DriveApp.getRootFolder(), rootName);
   return getOrCreateFolder(root, "Bug Screenshots");
 }

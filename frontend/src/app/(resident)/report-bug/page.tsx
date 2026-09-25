@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
 import { fileToBase64 } from "@/lib/file";
-import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import PageHeader from "@/components/PageHeader";
 
@@ -13,7 +13,7 @@ type Step = "form" | "done";
 
 export default function ReportBugPage() {
   const { profile, saveProfile } = useResidentProfile();
-  const { festival } = useFestivalConfig();
+  const { data: festival } = useAsync(() => api.festival.get(), []);
   const whatsappNumber = festival?.admin_whatsapp_number || DEFAULT_WHATSAPP_NUMBER;
   const [description, setDescription] = useState("");
   const [mobile, setMobile] = useState("");

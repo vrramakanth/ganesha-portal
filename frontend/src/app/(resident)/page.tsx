@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
-import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { formatCurrency, formatEventWhen, formatEventTime } from "@/lib/date";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
@@ -41,7 +40,6 @@ function costsAheadStatus(
 }
 
 export default function Home() {
-  const { modules } = useFestivalConfig();
   // Each fetched independently — these used to be bundled into one
   // Promise.all, which meant a hiccup in any single one (this backend,
   // Apps Script, occasionally blips) blanked out the totals, Upcoming,
@@ -116,7 +114,7 @@ export default function Home() {
         />
       )}
 
-      {modules.donations && (stats?.donationsOpen === false ? (
+      {stats?.donationsOpen === false ? (
         !stats.wrappedUp && (
           <div className="rounded-xl border border-border bg-card pb-5">
             <DonationsClosed />
@@ -129,9 +127,9 @@ export default function Home() {
         >
           Donate Now
         </Link>
-      ))}
+      )}
 
-      {modules.donations && <div className="rounded-xl border border-border bg-card p-5 text-center">
+      <div className="rounded-xl border border-border bg-card p-5 text-center">
         {statsError ? (
           <p className="text-sm text-muted py-2">Unable to load totals.</p>
         ) : statsLoading || !stats ? (
@@ -193,7 +191,7 @@ export default function Home() {
             );
           })()
         )}
-      </div>}
+      </div>
 
       {!stats?.wrappedUp && (
       <section className="space-y-3">
@@ -249,7 +247,7 @@ export default function Home() {
       </section>
       )}
 
-      {!stats?.wrappedUp && modules.meal && (
+      {!stats?.wrappedUp && (
       <section className="rounded-xl border border-border bg-card p-5 space-y-3">
         <div>
           <p className="font-semibold">Community Dinner</p>

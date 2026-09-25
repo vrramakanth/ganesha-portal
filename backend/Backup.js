@@ -10,7 +10,7 @@
  *  than one. */
 
 function getBackupsFolder() {
-  const rootName = getFestivalName();
+  const rootName = getConfig("festival_name", "Ganesha Chathurthi 2026");
   const root = getOrCreateFolder(DriveApp.getRootFolder(), rootName);
   return getOrCreateFolder(root, "Backups");
 }
