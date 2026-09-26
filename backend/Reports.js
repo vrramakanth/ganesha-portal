@@ -69,6 +69,7 @@ const REPORT_BUILDERS = {
   registrations: () => rowsToObjects(getSheet(SHEETS.EVENT_REGISTRATIONS)),
   dinner: () => rowsToObjects(getSheet(SHEETS.ENTITLEMENTS)),
   volunteers: () => rowsToObjects(getSheet(SHEETS.VOLUNTEERS)),
+  expenses: () => rowsToObjects(getSheet(SHEETS.EXPENSES)),
 };
 
 function toCsv(rows) {
@@ -88,6 +89,7 @@ const REPORT_PERMISSIONS = {
   registrations: "Events",
   dinner: "Dinner",
   volunteers: "Operations",
+  expenses: "Finance",
 };
 
 function exportReportCsv(volunteer, reportKey) {

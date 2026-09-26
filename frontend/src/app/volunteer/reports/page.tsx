@@ -10,6 +10,7 @@ const REPORTS = [
   { key: "registrations", label: "Event registrations", permission: "Events" },
   { key: "dinner", label: "Dinner entitlements", permission: "Dinner" },
   { key: "volunteers", label: "Seva", permission: "Operations" },
+  { key: "expenses", label: "Expenses", permission: "Finance" },
 ];
 
 export default function ReportsPage() {
