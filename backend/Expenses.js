@@ -272,6 +272,48 @@ function getExpensesTotal() {
     .reduce((sum, e) => sum + Number(e.amount || 0), 0);
 }
 
+/** Several expense rows are really one vendor/category paid in
+ *  installments (each evening's N.S. Caterers prasadam, two Ahmed Tent
+ *  House deliveries, a Dhol advance + balance + tip, ...) — grouping
+ *  them under one label is what makes a "top expenses" list mean
+ *  anything, rather than just surfacing whichever single installment
+ *  happened to be largest. Matched by keyword against `purpose`, in
+ *  order — first match wins. Anything that matches none of these stays
+ *  its own line, keyed by its own purpose text. */
+const EXPENSE_GROUPS = [
+  { label: "N.S. Caterers", match: /n\.?\s*s\.?\s*caterers?|n\s*s\s*catering/i },
+  { label: "Decoration", match: /decoration/i },
+  { label: "Ahmed Tent House", match: /ahmed\s*tent\s*house?/i },
+  { label: "Dhol", match: /dhol/i },
+  { label: "Idol", match: /idol/i },
+  { label: "Purohit", match: /purohit/i },
+];
+
+function groupExpenseLabel(purpose) {
+  const p = String(purpose || "");
+  const group = EXPENSE_GROUPS.find((g) => g.match.test(p));
+  return group ? group.label : p;
+}
+
+/** Public-safe, for the Statement of Accounts: grouped label + summed
+ *  amount only, same aggregate-over-individual-rows principle as
+ *  donorThresholdCounts (Public.js) — never spender name/mobile, UPI id,
+ *  admin notes or the receipt photo, since those are Finance-permission-
+ *  gated everywhere else in this app (spec §29). */
+function getTopExpenses(limit) {
+  const totals = {};
+  rowsToObjects(ensureExpensesSheet())
+    .filter((e) => expenseStatus(e) === "APPROVED")
+    .forEach((e) => {
+      const label = groupExpenseLabel(e.purpose);
+      totals[label] = (totals[label] || 0) + Number(e.amount || 0);
+    });
+  return Object.entries(totals)
+    .map(([purpose, amount]) => ({ purpose, amount }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, limit);
+}
+
 /** Money moved from a future-cost estimate that hasn't reached Spent yet
  *  (still a draft, or submitted and awaiting approval). Counted alongside
  *  the open estimates so the projection doesn't dip while an estimate is

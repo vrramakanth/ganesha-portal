@@ -64,6 +64,12 @@ function listBlocks() {
   return rows.filter((b) => String(b.active).toUpperCase() === "TRUE");
 }
 
+// Bucket edges for donorThresholdCounts below — how many individual
+// contributions (donations + sponsorships, since both live on Transactions)
+// exceeded each amount. A count alone never identifies who gave what, so
+// this stays inside the same public, aggregate-only payload as byBlock.
+const DONOR_THRESHOLDS = [10000, 7500, 5000, 2500, 1000, 500];
+
 /** Aggregate-only — never expose names, flats, amounts per resident, or
  *  payment references here (spec §13, §33).
  *
@@ -104,15 +110,26 @@ function getPublicStats() {
     byBlock[t.block] = (byBlock[t.block] || 0) + Number(t.amount || 0);
   });
 
+  // Bhog Sponsors is deliberately not folded in here — its amount is a
+  // reference to a Transaction the sponsor already made (BhogSponsors.js),
+  // so counting it again would double-count money already in `transactions`.
+  const donorThresholdCounts = {};
+  DONOR_THRESHOLDS.forEach((t) => {
+    donorThresholdCounts[t] = transactions.filter((tx) => Number(tx.amount || 0) > t).length;
+  });
+
   const stats = {
     totalCollected,
     donationCount: transactions.length,
     families,
     goal: Number(getConfig("donation_goal", "0")) || 0,
     byBlock: Object.entries(byBlock).map(([block, amount]) => ({ block, amount })),
+    donorThresholdCounts,
     // Aggregate only, same principle as totalCollected above — a single
     // approved-expenses sum, never itemized or attributed to a spender.
     totalExpenses: getExpensesTotal(),
+    // Grouped label + summed amount for the top 5 — see getTopExpenses (Expenses.js).
+    topExpenses: getTopExpenses(5),
     // A worst-case planning estimate, not money already spent — shown
     // to residents alongside totalExpenses so Home can flag when
     // (spent + estimated ahead) is closing in on what's been collected,
