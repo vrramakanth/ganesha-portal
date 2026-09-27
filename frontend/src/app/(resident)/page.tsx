@@ -193,9 +193,14 @@ export default function Home() {
                 )}
 
                 {stats.wrappedUp && (
-                  <p className="mt-3 rounded-lg bg-maroon/10 px-3 py-2 text-sm font-semibold text-maroon">
-                    Statement of accounts: coming soon
-                  </p>
+                  <a
+                    href="/docs/statement-of-accounts.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 block rounded-lg bg-maroon/10 px-3 py-2 text-center text-sm font-semibold text-maroon"
+                  >
+                    View Statement of Accounts →
+                  </a>
                 )}
 
                 <p className="mt-2 text-sm text-foreground">{stats.families} families participating</p>
