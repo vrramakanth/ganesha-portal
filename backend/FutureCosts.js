@@ -142,11 +142,11 @@ function listFutureCosts(volunteer) {
  *  been approved into Spent yet, so the projection holds steady while an
  *  estimate is in transit. Discarded estimates, and expenses that are
  *  approved (now in Spent) or rejected, drop out. */
-function getFutureCostsTotal() {
+function getFutureCostsTotal(allExpenseRows) {
   const open = rowsToObjects(ensureFutureCostsSheet())
     .filter((e) => estimateStatus(e) === "OPEN")
     .reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  return open + getInFlightEstimateExpensesTotal();
+  return open + getInFlightEstimateExpensesTotal(allExpenseRows);
 }
 
 function findEstimate(sheet, estimateId) {

@@ -118,6 +118,13 @@ function getPublicStats() {
     donorThresholdCounts[t] = transactions.filter((tx) => Number(tx.amount || 0) > t).length;
   });
 
+  // Fetched once and shared below — totalExpenses, topExpenses and
+  // futureCosts (via getInFlightEstimateExpensesTotal) each used to read
+  // the whole Expenses sheet independently, tripling this endpoint's
+  // Sheets API cost for no reason.
+  const allExpenseRows = getExpenseRows();
+  const approvedExpenseRows = getApprovedExpenseRows(allExpenseRows);
+
   const stats = {
     totalCollected,
     donationCount: transactions.length,
@@ -127,14 +134,14 @@ function getPublicStats() {
     donorThresholdCounts,
     // Aggregate only, same principle as totalCollected above — a single
     // approved-expenses sum, never itemized or attributed to a spender.
-    totalExpenses: getExpensesTotal(),
+    totalExpenses: getExpensesTotal(approvedExpenseRows),
     // Grouped label + summed amount for the top 5 — see getTopExpenses (Expenses.js).
-    topExpenses: getTopExpenses(5),
+    topExpenses: getTopExpenses(5, approvedExpenseRows),
     // A worst-case planning estimate, not money already spent — shown
     // to residents alongside totalExpenses so Home can flag when
     // (spent + estimated ahead) is closing in on what's been collected,
     // without ever presenting the estimate as a settled fact.
-    futureCosts: getFutureCostsTotal(),
+    futureCosts: getFutureCostsTotal(allExpenseRows),
   };
 
   cache.put(PUBLIC_STATS_CACHE_KEY, JSON.stringify(stats), PUBLIC_STATS_CACHE_SECONDS);

@@ -259,6 +259,20 @@ function listMyExpenses(mobile) {
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
+/** Shared by getExpensesTotal, getTopExpenses and getInFlightEstimateExpensesTotal
+ *  so a caller needing more than one of them (getPublicStats needs all three,
+ *  via getFutureCostsTotal) can fetch the sheet once instead of three times —
+ *  this read scales with the whole spreadsheet, not just this tab (see the
+ *  PUBLIC_STATS_CACHE_SECONDS comment in Public.js), so repeating it on the
+ *  highest-traffic endpoint is a real, measurable slowdown. */
+function getExpenseRows() {
+  return rowsToObjects(ensureExpensesSheet());
+}
+
+function getApprovedExpenseRows(allRows) {
+  return (allRows || getExpenseRows()).filter((e) => expenseStatus(e) === "APPROVED");
+}
+
 /** Unlike recordExpense/listExpenses above, this has no permission
  *  check of its own — it backs the always-visible Festival Summary
  *  total on the dashboard (spec §28), which every admin sees regardless
@@ -266,10 +280,8 @@ function listMyExpenses(mobile) {
  *  total to residents. Only counts APPROVED expenses, same principle
  *  as SUCCESS_STATUSES for donations — a pending claim isn't confirmed
  *  spending yet. */
-function getExpensesTotal() {
-  return rowsToObjects(ensureExpensesSheet())
-    .filter((e) => expenseStatus(e) === "APPROVED")
-    .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+function getExpensesTotal(approvedRows) {
+  return (approvedRows || getApprovedExpenseRows()).reduce((sum, e) => sum + Number(e.amount || 0), 0);
 }
 
 /** Several expense rows are really one vendor/category paid in
@@ -300,14 +312,12 @@ function groupExpenseLabel(purpose) {
  *  donorThresholdCounts (Public.js) — never spender name/mobile, UPI id,
  *  admin notes or the receipt photo, since those are Finance-permission-
  *  gated everywhere else in this app (spec §29). */
-function getTopExpenses(limit) {
+function getTopExpenses(limit, approvedRows) {
   const totals = {};
-  rowsToObjects(ensureExpensesSheet())
-    .filter((e) => expenseStatus(e) === "APPROVED")
-    .forEach((e) => {
-      const label = groupExpenseLabel(e.purpose);
-      totals[label] = (totals[label] || 0) + Number(e.amount || 0);
-    });
+  (approvedRows || getApprovedExpenseRows()).forEach((e) => {
+    const label = groupExpenseLabel(e.purpose);
+    totals[label] = (totals[label] || 0) + Number(e.amount || 0);
+  });
   return Object.entries(totals)
     .map(([purpose, amount]) => ({ purpose, amount }))
     .sort((a, b) => b.amount - a.amount)
@@ -319,8 +329,8 @@ function getTopExpenses(limit) {
  *  the open estimates so the projection doesn't dip while an estimate is
  *  in transit; it drops out the moment the expense is approved (then it's
  *  in Spent) or rejected. */
-function getInFlightEstimateExpensesTotal() {
-  return rowsToObjects(ensureExpensesSheet())
+function getInFlightEstimateExpensesTotal(allRows) {
+  return (allRows || getExpenseRows())
     .filter((e) => e.from_estimate_id && ["DRAFT", "PENDING"].includes(expenseStatus(e)))
     .reduce((sum, e) => sum + Number(e.amount || 0), 0);
 }
