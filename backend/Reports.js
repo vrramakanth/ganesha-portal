@@ -31,9 +31,14 @@ function getVolunteerDashboard(volunteer) {
   if (closingToday > 0) alerts.push(`${closingToday} events close registration today`);
 
   const income = successful.reduce((sum, t) => sum + Number(t.amount || 0), 0);
-  const expenses = getExpensesTotal();
+  // Fetched once and shared below — same duplicate-read issue as
+  // stats.public had: getExpensesTotal and getFutureCostsTotal (via
+  // getInFlightEstimateExpensesTotal) each independently read the whole
+  // Expenses sheet.
+  const allExpenseRows = getExpenseRows();
+  const expenses = getExpensesTotal(getApprovedExpenseRows(allExpenseRows));
   const balance = income - expenses;
-  const futureCosts = getFutureCostsTotal();
+  const futureCosts = getFutureCostsTotal(allExpenseRows);
 
   return {
     collected: hasFinance ? income : null,
