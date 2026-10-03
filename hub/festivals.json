@@ -1,0 +1,25 @@
+{
+  "community": "Brigade Woods",
+  "title": "Namma Habba",
+  "tagline": "Our community celebrations, in one place.",
+  "festivals": [
+    {
+      "name": "Ganesha Chathurthi 2026",
+      "status": "past",
+      "blurb": "Wrapped up. See the final Statement of Accounts and highlights.",
+      "url": "https://REPLACE-WITH-GANESHA-URL"
+    },
+    {
+      "name": "Navratri",
+      "status": "soon",
+      "blurb": "Coming soon.",
+      "url": ""
+    },
+    {
+      "name": "Kannada Rajyotsava",
+      "status": "soon",
+      "blurb": "Coming soon.",
+      "url": ""
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Namma Habba</title>
+<meta name="description" content="Community celebrations hub">
+<style>
+  :root { --bg:#fffaf3; --fg:#2a1a14; --saffron:#f4791f; --maroon:#7a1330; --card:#fff; --border:#eee0d0; --muted:#8a7768; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { background:var(--maroon); color:#fff; padding:32px 16px; text-align:center; }
+  header small { letter-spacing:.15em; text-transform:uppercase; opacity:.8; }
+  header h1 { margin:6px 0; font-size:2rem; }
+  header p { margin:0; opacity:.9; }
+  main { max-width:560px; margin:0 auto; padding:20px 16px 48px; }
+  h2 { font-size:.85rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:24px 0 8px; }
+  .card { display:block; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:12px; color:inherit; text-decoration:none; }
+  a.card:hover { border-color:var(--saffron); }
+  .card h3 { margin:0 0 4px; }
+  .card p { margin:0; color:var(--muted); font-size:.95rem; }
+  .card.disabled { opacity:.65; }
+  .badge { float:right; font-size:.75rem; padding:2px 8px; border-radius:999px; background:var(--saffron); color:#fff; }
+  .badge.past { background:var(--muted); }
+  .badge.soon { background:#fff; color:var(--maroon); border:1px solid var(--border); }
+</style>
+</head>
+<body>
+<header>
+  <small id="community"></small>
+  <h1 id="title"></h1>
+  <p id="tagline"></p>
+</header>
+<main id="list"></main>
+<script>
+const LABELS = { live: "Live now", past: "Completed", soon: "Coming soon" };
+const SECTIONS = [["live", "Happening now"], ["soon", "Upcoming"], ["past", "Past festivals"]];
+fetch("festivals.json").then(r => r.json()).then(data => {
+  document.getElementById("community").textContent = data.community;
+  document.getElementById("title").textContent = data.title;
+  document.getElementById("tagline").textContent = data.tagline;
+  const list = document.getElementById("list");
+  SECTIONS.forEach(([status, heading]) => {
+    const items = data.festivals.filter(f => f.status === status);
+    if (!items.length) return;
+    const h = document.createElement("h2");
+    h.textContent = heading;
+    list.appendChild(h);
+    items.forEach(f => {
+      const el = document.createElement(f.url ? "a" : "div");
+      el.className = "card" + (f.url ? "" : " disabled");
+      if (f.url) el.href = f.url;
+      const badge = document.createElement("span");
+      badge.className = "badge " + f.status;
+      badge.textContent = LABELS[f.status];
+      const name = document.createElement("h3");
+      name.textContent = f.name;
+      const blurb = document.createElement("p");
+      blurb.textContent = f.blurb;
+      el.append(badge, name, blurb);
+      list.appendChild(el);
+    });
+  });
+});
+</script>
+</body>
+</html>
