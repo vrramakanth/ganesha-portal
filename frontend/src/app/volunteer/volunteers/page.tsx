@@ -4,14 +4,14 @@ import { useMemo, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
-import { VOLUNTEER_AREAS, parseVolunteerAvailability, isAreaApproved, type VolunteerSignup } from "@/lib/volunteerAreas";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
+import { volunteerAreasFor, parseVolunteerAvailability, isAreaApproved, type VolunteerSignup } from "@/lib/volunteerAreas";
 import type { VolunteerRegistration } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
 import LoadingIndicator from "@/components/LoadingIndicator";
 
 const SESSION_ORDER: Record<string, number> = { Morning: 0, Evening: 1 };
-const AREA_LABELS = VOLUNTEER_AREAS.map((a) => a.label);
 
 type Slot = { date: string; session: string; names: string[] };
 
@@ -113,31 +113,34 @@ export default function VolunteersPage() {
   );
 
   const volunteers = useMemo(() => data?.volunteers ?? [], [data]);
+  const { festival } = useFestivalConfig();
+  const volunteerAreas = useMemo(() => volunteerAreasFor(festival), [festival]);
+  const areaLabels = useMemo(() => volunteerAreas.map((a) => a.label), [volunteerAreas]);
 
   const areaSections = useMemo(
     () =>
-      VOLUNTEER_AREAS.map((a) => ({
+      volunteerAreas.map((a) => ({
         area: a.label,
         active: buildActiveSlots(volunteers, a.label),
         pending: volunteers.filter(
           (v) => volunteerAreaList(v).includes(a.label) && !isAreaApproved(v, a.label)
         ),
       })),
-    [volunteers]
+    [volunteers, volunteerAreas]
   );
 
   const bothAreas = useMemo(
-    () => volunteers.filter((v) => AREA_LABELS.every((label) => volunteerAreaList(v).includes(label))),
-    [volunteers]
+    () => volunteers.filter((v) => areaLabels.every((label) => volunteerAreaList(v).includes(label))),
+    [volunteers, areaLabels]
   );
 
   const otherSignups = useMemo(
     () =>
       volunteers.filter((v) => {
         const areas = volunteerAreaList(v);
-        return areas.length > 0 && areas.every((a) => !AREA_LABELS.includes(a));
+        return areas.length > 0 && areas.every((a) => !areaLabels.includes(a));
       }),
-    [volunteers]
+    [volunteers, areaLabels]
   );
 
   async function activate(volunteerId: string) {

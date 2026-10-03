@@ -21,6 +21,32 @@ const DEFAULT_MODULES: EnabledModules = {
   expenses: true,
 };
 
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+/** A darker shade of a #rrggbb colour, for hover/pressed states. */
+function darken(hex: string, factor = 0.8): string {
+  const channel = (i: number) =>
+    Math.round(parseInt(hex.slice(i, i + 2), 16) * factor)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${channel(1)}${channel(3)}${channel(5)}`;
+}
+
+/** Overrides the globals.css palette from the festival's configured theme
+ *  colours. "primary" drives the maroon tokens, "accent" the saffron ones;
+ *  an unset or malformed value leaves the stylesheet default in place. */
+function applyTheme(primary: string, accent: string) {
+  const root = document.documentElement;
+  const set = (name: string, value: string | null) =>
+    value ? root.style.setProperty(name, value) : root.style.removeProperty(name);
+  const p = HEX_COLOR.test(primary) ? primary : null;
+  const a = HEX_COLOR.test(accent) ? accent : null;
+  set("--maroon", p);
+  set("--maroon-dark", p && darken(p));
+  set("--saffron", a);
+  set("--saffron-dark", a && darken(a));
+}
+
 type FestivalConfigValue = {
   festival: FestivalInfo | null;
   modules: EnabledModules;
@@ -60,6 +86,14 @@ export function FestivalConfigProvider({ children }: { children: React.ReactNode
       cancelled = true;
     };
   }, [nonce]);
+
+  useEffect(() => {
+    if (!festival) return;
+    applyTheme(festival.theme_primary ?? "", festival.theme_accent ?? "");
+    if (festival.festival_name) {
+      document.title = `${festival.community_name || "Brigade Woods"} | ${festival.festival_name}`;
+    }
+  }, [festival]);
 
   const value: FestivalConfigValue = {
     festival,

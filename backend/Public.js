@@ -25,6 +25,8 @@ function getFestivalInfo() {
     "meal_pricing_mode",
     "meal_adult_price",
     "meal_child_price",
+    "theme_primary",
+    "theme_accent",
   ];
   const info = {};
   keys.forEach((k) => (info[k] = getConfig(k, "")));
@@ -44,6 +46,9 @@ function getFestivalInfo() {
   // one call instead of hardcoding which festival features exist.
   info.community_name = getCommunityName();
   info.modules = getEnabledModules();
+  // Guidelines are only sent to a volunteer once approved (Volunteers.js),
+  // so the public payload carries just what the sign-up form needs.
+  info.volunteer_areas = getVolunteerAreas().map((a) => ({ label: a.label, note: a.note }));
   return info;
 }
 
