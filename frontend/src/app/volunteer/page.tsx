@@ -35,9 +35,6 @@ export default function VolunteerDashboardPage() {
       ? [{ href: "/volunteer/bhog-sponsors", label: "Bhog Sponsors" }]
       : []),
     ...(modules.events ? [{ href: "/volunteer/events", label: "Events" }] : []),
-    ...(modules.volunteers && volunteer?.permissions.includes("Operations")
-      ? [{ href: "/volunteer/volunteers", label: "Seva" }]
-      : []),
     ...(volunteer?.permissions.includes("Operations")
       ? [{ href: "/volunteer/reset-pin", label: "Change Resident PIN" }]
       : []),
@@ -53,7 +50,6 @@ export default function VolunteerDashboardPage() {
     ...(volunteer?.permissions.includes("Content")
       ? [{ href: "/volunteer/feedback", label: "Resident Feedback" }]
       : []),
-    { href: "/volunteer/reports", label: "Reports" },
   ];
 
   return (
