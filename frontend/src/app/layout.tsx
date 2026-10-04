@@ -12,11 +12,11 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Brigade Woods | Ganesha Utsav 2026",
-  description: "Donate, register for events, and get your dinner token — Brigade Woods Ganesha Utsav 2026.",
+  title: "Namma Habba | Brigade Woods",
+  description: "Brigade Woods community celebrations — events, volunteering and more.",
   openGraph: {
-    title: "Brigade Woods | Ganesha Utsav 2026",
-    description: "Donate, register for events, and get your dinner token — Brigade Woods Ganesha Utsav 2026.",
+    title: "Namma Habba | Brigade Woods",
+    description: "Brigade Woods community celebrations — events, volunteering and more.",
   },
 };
 

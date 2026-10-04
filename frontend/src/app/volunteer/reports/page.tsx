@@ -3,19 +3,22 @@
 import { useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
+import type { ModuleKey } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 
-const REPORTS = [
-  { key: "donations", label: "Donation report", permission: "Finance" },
-  { key: "registrations", label: "Event registrations", permission: "Events" },
-  { key: "dinner", label: "Dinner entitlements", permission: "Dinner" },
-  { key: "volunteers", label: "Seva", permission: "Operations" },
-  { key: "expenses", label: "Expenses", permission: "Finance" },
+const REPORTS: { key: string; label: string; permission: string; module: ModuleKey }[] = [
+  { key: "donations", label: "Donation report", permission: "Finance", module: "donations" },
+  { key: "registrations", label: "Event registrations", permission: "Events", module: "events" },
+  { key: "dinner", label: "Dinner entitlements", permission: "Dinner", module: "meal" },
+  { key: "volunteers", label: "Seva", permission: "Operations", module: "volunteers" },
+  { key: "expenses", label: "Expenses", permission: "Finance", module: "expenses" },
 ];
 
 export default function ReportsPage() {
   const { idToken, volunteer } = useVolunteerAuth();
-  const reports = REPORTS.filter((r) => volunteer?.permissions.includes(r.permission));
+  const { modules } = useFestivalConfig();
+  const reports = REPORTS.filter((r) => modules[r.module] && volunteer?.permissions.includes(r.permission));
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 

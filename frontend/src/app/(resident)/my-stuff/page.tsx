@@ -28,8 +28,11 @@ const PIN_RESET_WHATSAPP_NUMBER = "919880766321";
 
 export default function MyStuffPage() {
   const { profile, loaded } = useResidentProfile();
-  const { festival } = useFestivalConfig();
-  const { data: dinnerCounts } = useAsync(() => api.communityDinner.publicCount(), []);
+  const { festival, modules } = useFestivalConfig();
+  const { data: dinnerCounts } = useAsync(
+    () => (modules.meal ? api.communityDinner.publicCount() : Promise.resolve(null)),
+    [modules.meal]
+  );
   const whatsappNumber = festival?.admin_whatsapp_number || DEFAULT_WHATSAPP_NUMBER;
   const [mobileInput, setMobileInput] = useState("");
   const [mobile, setMobile] = useState<string | null>(null);
@@ -77,15 +80,17 @@ export default function MyStuffPage() {
     () =>
       canFetchData && activeMobile
         ? Promise.all([
-            api.donations.mine(activeMobile),
-            api.registrations.mine(activeMobile),
-            api.dinner.mine(activeMobile),
-            api.volunteers.mine(activeMobile),
-            api.expenses.mine(activeMobile),
-            api.communityDinner.mine(activeMobile),
+            // A switched-off module's API 404s, which would fail the whole
+            // Promise.all, so only ask for what this festival actually has.
+            modules.donations ? api.donations.mine(activeMobile) : Promise.resolve([]),
+            modules.events ? api.registrations.mine(activeMobile) : Promise.resolve([]),
+            modules.meal ? api.dinner.mine(activeMobile) : Promise.resolve([]),
+            modules.volunteers ? api.volunteers.mine(activeMobile) : Promise.resolve([]),
+            modules.expenses ? api.expenses.mine(activeMobile) : Promise.resolve([]),
+            modules.meal ? api.communityDinner.mine(activeMobile) : Promise.resolve(null),
           ])
         : Promise.resolve(null),
-    [canFetchData, activeMobile, refreshKey]
+    [canFetchData, activeMobile, refreshKey, modules.donations, modules.events, modules.meal, modules.volunteers, modules.expenses]
   );
 
   async function handleSetPin(e: React.FormEvent) {
@@ -282,6 +287,7 @@ export default function MyStuffPage() {
 
       {!loading && (
         <>
+          {modules.donations && (
           <Section title="My Donations">
             {donations.length === 0 && <Empty>No donations yet.</Empty>}
             {donations.map((d) => (
@@ -301,7 +307,9 @@ export default function MyStuffPage() {
               </Row>
             ))}
           </Section>
+          )}
 
+          {modules.events && (
           <Section title="My Event Registrations">
             {registrations.length === 0 && <Empty>No event registrations yet.</Empty>}
             {registrations.map((r) => (
@@ -325,7 +333,9 @@ export default function MyStuffPage() {
               </div>
             ))}
           </Section>
+          )}
 
+          {modules.meal && (
           <Section title="My Dinner Tokens" subtitle="From a specific dinner day you registered for as an Event">
             {dinnerTokens.length === 0 && <Empty>No dinner tokens yet.</Empty>}
             {dinnerTokens.map((t) =>
@@ -347,8 +357,9 @@ export default function MyStuffPage() {
               )
             )}
           </Section>
+          )}
 
-          {communityDinner && (
+          {modules.meal && communityDinner && (
             <Section
               title="My Community Dinner"
               subtitle="Your household's one-time Community Dinner signup — separate from Dinner Tokens above"
@@ -395,6 +406,7 @@ export default function MyStuffPage() {
             </Section>
           )}
 
+          {modules.volunteers && (
           <Section title="My Seva Status">
             {volunteerStatus.length === 0 && <Empty>You haven&apos;t signed up for Seva yet.</Empty>}
             {volunteerStatus.flatMap((v) => {
@@ -423,7 +435,9 @@ export default function MyStuffPage() {
               });
             })}
           </Section>
+          )}
 
+          {modules.expenses && (
           <Section title="My Expenses">
             {expenses.length === 0 && <Empty>No expenses recorded yet.</Empty>}
             {expenses.length > 0 && (
@@ -455,6 +469,7 @@ export default function MyStuffPage() {
               </Row>
             ))}
           </Section>
+          )}
         </>
       )}
     </div>

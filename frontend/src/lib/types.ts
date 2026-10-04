@@ -43,6 +43,8 @@ export type FestivalInfo = {
   meal_pricing_mode: string;
   meal_adult_price: string;
   meal_child_price: string;
+  /** Absent on a backend that predates the key; empty when the festival has no album. */
+  photo_album_url?: string;
   theme_primary: string;
   theme_accent: string;
   volunteer_areas: { label: string; note: string | null }[];

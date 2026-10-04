@@ -25,6 +25,7 @@ function getFestivalInfo() {
     "meal_pricing_mode",
     "meal_adult_price",
     "meal_child_price",
+    "photo_album_url",
     "theme_primary",
     "theme_accent",
   ];
