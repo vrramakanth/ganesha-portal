@@ -5,13 +5,11 @@ import { api, ApiClientError } from "@/lib/api";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 import { parseFestivalDateRange } from "@/lib/date";
-import { VOLUNTEER_AREAS } from "@/lib/volunteerAreas";
+import { volunteerAreasFor } from "@/lib/volunteerAreas";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
 import PageHeader from "@/components/PageHeader";
-
-const AREA_OPTIONS = VOLUNTEER_AREAS;
 
 const SESSIONS = ["Morning", "Evening"] as const;
 type Session = (typeof SESSIONS)[number];
@@ -30,6 +28,7 @@ function newCommitment(): Commitment {
 export default function VolunteerSignupPage() {
   const { profile, saveProfile, loaded } = useResidentProfile();
   const { festival } = useFestivalConfig();
+  const areaOptions = useMemo(() => volunteerAreasFor(festival), [festival]);
   const festivalDates = useMemo(() => parseFestivalDateRange(festival?.dates ?? ""), [festival?.dates]);
   const dateLabels = useMemo(
     () => Object.fromEntries(festivalDates.map((d) => [d.iso, d.label])),
@@ -146,7 +145,7 @@ export default function VolunteerSignupPage() {
         <PageHeader title="Thank You for Your Seva 🙏" />
         <p className="text-sm text-muted">
           Seva sign-up is now closed, as the festival has wrapped up. Thank you to every volunteer who gave their time
-          and heart to make Ganesha Chathurthi 2026 so special.
+          and heart to make {festival?.festival_name || "this festival"} so special.
         </p>
       </div>
     );
@@ -227,7 +226,7 @@ export default function VolunteerSignupPage() {
                 <div className="space-y-1.5">
                   <p className="text-xs font-medium text-muted uppercase tracking-wide">Areas currently open</p>
                   <div className="flex flex-col gap-2">
-                    {AREA_OPTIONS.map((opt) => {
+                    {areaOptions.map((opt) => {
                       const disabled = usedElsewhere.includes(opt.label);
                       const selected = c.area === opt.label;
                       return (
@@ -309,7 +308,7 @@ export default function VolunteerSignupPage() {
             );
           })}
 
-          {commitments.length < AREA_OPTIONS.length && (
+          {commitments.length < areaOptions.length && (
             <button
               type="button"
               onClick={addCommitment}

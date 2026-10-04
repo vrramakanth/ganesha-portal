@@ -1,9 +1,18 @@
-/** The only two areas currently open for volunteer sign-up (kept in one
- *  place so the sign-up form and the admin roster can't drift). */
-export const VOLUNTEER_AREAS = [
+export type VolunteerArea = { label: string; note: string | null };
+
+/** Fallback when a deployment hasn't configured "volunteer_areas" (matches
+ *  the backend default, Volunteers.js DEFAULT_VOLUNTEER_AREAS). */
+export const DEFAULT_VOLUNTEER_AREAS: VolunteerArea[] = [
   { label: "Decorate Idol/Pooja/Aarti", note: "Expected time: 45 mins" },
-  { label: "Bhog/Prasadam/Food", note: null as string | null },
+  { label: "Bhog/Prasadam/Food", note: null },
 ];
+
+/** The areas open for sign-up, from festival.get — one place so the
+ *  sign-up form and the admin roster can't drift. */
+export function volunteerAreasFor(festival: { volunteer_areas?: VolunteerArea[] } | null): VolunteerArea[] {
+  const areas = festival?.volunteer_areas;
+  return areas && areas.length > 0 ? areas : DEFAULT_VOLUNTEER_AREAS;
+}
 
 export type VolunteerSignup = { area: string; dates: string[]; sessions: string[] };
 

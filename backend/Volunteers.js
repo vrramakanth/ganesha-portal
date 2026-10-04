@@ -89,44 +89,87 @@ function listVolunteers(volunteer) {
   };
 }
 
-/** Config keys for the per-area guidelines sent along with the
- *  post-approval confirmation (spec §43 — operational text should be
- *  editable without a code change). Bhog/Prasadam defaults to a note
- *  about it being an offering to God, since satvik prep (no garlic/
- *  onion) is a real, easy-to-miss expectation. */
-const SEVA_GUIDELINE_CONFIG_KEYS = {
+/** Volunteer areas (Seva) a festival is recruiting for. Stored as one JSON
+ *  array on the "volunteer_areas" Configuration key —
+ *  [{ "label", "note", "guidelines" }] — so a new festival changes them in
+ *  Settings instead of editing code. The label is what's written to each
+ *  volunteer's row, so renaming an area after people have signed up
+ *  orphans their existing sign-ups; add a new area instead. */
+const VOLUNTEER_AREAS_KEY = "volunteer_areas";
+
+const DEFAULT_VOLUNTEER_AREAS = [
+  {
+    label: "Decorate Idol/Pooja/Aarti",
+    note: "Expected time: 45 mins",
+    guidelines:
+      "Please arrive a few minutes early and coordinate with other volunteers to check if everything needed is intact.",
+  },
+  {
+    label: "Bhog/Prasadam/Food",
+    note: "",
+    guidelines:
+      "This is prepared as an offering to God, a traditional sattvic food, kindly avoid garlic, onion and non-vegetarian ingredients, use fresh ingredients, and keep the cooking area clean.",
+  },
+];
+
+/** Guideline rows that predate "volunteer_areas". An existing deployment
+ *  may have edited these in Settings, so they win until "volunteer_areas"
+ *  has been written (seedVolunteerAreas copies them across). */
+const LEGACY_SEVA_GUIDELINE_KEYS = {
   "Decorate Idol/Pooja/Aarti": "seva_guidelines_decorate",
   "Bhog/Prasadam/Food": "seva_guidelines_bhog",
 };
 
-const SEVA_GUIDELINE_DEFAULTS = {
-  "Decorate Idol/Pooja/Aarti":
-    "Please arrive a few minutes early and coordinate with other volunteers to check if everything needed is intact.",
-  "Bhog/Prasadam/Food":
-    "This is prepared as an offering to God, a traditional sattvic food, kindly avoid garlic, onion and non-vegetarian ingredients, use fresh ingredients, and keep the cooking area clean.",
-};
-
-/** Guideline text for an area, editable by an admin via Settings once
- *  it exists as a Configuration row — seeded with a sensible default
- *  the first time it's needed so it's visible there right away instead
- *  of requiring someone to add the row manually. Returns "" for an
- *  area with no guideline key. */
-function getSevaGuidelines(area) {
-  const key = SEVA_GUIDELINE_CONFIG_KEYS[area];
-  if (!key) return "";
-  const existing = getConfig(key, "");
-  if (existing) return existing;
-  const fallback = SEVA_GUIDELINE_DEFAULTS[area] || "";
-  if (fallback) setConfig(key, fallback);
-  return fallback;
+function parseVolunteerAreas_(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    const areas = parsed
+      .filter((a) => a && typeof a.label === "string" && a.label.trim())
+      .map((a) => ({
+        label: a.label.trim(),
+        note: typeof a.note === "string" ? a.note : "",
+        guidelines: typeof a.guidelines === "string" ? a.guidelines : "",
+      }));
+    return areas.length > 0 ? areas : null;
+  } catch (e) {
+    return null;
+  }
 }
 
-/** Makes sure both areas' guideline Configuration rows exist (with
- *  defaults) so they show up in Settings for an admin to review/edit
- *  before any approval has actually happened — called from listConfig()
- *  rather than waiting for the first approveVolunteerArea() call. */
-function seedSevaGuidelineDefaults() {
-  Object.keys(SEVA_GUIDELINE_CONFIG_KEYS).forEach((area) => getSevaGuidelines(area));
+/** The configured areas, or the Ganesha defaults when the key is unset or
+ *  malformed — the same self-heal as getEnabledModules(). */
+function getVolunteerAreas() {
+  return parseVolunteerAreas_(getConfig(VOLUNTEER_AREAS_KEY, "")) || DEFAULT_VOLUNTEER_AREAS;
+}
+
+/** Guideline text sent with the post-approval confirmation. Returns "" for
+ *  an area that isn't configured. */
+function getSevaGuidelines(area) {
+  const configured = parseVolunteerAreas_(getConfig(VOLUNTEER_AREAS_KEY, ""));
+  if (configured) {
+    const entry = configured.find((a) => a.label === area);
+    return entry ? entry.guidelines : "";
+  }
+  const legacyKey = LEGACY_SEVA_GUIDELINE_KEYS[area];
+  const legacy = legacyKey ? getConfig(legacyKey, "") : "";
+  if (legacy) return legacy;
+  const entry = DEFAULT_VOLUNTEER_AREAS.find((a) => a.label === area);
+  return entry ? entry.guidelines : "";
+}
+
+/** Writes the "volunteer_areas" row on first use so it's visible in
+ *  Settings to edit, carrying across any guideline text an admin already
+ *  edited under the legacy keys. Called from listConfig(). */
+function seedVolunteerAreas() {
+  if (parseVolunteerAreas_(getConfig(VOLUNTEER_AREAS_KEY, ""))) return;
+  const seeded = DEFAULT_VOLUNTEER_AREAS.map((a) => {
+    const legacyKey = LEGACY_SEVA_GUIDELINE_KEYS[a.label];
+    const legacy = legacyKey ? getConfig(legacyKey, "") : "";
+    return { label: a.label, note: a.note, guidelines: legacy || a.guidelines };
+  });
+  setConfig(VOLUNTEER_AREAS_KEY, JSON.stringify(seeded));
 }
 
 /** Approves one area of a volunteer's application, independent of any

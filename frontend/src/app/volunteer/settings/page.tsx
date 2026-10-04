@@ -39,6 +39,8 @@ const IDENTITY_FIELDS: Field[] = [
   { key: "dates", label: "Dates", description: "Free text, e.g. \"14-20 Sep 2026\" — shown on the More page." },
   { key: "venue", label: "Venue", description: "Shown on the More page." },
   { key: "contact", label: "Contact", description: "Shown on the More page." },
+  { key: "theme_primary", label: "Theme: primary colour", description: "Hex colour, e.g. #7a1330 — headers and buttons. Leave empty for the default maroon." },
+  { key: "theme_accent", label: "Theme: accent colour", description: "Hex colour, e.g. #f4791f — highlights and badges. Leave empty for the default saffron." },
   { key: "id_prefix", label: "ID prefix", description: "Prefix for every generated ID (transactions, receipts, tokens…), e.g. \"GWG\"." },
 ];
 

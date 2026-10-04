@@ -43,6 +43,9 @@ export type FestivalInfo = {
   meal_pricing_mode: string;
   meal_adult_price: string;
   meal_child_price: string;
+  theme_primary: string;
+  theme_accent: string;
+  volunteer_areas: { label: string; note: string | null }[];
 };
 
 export type Block = {

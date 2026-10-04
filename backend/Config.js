@@ -211,7 +211,7 @@ const FINANCE_ONLY_CONFIG_KEYS = [
  *  the Finance permission, rather than just hidden client-side. */
 function listConfig(volunteer) {
   requirePermission(volunteer, "Operations");
-  seedSevaGuidelineDefaults();
+  seedVolunteerAreas();
   getAdminWhatsappNumber();
   const rows = getConfigRows_();
   if (volunteer.permissions.includes("Finance")) return rows;
