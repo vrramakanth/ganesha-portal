@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { formatEventDate, formatEventTime, toDateInputValue, toTimeInputValue } from "@/lib/date";
 import { CULTURAL_SUB_CATEGORIES, parseSubCategories } from "@/lib/culturalSubCategories";
 import type { EventRecord } from "@/lib/types";
@@ -32,7 +33,7 @@ const CATEGORY_INTRO: Record<string, string> = {
   Kids: "Fun, games, and giggles for our little ones — don't miss it! 🎈",
   Cultural: "An evening of music, dance, and community spirit! 🎶",
   Sports: "Game on! Come cheer, compete, and have a blast. 🏆",
-  General: "Let's celebrate together as one Brigade Woods family! 🐘",
+  General: "Let's celebrate together as one community family! 🎉",
 };
 
 /** The numberless wa.me form opens WhatsApp's own chat picker instead of a
@@ -40,7 +41,7 @@ const CATEGORY_INTRO: Record<string, string> = {
  *  themselves and sends it. Built fresh from the event's own fields each
  *  time, so this works on old events too, not just ones published after
  *  this button existed. */
-function buildWhatsAppShareUrl(event: EventRecord): string {
+function buildWhatsAppShareUrl(event: EventRecord, festivalName: string): string {
   const link = typeof window !== "undefined" ? `${window.location.origin}/events/${event.event_id}` : "";
   // A per-event override beats the category default — e.g. a Cultural
   // event that's specifically a devotional bhajan, not dance or
@@ -50,7 +51,7 @@ function buildWhatsAppShareUrl(event: EventRecord): string {
   // formal nomination form, everything else is just the one-tap RSVP.
   const cta =
     event.category === "Cultural" ? "Details & nominate your performance" : "Details & RSVP — just one tap!";
-  const text = `🎊 *${event.name}* — Ganesha Utsav 2026\n\n${intro}\n\n🗓️ ${formatEventDate(event.date)} · ${formatEventTime(event.start_time)}\n📍 ${event.location}\n\nBring your family and friends — everyone's welcome! 🙏\n${cta}: ${link}`;
+  const text = `🎊 *${event.name}*${festivalName ? ` — ${festivalName}` : ""}\n\n${intro}\n\n🗓️ ${formatEventDate(event.date)} · ${formatEventTime(event.start_time)}\n📍 ${event.location}\n\nBring your family and friends — everyone's welcome! 🙏\n${cta}: ${link}`;
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
 
@@ -222,6 +223,7 @@ function EventForm({
 
 export default function VolunteerEventsPage() {
   const { idToken, volunteer } = useVolunteerAuth();
+  const { festival } = useFestivalConfig();
   const [refreshKey, setRefreshKey] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventRecord | null>(null);
@@ -383,7 +385,7 @@ export default function VolunteerEventsPage() {
                 </button>
               )}
               <a
-                href={buildWhatsAppShareUrl(event)}
+                href={buildWhatsAppShareUrl(event, festival?.festival_name ?? "")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-maroon"

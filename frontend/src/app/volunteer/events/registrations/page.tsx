@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import type { EventRegistration } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
@@ -51,13 +52,15 @@ function confirmationMessage(r: EventRegistration, eventName: string): string {
 /** A warm, appreciative decline rather than a blunt "rejected" — frames
  *  it as high interest/limited slots and invites them to other events,
  *  same spirit as the Seva "reschedule" message. */
-function rejectionMessage(r: EventRegistration, eventName: string): string {
+function rejectionMessage(r: EventRegistration, eventName: string, festivalName: string): string {
   const type = r.sub_category ? ` for ${r.sub_category}` : "";
-  return `Hi ${r.participant_name}! Thank you so much for your interest in "${eventName}"${type}. We had a wonderful response and couldn't accommodate every nomination this time — we're sorry we can't include you for this one. We'd love to see you at our other Ganesha Chathurthi 2026 events! 🙏`;
+  return `Hi ${r.participant_name}! Thank you so much for your interest in "${eventName}"${type}. We had a wonderful response and couldn't accommodate every nomination this time — we're sorry we can't include you for this one. We'd love to see you at our other ${festivalName ? `${festivalName} ` : ""}events! 🙏`;
 }
 
 export default function EventRegistrationsPage() {
   const { idToken, volunteer } = useVolunteerAuth();
+  const { festival } = useFestivalConfig();
+  const festivalName = festival?.festival_name ?? "";
   const canReview = volunteer?.permissions.includes("Events");
   const [refreshKey, setRefreshKey] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -128,7 +131,7 @@ export default function EventRegistrationsPage() {
     try {
       await api.volunteer.rejectRegistration(idToken as string, r.registration_id);
       const eventName = eventNameById.get(r.event_id) ?? "the event";
-      const message = rejectionMessage(r, eventName);
+      const message = rejectionMessage(r, eventName, festivalName);
       setConfirmation({ mobile: r.mobile, message });
       setConfirmDraft(message);
       setRefreshKey((k) => k + 1);

@@ -145,7 +145,7 @@ export default function VolunteerSignupPage() {
         <PageHeader title="Thank You for Your Seva 🙏" />
         <p className="text-sm text-muted">
           Seva sign-up is now closed, as the festival has wrapped up. Thank you to every volunteer who gave their time
-          and heart to make Ganesha Chathurthi 2026 so special.
+          and heart to make {festival?.festival_name || "this festival"} so special.
         </p>
       </div>
     );

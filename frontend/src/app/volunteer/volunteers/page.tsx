@@ -84,15 +84,15 @@ function activeCountFor(activeSlots: Slot[], date: string, session: string): num
   return activeSlots.find((s) => s.date === date && s.session === session)?.names.length ?? 0;
 }
 
-function rescheduleMessage(v: VolunteerRegistration, area: string, picks: VolunteerSignup[]): string {
+function rescheduleMessage(v: VolunteerRegistration, area: string, picks: VolunteerSignup[], festivalName: string): string {
   const when = picks.length > 0 ? formatPicks(picks) : "your preferred date";
-  return `Hi ${v.name}, thanks so much for signing up to help with "${area}" for Ganesha Chathurthi (${when})! We already have enough hands for that slot. If a different date or session works for you, please sign up again on the app with your new preference — otherwise no action needed. 🙏`;
+  return `Hi ${v.name}, thanks so much for signing up to help with "${area}" for ${festivalName || "the festival"} (${when})! We already have enough hands for that slot. If a different date or session works for you, please sign up again on the app with your new preference — otherwise no action needed. 🙏`;
 }
 
-function confirmationMessage(v: VolunteerRegistration, area: string, picks: VolunteerSignup[], guidelines: string): string {
+function confirmationMessage(v: VolunteerRegistration, area: string, picks: VolunteerSignup[], guidelines: string, festivalName: string): string {
   const when = picks.length > 0 ? formatPicks(picks) : "your preferred date";
   const guidelinesBlock = guidelines ? `\n\nA few guidelines to keep in mind:\n${guidelines}` : "";
-  return `Hi ${v.name}! You're confirmed for Seva — "${area}" on ${when}. Thank you for helping with Ganesha Chathurthi 2026!${guidelinesBlock}\n\nSee you there! 🙏`;
+  return `Hi ${v.name}! You're confirmed for Seva — "${area}" on ${when}. Thank you for helping with ${festivalName || "the festival"}!${guidelinesBlock}\n\nSee you there! 🙏`;
 }
 
 export default function VolunteersPage() {
@@ -166,7 +166,7 @@ export default function VolunteersPage() {
     setBusyId(v.volunteer_id);
     try {
       const result = await api.volunteer.approveVolunteerArea(idToken as string, v.volunteer_id, area);
-      const message = confirmationMessage(v, area, picksForArea(v, area), result.guidelines);
+      const message = confirmationMessage(v, area, picksForArea(v, area), result.guidelines, festival?.festival_name ?? "");
       setConfirmation({ mobile: v.mobile, message });
       setConfirmDraft(message);
       setRefreshKey((k) => k + 1);
@@ -179,7 +179,7 @@ export default function VolunteersPage() {
 
   function startAsk(v: VolunteerRegistration, area: string) {
     setAsking({ volunteerId: v.volunteer_id, area });
-    setDraft(rescheduleMessage(v, area, picksForArea(v, area)));
+    setDraft(rescheduleMessage(v, area, picksForArea(v, area), festival?.festival_name ?? ""));
   }
 
   /** Declining removes this area from their request first (so it stops
