@@ -29,7 +29,11 @@ export default function VolunteerDashboardPage() {
       ? [{ href: "/volunteer/community-dinner", label: "Community Dinner" }]
       : []),
     ...(modules.meal ? [{ href: "/volunteer/dinner/counter", label: "Dinner Counter" }] : []),
-    ...(modules.sponsorships ? [{ href: "/volunteer/bhog-sponsors", label: "Bhog Sponsors" }] : []),
+    // A bhog sponsor is recorded against a donation the sponsor already made
+    // (BhogSponsors.js), so it only applies when Donations is on too.
+    ...(modules.sponsorships && modules.donations
+      ? [{ href: "/volunteer/bhog-sponsors", label: "Bhog Sponsors" }]
+      : []),
     ...(modules.events ? [{ href: "/volunteer/events", label: "Events" }] : []),
     ...(modules.volunteers && volunteer?.permissions.includes("Operations")
       ? [{ href: "/volunteer/volunteers", label: "Seva" }]
