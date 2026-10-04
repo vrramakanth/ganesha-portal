@@ -6,6 +6,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
+import { photoAlbumUrl } from "@/lib/photoAlbum";
 import { formatCurrency, formatEventWhen, formatEventTime } from "@/lib/date";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
@@ -42,6 +43,7 @@ function costsAheadStatus(
 
 export default function Home() {
   const { festival, modules, communityName } = useFestivalConfig();
+  const albumUrl = photoAlbumUrl(festival);
   // Each fetched independently — these used to be bundled into one
   // Promise.all, which meant a hiccup in any single one (this backend,
   // Apps Script, occasionally blips) blanked out the totals, Upcoming,
@@ -69,9 +71,10 @@ export default function Home() {
 
   return (
     <div className="relative flex flex-col gap-4 px-5 pt-3 pb-8">
+      {albumUrl && (
       <div className="absolute right-4 top-3">
         <a
-          href="https://photos.app.goo.gl/ZhCpaqaWJnbeGdkk9"
+          href={albumUrl}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Magic Moments — view and add your festival photos"
@@ -89,6 +92,7 @@ export default function Home() {
           <span className="text-xs font-bold">Magic Moments</span>
         </a>
       </div>
+      )}
 
       {festival?.hero_image_url ? (
         // eslint-disable-next-line @next/next/no-img-element

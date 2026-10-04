@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
+import { photoAlbumUrl } from "@/lib/photoAlbum";
 import PageHeader from "@/components/PageHeader";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import LinkifiedText from "@/components/LinkifiedText";
@@ -12,9 +13,13 @@ import FindYourCounter from "@/components/FindYourCounter";
 import NammaHabbaAttribution from "@/components/NammaHabbaAttribution";
 
 export default function MorePage() {
-  const { festival } = useFestivalConfig();
+  const { festival, modules } = useFestivalConfig();
+  const albumUrl = photoAlbumUrl(festival);
   const { data: announcements, loading, error } = useAsync(() => api.announcements.list(), []);
-  const { data: dinnerCount } = useAsync(() => api.communityDinner.publicCount(), []);
+  const { data: dinnerCount } = useAsync(
+    () => (modules.meal ? api.communityDinner.publicCount() : Promise.resolve(null)),
+    [modules.meal]
+  );
   const [cleared, setCleared] = useState(false);
 
   function clearSavedInfo() {
@@ -61,7 +66,7 @@ export default function MorePage() {
         </section>
       )}
 
-      {!dinnerCount?.wrappedUp && (
+      {modules.meal && !dinnerCount?.wrappedUp && (
       <Link
         href="/community-dinner"
         className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3.5"
@@ -76,10 +81,11 @@ export default function MorePage() {
       </Link>
       )}
 
-      <FindYourCounter counters={dinnerCount?.counters} lateCounter={dinnerCount?.lateCounter} />
+      {modules.meal && <FindYourCounter counters={dinnerCount?.counters} lateCounter={dinnerCount?.lateCounter} />}
 
+      {albumUrl && (
       <a
-        href="https://photos.app.goo.gl/ZhCpaqaWJnbeGdkk9"
+        href={albumUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-3 rounded-2xl border border-saffron/30 bg-gradient-to-br from-saffron/15 to-maroon/10 px-4 py-4"
@@ -96,6 +102,7 @@ export default function MorePage() {
         </div>
         <span className="text-muted">›</span>
       </a>
+      )}
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
