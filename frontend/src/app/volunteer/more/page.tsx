@@ -14,11 +14,15 @@ export default function VolunteerMorePage() {
     { href: "/volunteer/settings", label: "Settings", description: "Festival configuration" },
     { href: "/volunteer/audit-log", label: "Audit Log", description: "History of sensitive volunteer actions" },
     { href: "/volunteer/bugs", label: "Bug Reports", description: "Issues reported by residents and organizers" },
-    {
-      href: "/volunteer/community-dinner",
-      label: "Community Dinner",
-      description: "Registrations, guest payment review, and edits",
-    },
+    ...(modules.meal
+      ? [
+          {
+            href: "/volunteer/community-dinner",
+            label: "Community Dinner",
+            description: "Registrations, guest payment review, and edits",
+          },
+        ]
+      : []),
     ...(modules.guests
       ? [{ href: "/volunteer/guests", label: "Guests", description: "Manage the public Chief Guests list" }]
       : []),

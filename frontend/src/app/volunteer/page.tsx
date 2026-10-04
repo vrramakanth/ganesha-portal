@@ -4,6 +4,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { formatCurrency } from "@/lib/date";
 import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
@@ -11,31 +12,38 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function VolunteerDashboardPage() {
   const { idToken, volunteer } = useVolunteerAuth();
+  const { modules } = useFestivalConfig();
   const { data, loading, error } = useAsync(
     () => api.volunteer.dashboard(idToken as string),
     [idToken]
   );
 
   const quickActions = [
-    ...(volunteer?.permissions.includes("Finance")
-      ? [
-          { href: "/volunteer/donations", label: "Review Payments" },
-          { href: "/volunteer/sponsorships", label: "Record Sponsorship" },
-        ]
+    ...(modules.donations && volunteer?.permissions.includes("Finance")
+      ? [{ href: "/volunteer/donations", label: "Review Payments" }]
       : []),
-    ...(volunteer?.permissions.includes("Finance") || volunteer?.permissions.includes("Dinner")
+    ...(modules.sponsorships && volunteer?.permissions.includes("Finance")
+      ? [{ href: "/volunteer/sponsorships", label: "Record Sponsorship" }]
+      : []),
+    ...(modules.meal && (volunteer?.permissions.includes("Finance") || volunteer?.permissions.includes("Dinner"))
       ? [{ href: "/volunteer/community-dinner", label: "Community Dinner" }]
       : []),
-    { href: "/volunteer/dinner/counter", label: "Dinner Counter" },
-    { href: "/volunteer/bhog-sponsors", label: "Bhog Sponsors" },
-    { href: "/volunteer/events", label: "Events" },
-    ...(volunteer?.permissions.includes("Operations") ? [{ href: "/volunteer/volunteers", label: "Seva" }] : []),
+    ...(modules.meal ? [{ href: "/volunteer/dinner/counter", label: "Dinner Counter" }] : []),
+    ...(modules.sponsorships ? [{ href: "/volunteer/bhog-sponsors", label: "Bhog Sponsors" }] : []),
+    ...(modules.events ? [{ href: "/volunteer/events", label: "Events" }] : []),
+    ...(modules.volunteers && volunteer?.permissions.includes("Operations")
+      ? [{ href: "/volunteer/volunteers", label: "Seva" }]
+      : []),
     ...(volunteer?.permissions.includes("Operations")
       ? [{ href: "/volunteer/reset-pin", label: "Change Resident PIN" }]
       : []),
-    { href: "/volunteer/expenses", label: "Record Expense" },
-    { href: "/volunteer/future-costs", label: "Future Costs" },
-    ...(volunteer?.permissions.includes("Finance")
+    ...(modules.expenses
+      ? [
+          { href: "/volunteer/expenses", label: "Record Expense" },
+          { href: "/volunteer/future-costs", label: "Future Costs" },
+        ]
+      : []),
+    ...(modules.expenses && volunteer?.permissions.includes("Finance")
       ? [{ href: "/volunteer/expenses/review", label: "Review Expenses" }]
       : []),
     ...(volunteer?.permissions.includes("Content")
@@ -59,17 +67,25 @@ export default function VolunteerDashboardPage() {
               <StatTile value={formatCurrency(data.festivalSummary.income)} label="Income" />
               <StatTile value={formatCurrency(data.festivalSummary.expenses)} label="Expenses" />
               <StatTile value={formatCurrency(data.festivalSummary.balance)} label="Balance" />
-              <StatTile value={formatCurrency(data.festivalSummary.futureCosts)} label="Future Costs" />
-              <StatTile value={formatCurrency(data.festivalSummary.projectedBalance)} label="Projected Balance" />
+              {modules.expenses && (
+                <>
+                  <StatTile value={formatCurrency(data.festivalSummary.futureCosts)} label="Future Costs" />
+                  <StatTile value={formatCurrency(data.festivalSummary.projectedBalance)} label="Projected Balance" />
+                </>
+              )}
             </div>
           </section>
 
           <div className="grid grid-cols-2 gap-3">
-            {data.collected !== null && <StatTile value={formatCurrency(data.collected)} label="Collected" />}
-            {data.donationCount !== null && <StatTile value={String(data.donationCount)} label="Donations" />}
-            <StatTile value={data.mealsRegistered.toLocaleString()} label="Meals Registered" />
-            <StatTile value={data.mealsServed.toLocaleString()} label="Meals Served" />
-            <StatTile value={String(data.volunteerCount)} label="Seva Sign-Ups" />
+            {modules.donations && data.collected !== null && (
+              <StatTile value={formatCurrency(data.collected)} label="Collected" />
+            )}
+            {modules.donations && data.donationCount !== null && (
+              <StatTile value={String(data.donationCount)} label="Donations" />
+            )}
+            {modules.meal && <StatTile value={data.mealsRegistered.toLocaleString()} label="Meals Registered" />}
+            {modules.meal && <StatTile value={data.mealsServed.toLocaleString()} label="Meals Served" />}
+            {modules.volunteers && <StatTile value={String(data.volunteerCount)} label="Seva Sign-Ups" />}
           </div>
 
           <section className="space-y-2">
