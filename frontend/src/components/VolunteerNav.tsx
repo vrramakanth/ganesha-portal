@@ -15,9 +15,6 @@ export default function VolunteerNav() {
       : []),
     ...(modules.events ? [{ href: "/volunteer/events", label: "Events", matchPrefix: true }] : []),
     ...(modules.meal ? [{ href: "/volunteer/dinner", label: "Dinner", matchPrefix: true }] : []),
-    ...(modules.volunteers && volunteer?.permissions.includes("Operations")
-      ? [{ href: "/volunteer/volunteers", label: "Seva", matchPrefix: true }]
-      : []),
     { href: "/volunteer/more", label: "More", matchPrefix: true },
   ] as const;
 

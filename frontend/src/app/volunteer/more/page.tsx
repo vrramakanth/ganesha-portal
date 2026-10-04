@@ -4,11 +4,16 @@ import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import NammaHabbaAttribution from "@/components/NammaHabbaAttribution";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
+import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 
 export default function VolunteerMorePage() {
   const { modules } = useFestivalConfig();
+  const { volunteer } = useVolunteerAuth();
 
   const links = [
+    ...(modules.volunteers && volunteer?.permissions.includes("Operations")
+      ? [{ href: "/volunteer/volunteers", label: "Seva", description: "Review and approve volunteer sign-ups" }]
+      : []),
     { href: "/volunteer/reports", label: "Reports", description: "Finance, events, dinner and volunteer reports" },
     { href: "/volunteer/announcements", label: "Announcements", description: "Publish updates residents see on Home" },
     { href: "/volunteer/settings", label: "Settings", description: "Festival configuration" },
