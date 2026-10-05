@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { photoAlbumUrl } from "@/lib/photoAlbum";
+import { HUB_URL } from "@/lib/hub";
 import { formatCurrency, formatEventWhen, formatEventTime } from "@/lib/date";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
@@ -71,6 +72,16 @@ export default function Home() {
 
   return (
     <div className="relative flex flex-col gap-4 px-5 pt-3 pb-8">
+      <div className="absolute left-4 top-3">
+        <a
+          href={HUB_URL}
+          aria-label="Back to all Namma Habba festivals"
+          className="inline-flex items-center rounded-full border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-maroon shadow-sm"
+        >
+          ← Namma Habba
+        </a>
+      </div>
+
       {albumUrl && (
       <div className="absolute right-4 top-3">
         <a
