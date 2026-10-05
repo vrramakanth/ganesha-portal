@@ -94,7 +94,10 @@ export default function Home() {
       </div>
       )}
 
-      {festival?.hero_image_url ? (
+      {!festival ? (
+        // Keep the space, but show no festival art until we know whose it is.
+        <div className="mx-auto h-36" />
+      ) : festival.hero_image_url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={festival.hero_image_url}
@@ -117,9 +120,9 @@ export default function Home() {
           {communityName}
         </p>
         <h1 className="text-2xl font-bold tracking-tight">
-          {festival?.festival_name || "Ganesha Chathurthi 2026"}
+          {festival?.festival_name ?? ""}
         </h1>
-        <p className="text-muted text-sm">{festival?.tagline || "Celebrate. Participate. Contribute."}</p>
+        <p className="text-muted text-sm">{festival?.tagline ?? ""}</p>
       </header>
 
       {stats?.wrappedUp && (

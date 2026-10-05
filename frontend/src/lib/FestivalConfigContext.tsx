@@ -11,6 +11,24 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { api } from "./api";
 import type { EnabledModules, FestivalInfo } from "./types";
 
+/** The last festival.get result, kept so a repeat visit paints the right
+ *  festival (name, colours, modules) straight away instead of waiting a
+ *  second or so for Apps Script. A first visit still waits for the fetch. */
+const CACHE_KEY = "namma_festival_cache_v1";
+
+/** Nothing is on until the festival's own settings arrive, so a festival
+ *  with Donations or Meal off never briefly shows their buttons. */
+const NO_MODULES: EnabledModules = {
+  donations: false,
+  sponsorships: false,
+  events: false,
+  meal: false,
+  guests: false,
+  volunteers: false,
+  expenses: false,
+};
+
+/** Used only if festival.get fails outright and nothing is cached. */
 const DEFAULT_MODULES: EnabledModules = {
   donations: true,
   sponsorships: true,
@@ -108,7 +126,14 @@ export function FestivalConfigProvider({ children }: { children: React.ReactNode
 
   useEffect(() => {
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Paint from the last visit's settings while the fresh ones load.
+    try {
+      const cached = window.localStorage.getItem(CACHE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (cached) setFestival((current) => current ?? (JSON.parse(cached) as FestivalInfo));
+    } catch {
+      // Storage can be blocked or hold bad JSON; the fetch below still runs.
+    }
     setLoading(true);
     api
       .festival.get()
@@ -116,6 +141,11 @@ export function FestivalConfigProvider({ children }: { children: React.ReactNode
         if (!cancelled) {
           setFestival(data);
           setError(null);
+          try {
+            window.localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+          } catch {
+            // Not worth failing the page over.
+          }
         }
       })
       .catch((err: Error) => {
@@ -139,7 +169,7 @@ export function FestivalConfigProvider({ children }: { children: React.ReactNode
 
   const value: FestivalConfigValue = {
     festival,
-    modules: festival?.modules ?? DEFAULT_MODULES,
+    modules: festival?.modules ?? (error ? DEFAULT_MODULES : NO_MODULES),
     communityName: festival?.community_name || "Brigade Woods",
     loading,
     error,
