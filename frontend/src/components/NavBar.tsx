@@ -25,7 +25,7 @@ export default function NavBar({ items }: { items: readonly NavItem[] }) {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${
-                active ? "text-saffron" : "text-muted"
+                active ? "text-saffron-text" : "text-muted"
               }`}
             >
               <span

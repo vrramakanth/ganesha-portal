@@ -78,7 +78,7 @@ export default function Home() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Magic Moments — view and add your festival photos"
-          className="relative flex items-center gap-1.5 rounded-full bg-saffron pl-2.5 pr-3 py-2 text-white shadow-sm active:bg-saffron-dark transition-colors"
+          className="relative flex items-center gap-1.5 rounded-full bg-saffron pl-2.5 pr-3 py-2 text-on-saffron shadow-sm active:bg-saffron-dark transition-colors"
         >
           <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-white">
             <svg viewBox="0 0 20 20" fill="currentColor" className="h-2.5 w-2.5">
@@ -139,7 +139,7 @@ export default function Home() {
       ) : (
         <Link
           href="/donate"
-          className="w-full rounded-xl bg-saffron py-4 text-center text-lg font-semibold text-white shadow-sm active:bg-saffron-dark transition-colors"
+          className="w-full rounded-xl bg-saffron py-4 text-center text-lg font-semibold text-on-saffron shadow-sm active:bg-saffron-dark transition-colors"
         >
           Donate Now
         </Link>
@@ -239,7 +239,7 @@ export default function Home() {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-saffron">{formatEventWhen(event.date)}</p>
+                    <p className="text-xs font-medium text-saffron-text">{formatEventWhen(event.date)}</p>
                     <p className="font-semibold">{event.name}</p>
                   </div>
                   <p className="text-sm text-muted">{formatEventTime(event.start_time)}</p>
@@ -249,12 +249,12 @@ export default function Home() {
                     {attending > 0 && <StatusBadge label={`${attending} attending`} tone="success" />}
                     {isFreeOpen && isCultural && (
                       <>
-                        <p className="animate-twinkle text-xs font-bold text-saffron">Register to perform →</p>
+                        <p className="animate-twinkle text-xs font-bold text-saffron-text">Register to perform →</p>
                         <p className="text-xs font-bold text-maroon">RSVP to attend →</p>
                       </>
                     )}
                     {isFreeOpen && !isCultural && (
-                      <p className="animate-twinkle text-xs font-bold text-saffron">RSVP to attend →</p>
+                      <p className="animate-twinkle text-xs font-bold text-saffron-text">RSVP to attend →</p>
                     )}
                   </div>
                 )}
@@ -272,7 +272,7 @@ export default function Home() {
       <section className="rounded-xl border border-border bg-card p-5 space-y-3">
         <div>
           <p className="font-semibold">Community Dinner</p>
-          <p className="text-xs font-medium text-saffron">20th September, evening — details to follow</p>
+          <p className="text-xs font-medium text-saffron-text">20th September, evening — details to follow</p>
           <p className="text-sm font-semibold">Free for all residents</p>
           <p className="text-sm text-muted">
             {dinnerCount?.open === false

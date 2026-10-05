@@ -149,7 +149,7 @@ export default function ReportBugPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-xl bg-saffron py-4 text-center text-lg font-semibold text-white disabled:opacity-60 active:bg-saffron-dark transition-colors"
+          className="w-full rounded-xl bg-saffron py-4 text-center text-lg font-semibold text-on-saffron disabled:opacity-60 active:bg-saffron-dark transition-colors"
         >
           {submitting ? "Submitting…" : "Submit & Open WhatsApp"}
         </button>

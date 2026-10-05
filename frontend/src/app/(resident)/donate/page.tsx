@@ -152,7 +152,7 @@ export default function DonatePage() {
         <PageHeader title="Donation cancelled" subtitle="No worries — you can start a new donation anytime." />
         <button
           onClick={() => setStep("form")}
-          className="rounded-xl bg-saffron px-6 py-3 text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
+          className="rounded-xl bg-saffron px-6 py-3 text-sm font-semibold text-on-saffron active:bg-saffron-dark transition-colors"
         >
           Back to Donate
         </button>
@@ -249,7 +249,7 @@ export default function DonatePage() {
         <button
           type="submit"
           disabled={step === "creating"}
-          className="w-full rounded-xl bg-saffron py-4 text-center text-lg font-semibold text-white disabled:opacity-60 active:bg-saffron-dark transition-colors"
+          className="w-full rounded-xl bg-saffron py-4 text-center text-lg font-semibold text-on-saffron disabled:opacity-60 active:bg-saffron-dark transition-colors"
         >
           {step === "creating"
             ? "Preparing…"

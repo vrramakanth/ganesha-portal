@@ -351,7 +351,7 @@ export default function VolunteersPage() {
                                   type="button"
                                   disabled={declining}
                                   onClick={() => sendAsk(v, area)}
-                                  className="flex-1 rounded-lg bg-saffron py-2 text-center text-xs font-semibold text-white disabled:opacity-60"
+                                  className="flex-1 rounded-lg bg-saffron py-2 text-center text-xs font-semibold text-on-saffron disabled:opacity-60"
                                 >
                                   {declining ? "Declining…" : "Decline"}
                                 </button>

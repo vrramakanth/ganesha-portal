@@ -345,7 +345,7 @@ export default function CommunityDinnerPage() {
         backHref="/more"
         backLabel="← More"
       />
-      <p className="-mt-4 text-sm font-medium text-saffron">20th September, evening — details to follow</p>
+      <p className="-mt-4 text-sm font-medium text-saffron-text">20th September, evening — details to follow</p>
       <p className="-mt-4 text-sm font-semibold">
         {everyonePaid
           ? `₹${adultPrice}/adult, ₹${childPrice}/child for everyone attending`

@@ -22,19 +22,56 @@ const DEFAULT_MODULES: EnabledModules = {
 };
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+const PAGE_BACKGROUND = "#fffaf3";
+const INK = "#2a1a14";
+
+type Rgb = [number, number, number];
+
+function toRgb(hex: string): Rgb {
+  return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as Rgb;
+}
+
+function toHex([r, g, b]: Rgb): string {
+  return `#${[r, g, b].map((c) => Math.round(c).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Relative luminance (WCAG) of a #rrggbb colour. */
+function luminance(hex: string): number {
+  const [r, g, b] = toRgb(hex).map((c) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
 
 /** A darker shade of a #rrggbb colour, for hover/pressed states. */
 function darken(hex: string, factor = 0.8): string {
-  const channel = (i: number) =>
-    Math.round(parseInt(hex.slice(i, i + 2), 16) * factor)
-      .toString(16)
-      .padStart(2, "0");
-  return `#${channel(1)}${channel(3)}${channel(5)}`;
+  return toHex(toRgb(hex).map((c) => c * factor) as Rgb);
+}
+
+/** `amount` of `hex` blended into white — a pale tint of the colour. */
+function tint(hex: string, amount: number): string {
+  return toHex(toRgb(hex).map((c) => 255 - (255 - c) * amount) as Rgb);
+}
+
+/** Darkens a colour until it is readable as text on the page background
+ *  (a light accent such as yellow is not, as it comes). */
+function readableOnPage(hex: string): string {
+  let shade = hex;
+  for (let i = 0; i < 20 && contrast(shade, PAGE_BACKGROUND) < 4.5; i++) shade = darken(shade, 0.9);
+  return shade;
 }
 
 /** Overrides the globals.css palette from the festival's configured theme
  *  colours. "primary" drives the maroon tokens, "accent" the saffron ones;
- *  an unset or malformed value leaves the stylesheet default in place. */
+ *  an unset or malformed value leaves the stylesheet default in place.
+ *  An accent also tints the page background and borders, and picks a
+ *  readable text colour for buttons filled with it. */
 function applyTheme(primary: string, accent: string) {
   const root = document.documentElement;
   const set = (name: string, value: string | null) =>
@@ -44,7 +81,12 @@ function applyTheme(primary: string, accent: string) {
   set("--maroon", p);
   set("--maroon-dark", p && darken(p));
   set("--saffron", a);
-  set("--saffron-dark", a && darken(a));
+  const accentText = a && readableOnPage(a);
+  set("--saffron-dark", accentText);
+  set("--saffron-text", accentText);
+  set("--on-saffron", a && (contrast("#ffffff", a) >= contrast(INK, a) ? "#ffffff" : INK));
+  set("--background", a && tint(a, 0.08));
+  set("--border", a && tint(a, 0.22));
 }
 
 type FestivalConfigValue = {

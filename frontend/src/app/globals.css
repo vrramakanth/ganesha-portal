@@ -5,6 +5,11 @@
   --foreground: #2a1a14;
   --saffron: #f4791f;
   --saffron-dark: #d9630f;
+  /* Text that sits on the page background, and the text colour on a saffron
+     fill. Both default to the original look; a festival theme recomputes them
+     so a light accent (e.g. yellow) stays readable. */
+  --saffron-text: var(--saffron);
+  --on-saffron: #ffffff;
   --maroon: #7a1330;
   --maroon-dark: #5c0e24;
   --card: #ffffff;
@@ -17,6 +22,8 @@
   --color-foreground: var(--foreground);
   --color-saffron: var(--saffron);
   --color-saffron-dark: var(--saffron-dark);
+  --color-saffron-text: var(--saffron-text);
+  --color-on-saffron: var(--on-saffron);
   --color-maroon: var(--maroon);
   --color-maroon-dark: var(--maroon-dark);
   --color-card: var(--card);

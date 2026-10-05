@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/rajyotsava",
+      "destination": "https://rajyotsava.nammahabba.in",
+      "permanent": false
+    }
+  ]
+}

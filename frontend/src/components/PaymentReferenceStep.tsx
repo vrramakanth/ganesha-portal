@@ -242,7 +242,7 @@ export default function PaymentReferenceStep({
                 <button
                   type="button"
                   onClick={copyVpa}
-                  className="w-full rounded-xl bg-saffron py-3 text-center text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
+                  className="w-full rounded-xl bg-saffron py-3 text-center text-sm font-semibold text-on-saffron active:bg-saffron-dark transition-colors"
                 >
                   {copied ? "Copied ✓" : "Copy UPI ID"}
                 </button>
@@ -256,7 +256,7 @@ export default function PaymentReferenceStep({
             ) : (
               <a
                 href={upiButtonLink}
-                className="w-full rounded-xl bg-saffron py-3 text-center text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
+                className="w-full rounded-xl bg-saffron py-3 text-center text-sm font-semibold text-on-saffron active:bg-saffron-dark transition-colors"
               >
                 Pay in UPI App
               </a>
