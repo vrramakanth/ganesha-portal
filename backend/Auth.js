@@ -52,6 +52,20 @@ function requireSuperAdmin(volunteer) {
  *  verification and the Admins sheet lookup — see also the frontend's
  *  "Sign in as Test Volunteer" button in volunteer/layout.tsx. Set
  *  TEST_MODE=false (or delete the property) to close this off. */
+/** How long a verified sign-in is trusted before it is checked again.
+ *  Every volunteer request used to pay for a round trip to Google's
+ *  tokeninfo endpoint plus a full read of the Admins sheet (which opens
+ *  the whole spreadsheet) before doing any real work, and one screen can
+ *  make several requests at once. A verified token is now remembered for
+ *  this long, never past the token's own expiry. The tradeoff: removing an
+ *  admin or changing their permissions takes up to this long to apply. */
+const AUTH_CACHE_SECONDS = 300;
+
+function authCacheKey_(idToken) {
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, idToken, Utilities.Charset.UTF_8);
+  return "auth_" + Utilities.base64EncodeWebSafe(digest);
+}
+
 function verifyVolunteerToken(idToken) {
   if (!idToken) throw new ApiError("Missing idToken", 401);
 
@@ -63,6 +77,12 @@ function verifyVolunteerToken(idToken) {
       isSuperAdmin: true,
     };
   }
+
+  // Keyed by a hash of the token, so the token itself is never stored.
+  const cache = CacheService.getScriptCache();
+  const cacheKey = authCacheKey_(idToken);
+  const cached = cache.get(cacheKey);
+  if (cached) return JSON.parse(cached);
 
   const resp = UrlFetchApp.fetch(
     `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
@@ -86,12 +106,19 @@ function verifyVolunteerToken(idToken) {
     throw new ApiError("This Google account is not an authorized volunteer", 403);
   }
 
-  return {
+  const volunteer = {
     email: payload.email,
     name: admin.name,
     permissions: permissionsForAdmin(admin),
     isSuperAdmin: getSuperAdminEmails().includes(payload.email.toLowerCase()),
   };
+
+  // Only a successful verification is cached, and never past the token's expiry.
+  const secondsLeft = Math.floor(Number(payload.exp) - Date.now() / 1000);
+  if (secondsLeft > 0) {
+    cache.put(cacheKey, JSON.stringify(volunteer), Math.min(AUTH_CACHE_SECONDS, secondsLeft));
+  }
+  return volunteer;
 }
 
 function findAdminByEmail(email) {

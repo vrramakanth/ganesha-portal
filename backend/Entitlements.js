@@ -102,11 +102,11 @@ function getEntitlementByToken(tokenId) {
 function redeemEntitlement(volunteer, tokenId, quantity, counterId) {
   return withLock(() => {
     const sheet = getSheet(SHEETS.ENTITLEMENTS);
-    const rows = rowsToObjects(sheet);
-    const idx = rows.findIndex((e) => e.token_id === tokenId);
-    if (idx === -1) throw new ApiError("Token not found", 404);
-    const rowIndex = idx + 2;
-    const entitlement = rows[idx];
+    // Look the token up in its own column and read just that row, instead
+    // of reading every row and column of the sheet to find one entitlement.
+    const rowIndex = findRowIndexById(sheet, "token_id", tokenId);
+    if (rowIndex === -1) throw new ApiError("Token not found", 404);
+    const entitlement = getRowObject(sheet, rowIndex);
 
     if (entitlement.status === ENTITLEMENT_STATUS.REDEEMED || Number(entitlement.remaining_quantity) === 0) {
       throw new ApiError("ALREADY_REDEEMED", 409);

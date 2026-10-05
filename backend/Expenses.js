@@ -64,6 +64,7 @@ function ensureExpensesSheet() {
     const missing = headers.filter((h) => !existing.includes(h));
     if (missing.length > 0) {
       sheet.getRange(1, existing.length + 1, 1, missing.length).setValues([missing]);
+      resetHeaderCache_(sheet);
     }
   }
   return sheet;

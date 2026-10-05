@@ -16,16 +16,43 @@ function getSpreadsheet() {
   return cachedSpreadsheet_;
 }
 
+/** Sheet objects, memoized for the same reason as the spreadsheet above
+ *  (one execution = one request) — and so the header cache below can key
+ *  on the object. */
+const sheetObjects_ = {};
 function getSheet(name) {
-  const sheet = getSpreadsheet().getSheetByName(name);
-  if (!sheet) throw new ApiError(`Sheet not found: ${name}`, 500);
-  return sheet;
+  if (!sheetObjects_[name]) {
+    const sheet = getSpreadsheet().getSheetByName(name);
+    if (!sheet) throw new ApiError(`Sheet not found: ${name}`, 500);
+    sheetObjects_[name] = sheet;
+  }
+  return sheetObjects_[name];
+}
+
+/** Header rows, read once per sheet per execution. getHeaders() is called
+ *  by almost every helper below (a single approve action used to read the
+ *  same header row six times), and each read is a separate Sheets call.
+ *  Anything that changes a header row must call resetHeaderCache_(). */
+const headerCache_ = new Map();
+function resetHeaderCache_(sheet) {
+  headerCache_.delete(sheet);
+}
+
+/** Dashboard results are cached for a short time (Reports.js); any write
+ *  made through these helpers drops them so totals never trail an action
+ *  this same app just performed. */
+const DASHBOARD_CACHE_KEYS = ["dashboard_v1_0", "dashboard_v1_1"];
+function invalidateDashboardCache_() {
+  CacheService.getScriptCache().removeAll(DASHBOARD_CACHE_KEYS);
 }
 
 function getHeaders(sheet) {
+  if (headerCache_.has(sheet)) return headerCache_.get(sheet).slice();
   const lastCol = sheet.getLastColumn();
   if (lastCol === 0) return [];
-  return sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  headerCache_.set(sheet, headers);
+  return headers.slice();
 }
 
 /** Reads every data row into an array of { header: value } objects. */
@@ -46,6 +73,7 @@ function appendObject(sheet, obj) {
   const headers = getHeaders(sheet);
   const row = headers.map((h) => (obj[h] !== undefined ? obj[h] : ""));
   sheet.appendRow(row);
+  invalidateDashboardCache_();
   return obj;
 }
 
@@ -80,6 +108,7 @@ function ensureColumn(sheet, columnName) {
   const headers = getHeaders(sheet);
   if (headers.includes(columnName)) return;
   sheet.getRange(1, headers.length + 1).setValue(columnName);
+  resetHeaderCache_(sheet);
 }
 
 /** Updates only the given fields (by header name) on a specific row. */
@@ -90,6 +119,7 @@ function updateRowFields(sheet, rowIndex, fields) {
     if (col === -1) throw new ApiError(`Unknown column: ${key}`, 500);
     sheet.getRange(rowIndex, col + 1).setValue(fields[key]);
   });
+  invalidateDashboardCache_();
 }
 
 /** Runs fn holding the script-wide lock — use around read-modify-write
