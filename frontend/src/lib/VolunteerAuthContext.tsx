@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { api, ApiClientError } from "./api";
 import { disableGoogleAutoSelect } from "./googleIdentity";
+import { prefetchDashboard } from "./dashboardPrefetch";
 import type { Volunteer } from "./types";
 
 const STORAGE_KEY = "gwg_volunteer_id_token";
@@ -107,12 +108,14 @@ export function VolunteerAuthProvider({ children }: { children: React.ReactNode 
       setStatus("signed-in");
       verify(stored, { background: true });
     } else {
+      prefetchDashboard(stored);
       verify(stored);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleCredential(token: string) {
+    prefetchDashboard(token);
     verify(token);
   }
 

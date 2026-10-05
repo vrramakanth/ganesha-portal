@@ -6,10 +6,10 @@
  *  the Configuration split above. Meals/volunteer counts and the
  *  events-closing-today alert aren't financial, so every admin sees
  *  those regardless. */
-const DASHBOARD_CACHE_SECONDS = 30;
+const DASHBOARD_CACHE_SECONDS = 120;
 
 /** The dashboard reads several whole sheets, so its result is kept for a
- *  short time per permission level (Finance sees extra fields). Writes made
+ *  couple of minutes per permission level (Finance sees extra fields). Writes made
  *  through SheetService.js clear it immediately; the short expiry is the
  *  backstop for anything that changes a sheet another way. */
 function getVolunteerDashboard(volunteer) {
