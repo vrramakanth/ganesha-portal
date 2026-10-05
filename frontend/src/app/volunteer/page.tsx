@@ -4,6 +4,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
+import { takePrefetchedDashboard } from "@/lib/dashboardPrefetch";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { formatCurrency } from "@/lib/date";
 import PageHeader from "@/components/PageHeader";
@@ -14,7 +15,7 @@ export default function VolunteerDashboardPage() {
   const { idToken, volunteer } = useVolunteerAuth();
   const { modules } = useFestivalConfig();
   const { data, loading, error } = useAsync(
-    () => api.volunteer.dashboard(idToken as string),
+    () => takePrefetchedDashboard(idToken as string) ?? api.volunteer.dashboard(idToken as string),
     [idToken]
   );
 
