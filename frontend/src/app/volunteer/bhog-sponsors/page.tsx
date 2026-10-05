@@ -259,7 +259,7 @@ export default function BhogSponsorsPage() {
         )}
         {Array.from(byDate.entries()).map(([date, list]) => (
           <div key={date} className="space-y-2">
-            <p className="text-xs font-semibold text-saffron">{formatEventDate(date)}</p>
+            <p className="text-xs font-semibold text-saffron-text">{formatEventDate(date)}</p>
             <div className="rounded-xl border border-border bg-card divide-y divide-border">
               {(list ?? []).map((s) => (
                 <div key={s.sponsor_id} className="px-4 py-3 flex items-center justify-between gap-2">

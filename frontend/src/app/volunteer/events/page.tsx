@@ -302,7 +302,7 @@ export default function VolunteerEventsPage() {
         {canCreate && (
           <button
             onClick={() => (showForm ? closeForm() : openCreateForm())}
-            className="shrink-0 rounded-lg bg-saffron px-3 py-2 text-xs font-semibold text-white active:bg-saffron-dark transition-colors"
+            className="shrink-0 rounded-lg bg-saffron px-3 py-2 text-xs font-semibold text-on-saffron active:bg-saffron-dark transition-colors"
           >
             {showForm ? "Cancel" : "+ New Event"}
           </button>

@@ -251,7 +251,7 @@ export default function EventRegistrationsPage() {
             type="button"
             onClick={downloadReport}
             disabled={sortedReport.length === 0}
-            className="shrink-0 rounded-lg bg-saffron px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+            className="shrink-0 rounded-lg bg-saffron px-3 py-2 text-xs font-semibold text-on-saffron disabled:opacity-60"
           >
             Download CSV
           </button>

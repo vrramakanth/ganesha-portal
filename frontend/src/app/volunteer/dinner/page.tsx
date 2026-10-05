@@ -83,7 +83,7 @@ export default function VolunteerDinnerPage() {
       {selected && (
         <Link
           href="/volunteer/dinner/counter"
-          className="w-full rounded-xl bg-saffron py-4 text-center text-lg font-semibold text-white shadow-sm active:bg-saffron-dark transition-colors"
+          className="w-full rounded-xl bg-saffron py-4 text-center text-lg font-semibold text-on-saffron shadow-sm active:bg-saffron-dark transition-colors"
         >
           Open Dinner Counter
         </Link>

@@ -154,7 +154,7 @@ export default function MyStuffPage() {
           <MobileInput value={mobileInput} onChange={setMobileInput} />
           <button
             type="submit"
-            className="w-full rounded-xl bg-saffron py-3.5 text-center text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
+            className="w-full rounded-xl bg-saffron py-3.5 text-center text-sm font-semibold text-on-saffron active:bg-saffron-dark transition-colors"
           >
             Look Up
           </button>
@@ -239,7 +239,7 @@ export default function MyStuffPage() {
           <button
             type="submit"
             disabled={pinSubmitting}
-            className="w-full rounded-xl bg-saffron py-3.5 text-center text-sm font-semibold text-white disabled:opacity-60 active:bg-saffron-dark transition-colors"
+            className="w-full rounded-xl bg-saffron py-3.5 text-center text-sm font-semibold text-on-saffron disabled:opacity-60 active:bg-saffron-dark transition-colors"
           >
             {pinSubmitting ? "Please wait…" : isFirstTime ? "Set PIN" : "Unlock"}
           </button>

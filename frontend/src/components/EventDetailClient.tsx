@@ -92,7 +92,7 @@ function RsvpSection({ event }: { event: EventRecord }) {
             type="button"
             disabled={submitting !== null}
             onClick={() => respond("YES")}
-            className="flex-1 rounded-xl bg-saffron py-3 text-sm font-semibold text-white disabled:opacity-60 active:bg-saffron-dark transition-colors"
+            className="flex-1 rounded-xl bg-saffron py-3 text-sm font-semibold text-on-saffron disabled:opacity-60 active:bg-saffron-dark transition-colors"
           >
             {submitting === "YES" ? "…" : "✅ Yes, I'm coming!"}
           </button>
@@ -415,7 +415,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-xl bg-saffron py-4 text-center text-sm font-semibold text-white disabled:opacity-60 active:bg-saffron-dark transition-colors"
+            className="w-full rounded-xl bg-saffron py-4 text-center text-sm font-semibold text-on-saffron disabled:opacity-60 active:bg-saffron-dark transition-colors"
           >
             {submitting
               ? "Registering…"

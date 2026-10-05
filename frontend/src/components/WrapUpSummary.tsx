@@ -179,7 +179,7 @@ export default function WrapUpSummary({
           href={PHOTOS_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-xl bg-saffron py-3 text-center text-sm font-semibold text-white active:bg-saffron-dark transition-colors"
+          className="rounded-xl bg-saffron py-3 text-center text-sm font-semibold text-on-saffron active:bg-saffron-dark transition-colors"
         >
           Add your photos
         </a>
