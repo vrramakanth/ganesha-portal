@@ -6,8 +6,29 @@
  *  the Configuration split above. Meals/volunteer counts and the
  *  events-closing-today alert aren't financial, so every admin sees
  *  those regardless. */
+const DASHBOARD_CACHE_SECONDS = 30;
+
+/** The dashboard reads several whole sheets, so its result is kept for a
+ *  short time per permission level (Finance sees extra fields). Writes made
+ *  through SheetService.js clear it immediately; the short expiry is the
+ *  backstop for anything that changes a sheet another way. */
 function getVolunteerDashboard(volunteer) {
   const hasFinance = volunteer.permissions.includes("Finance");
+  const cache = CacheService.getScriptCache();
+  const cacheKey = `dashboard_v1_${hasFinance ? 1 : 0}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  const result = computeVolunteerDashboard_(hasFinance);
+  try {
+    cache.put(cacheKey, JSON.stringify(result), DASHBOARD_CACHE_SECONDS);
+  } catch (e) {
+    // A failed cache write must never fail the request.
+  }
+  return result;
+}
+
+function computeVolunteerDashboard_(hasFinance) {
   const transactions = rowsToObjects(getSheet(SHEETS.TRANSACTIONS));
   const successful = transactions.filter((t) => SUCCESS_STATUSES.includes(t.status));
   const allEntitlements = rowsToObjects(getSheet(SHEETS.ENTITLEMENTS));
