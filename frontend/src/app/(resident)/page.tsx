@@ -144,7 +144,11 @@ export default function Home() {
         />
       )}
 
-      {modules.donations && (stats?.donationsOpen === false ? (
+      {/* Waits for stats to actually load before picking a branch — stats
+          starts out null on every visit, and treating that as "donations
+          open" used to flash the Donate Now button before the real
+          (often closed/wrapped-up) state arrived. */}
+      {modules.donations && stats && (stats.donationsOpen === false ? (
         !stats.wrappedUp && (
           <div className="rounded-xl border border-border bg-card pb-5">
             <DonationsClosed />
@@ -228,7 +232,7 @@ export default function Home() {
         )}
       </div>}
 
-      {!stats?.wrappedUp && (
+      {stats && !stats.wrappedUp && (
       <section className="space-y-3">
         <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
           Upcoming
@@ -282,7 +286,7 @@ export default function Home() {
       </section>
       )}
 
-      {!stats?.wrappedUp && modules.meal && (
+      {stats && !stats.wrappedUp && modules.meal && (
       <section className="rounded-xl border border-border bg-card p-5 space-y-3">
         <div>
           <p className="font-semibold">Community Dinner</p>
@@ -359,7 +363,7 @@ export default function Home() {
         </section>
       )}
 
-      {!stats?.wrappedUp && feedback && feedback.length > 0 && (
+      {stats && !stats.wrappedUp && feedback && feedback.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Community Voices</h2>
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
