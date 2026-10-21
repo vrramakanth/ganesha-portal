@@ -142,12 +142,14 @@ export default function MorePage() {
         </Link>
       </section>
 
-      <Link
-        href="/volunteer-signup"
-        className="w-full rounded-xl bg-maroon py-4 text-center text-sm font-semibold text-white active:bg-maroon-dark transition-colors"
-      >
-        Join Seva
-      </Link>
+      {modules.volunteers && (
+        <Link
+          href="/volunteer-signup"
+          className="w-full rounded-xl bg-maroon py-4 text-center text-sm font-semibold text-white active:bg-maroon-dark transition-colors"
+        >
+          Join Seva
+        </Link>
+      )}
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
