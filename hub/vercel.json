@@ -4,11 +4,6 @@
       "source": "/rajyotsava",
       "destination": "https://rajyotsava.nammahabba.in",
       "permanent": false
-    },
-    {
-      "source": "/rajyotsava-teaser",
-      "destination": "https://rajyotsava.nammahabba.in/announcements/RJY-ANN-0003",
-      "permanent": false
     }
   ]
 }
