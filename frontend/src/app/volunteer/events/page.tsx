@@ -119,7 +119,7 @@ function EventForm({
       <textarea
         name="description"
         defaultValue={event?.description}
-        placeholder="Description (optional)"
+        placeholder="Description (optional; paste a YouTube link to show the video)"
         className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
       />
       <div className="grid grid-cols-2 gap-2">
