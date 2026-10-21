@@ -8,6 +8,7 @@ import { useAsync } from "@/lib/useAsync";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { photoAlbumUrl } from "@/lib/photoAlbum";
 import { HUB_URL } from "@/lib/hub";
+import { trackEvent } from "@/lib/track";
 import { formatCurrency, formatEventWhen, formatEventTime } from "@/lib/date";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
@@ -157,6 +158,7 @@ export default function Home() {
       ) : (
         <Link
           href="/donate"
+          onClick={() => trackEvent("donate_click")}
           className="w-full rounded-xl bg-saffron py-4 text-center text-lg font-semibold text-on-saffron shadow-sm active:bg-saffron-dark transition-colors"
         >
           Donate Now

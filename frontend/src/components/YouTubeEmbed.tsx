@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { trackEvent } from "@/lib/track";
 
 /** A YouTube video that costs nothing until it is tapped: it shows the
  *  video's thumbnail with a play button, and only loads YouTube's player
@@ -25,7 +26,10 @@ export default function YouTubeEmbed({ id, title = "Video" }: { id: string; titl
         ) : (
           <button
             type="button"
-            onClick={() => setPlaying(true)}
+            onClick={() => {
+              trackEvent("video_play", { video: id });
+              setPlaying(true);
+            }}
             aria-label={`Play video: ${title}`}
             className="group absolute inset-0 h-full w-full"
           >
