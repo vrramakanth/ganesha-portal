@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
+import { trackEvent } from "@/lib/track";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { photoAlbumUrl } from "@/lib/photoAlbum";
 import PageHeader from "@/components/PageHeader";
@@ -145,6 +146,7 @@ export default function MorePage() {
       {modules.volunteers && (
         <Link
           href="/volunteer-signup"
+          onClick={() => trackEvent("join_seva_click")}
           className="w-full rounded-xl bg-maroon py-4 text-center text-sm font-semibold text-white active:bg-maroon-dark transition-colors"
         >
           Join Seva

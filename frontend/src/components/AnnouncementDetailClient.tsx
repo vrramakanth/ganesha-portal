@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { trackEvent } from "@/lib/track";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { formatEventDate } from "@/lib/date";
@@ -16,6 +18,11 @@ import PageHeader from "@/components/PageHeader";
 export default function AnnouncementDetailClient({ announcementId }: { announcementId: string }) {
   const { data, loading, error } = useAsync(() => api.announcements.list(), []);
   const announcement = data?.find((a) => a.announcement_id === announcementId);
+  const found = !!announcement;
+
+  useEffect(() => {
+    if (found) trackEvent("announcement_open", { id: announcementId });
+  }, [found, announcementId]);
 
   if (loading) return <LoadingIndicator label="Loading announcement…" className="px-5 pt-8" />;
 
