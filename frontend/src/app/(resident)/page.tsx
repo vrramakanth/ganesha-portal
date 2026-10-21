@@ -337,8 +337,8 @@ export default function Home() {
               return (
                 <div key={a.announcement_id} className="px-4 py-3">
                   <p className="font-semibold text-sm">{a.title}</p>
-                  <p className={`mt-0.5 text-sm text-muted ${isExpanded ? "" : "line-clamp-2"}`}>
-                    <LinkifiedText text={a.message} />
+                  <p className={`mt-0.5 text-sm text-muted ${isExpanded || a.message.length <= 80 ? "" : "line-clamp-2"}`}>
+                    <LinkifiedText text={a.message} embedVideos={isExpanded || a.message.length <= 80} />
                   </p>
                   {a.message.length > 80 && (
                     <button

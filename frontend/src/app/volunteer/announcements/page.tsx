@@ -85,7 +85,7 @@ export default function AnnouncementsPage() {
       {showForm && (
         <form onSubmit={handleCreate} className="space-y-3 rounded-xl border border-border bg-card p-4">
           <input name="title" required placeholder="Title" className="w-full rounded-lg border border-border px-3 py-2.5 text-sm" />
-          <textarea name="message" required placeholder="Message" className="w-full rounded-lg border border-border px-3 py-2.5 text-sm" />
+          <textarea name="message" required placeholder="Message (paste a YouTube link to show the video)" className="w-full rounded-lg border border-border px-3 py-2.5 text-sm" />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             type="submit"

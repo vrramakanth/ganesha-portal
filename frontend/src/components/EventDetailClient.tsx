@@ -1,5 +1,6 @@
 "use client";
 
+import LinkifiedText from "@/components/LinkifiedText";
 import { useEffect, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -280,7 +281,11 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         backHref="/events"
         backLabel="← Events"
       />
-      {event.description && <p className="text-sm text-muted">{event.description}</p>}
+      {event.description && (
+        <p className="text-sm text-muted whitespace-pre-line">
+          <LinkifiedText text={event.description} />
+        </p>
+      )}
 
       {wrappedUp ? (
         <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">
