@@ -10,16 +10,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { announcementId } = await params;
   const preview = await announcementPreview(announcementId);
   if (!preview) return {};
-  const images = preview.image ? [{ url: preview.image, width: 480, height: 360, alt: preview.title }] : undefined;
+  // The `images` / `twitter.images` keys are left out entirely (not set to
+  // undefined) when there is no video thumbnail, so this folder's
+  // opengraph-image card is used instead.
+  const image = preview.image
+    ? { images: [{ url: preview.image, width: 480, height: 360, alt: preview.title }] }
+    : {};
   return {
     title: preview.title,
     description: preview.description,
-    openGraph: { title: preview.title, description: preview.description, type: "website", images },
+    openGraph: { title: preview.title, description: preview.description, type: "website", ...image },
     twitter: {
-      card: preview.image ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title: preview.title,
       description: preview.description,
-      images: preview.image ? [preview.image] : undefined,
+      ...(preview.image ? { images: [preview.image] } : {}),
     },
   };
 }
