@@ -137,6 +137,21 @@ export default function Home() {
         <p className="text-muted text-sm">{festival?.tagline ?? ""}</p>
       </header>
 
+      {festival?.theme_banner?.trim() && (
+        <section
+          aria-label="Theme"
+          className="rounded-2xl bg-maroon px-5 py-7 text-center text-white shadow-sm"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-saffron">
+            {festival.theme_banner_label?.trim() || "This year's theme"}
+          </p>
+          <p className="mt-2 break-words text-4xl font-extrabold uppercase tracking-wider">
+            {festival.theme_banner.trim()}
+          </p>
+          <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-saffron" />
+        </section>
+      )}
+
       {stats?.wrappedUp && (
         <WrapUpSummary
           stats={stats}
