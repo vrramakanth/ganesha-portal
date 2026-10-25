@@ -47,6 +47,9 @@ export type FestivalInfo = {
   photo_album_url?: string;
   theme_primary: string;
   theme_accent: string;
+  /** Absent on a backend that predates the keys; empty when the festival has no theme banner. */
+  theme_banner?: string;
+  theme_banner_label?: string;
   volunteer_areas: { label: string; note: string | null }[];
 };
 

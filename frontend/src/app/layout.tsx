@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
   const title = festival ? `${festival.name} | ${festival.community}` : FALLBACK_TITLE;
   const description = festival
-    ? [festival.tagline, festival.dates, festival.venue].filter(Boolean).join(" · ") || FALLBACK_DESCRIPTION
+    ? [festival.tagline, festival.theme && `Theme: ${festival.theme}`, festival.dates, festival.venue].filter(Boolean).join(" · ") || FALLBACK_DESCRIPTION
     : FALLBACK_DESCRIPTION;
   return {
     ...(host ? { metadataBase: new URL(`${proto}://${host}`) } : {}),

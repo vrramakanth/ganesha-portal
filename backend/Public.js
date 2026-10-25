@@ -28,6 +28,8 @@ function getFestivalInfo() {
     "photo_album_url",
     "theme_primary",
     "theme_accent",
+    "theme_banner",
+    "theme_banner_label",
   ];
   const info = {};
   keys.forEach((k) => (info[k] = getConfig(k, "")));

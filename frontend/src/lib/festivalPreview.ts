@@ -30,6 +30,7 @@ export type FestivalPreview = {
   tagline: string;
   dates: string;
   venue: string;
+  theme: string;
   primary: string;
   accent: string;
 };
@@ -44,6 +45,7 @@ export async function festivalPreview(): Promise<FestivalPreview | null> {
     tagline?: string;
     dates?: string;
     venue?: string;
+    theme_banner?: string;
     theme_primary?: string;
     theme_accent?: string;
   }>("festival.get");
@@ -54,6 +56,7 @@ export async function festivalPreview(): Promise<FestivalPreview | null> {
     tagline: info.tagline ?? "",
     dates: info.dates ?? "",
     venue: info.venue ?? "",
+    theme: (info.theme_banner ?? "").trim(),
     primary: HEX.test(info.theme_primary ?? "") ? (info.theme_primary as string) : DEFAULT_PRIMARY,
     accent: HEX.test(info.theme_accent ?? "") ? (info.theme_accent as string) : DEFAULT_ACCENT,
   };

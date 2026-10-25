@@ -41,6 +41,8 @@ const IDENTITY_FIELDS: Field[] = [
   { key: "contact", label: "Contact", description: "Shown on the More page." },
   { key: "theme_primary", label: "Theme: primary colour", description: "Hex colour, e.g. #7a1330 — headers and buttons. Leave empty for the default maroon." },
   { key: "theme_accent", label: "Theme: accent colour", description: "Hex colour, e.g. #f4791f — highlights and badges. Leave empty for the default saffron." },
+  { key: "theme_banner", label: "Theme banner", description: "This year's theme in big letters across the Home page, e.g. BENGALURU. Leave empty for no banner." },
+  { key: "theme_banner_label", label: "Theme banner small heading", description: "The small line above the theme. Leave empty to use \"This year's theme\"." },
   { key: "photo_album_url", label: "Photo album link", description: "Google Photos (or similar) album residents can add to. Leave empty to hide the button." },
   { key: "id_prefix", label: "ID prefix", description: "Prefix for every generated ID (transactions, receipts, tokens…), e.g. \"GWG\"." },
 ];

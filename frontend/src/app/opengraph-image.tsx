@@ -14,6 +14,6 @@ export default async function Image() {
     accent: festival?.accent ?? "#f4791f",
     eyebrow: festival?.community ?? "Namma Habba",
     title: festival?.name ?? "Community celebrations",
-    lines: festival ? [festival.dates, festival.venue] : ["Events, volunteering and more"],
+    lines: festival ? [festival.theme && `Theme: ${festival.theme}`, festival.dates, festival.venue] : ["Events, volunteering and more"],
   });
 }
