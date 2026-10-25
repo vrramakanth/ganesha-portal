@@ -1,5 +1,6 @@
 "use client";
 
+import { formatEventDate } from "@/lib/date";
 import { useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -78,7 +79,7 @@ export default function DinnerWalkinPage() {
             >
               {dinnerDays.map((d) => (
                 <option key={d.event_id} value={d.event_id}>
-                  {d.name} — {d.date}
+                  {d.name} — {formatEventDate(d.date)}
                 </option>
               ))}
             </select>
