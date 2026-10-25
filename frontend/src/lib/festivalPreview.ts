@@ -2,6 +2,8 @@
  *  card. They read the same backend the pages do, cached for five minutes,
  *  and return null on any failure so a slow or down backend only costs the
  *  card its details, never the page. */
+import { formatEventTime } from "./date";
+
 const REVALIDATE_SECONDS = 300;
 const TIMEOUT_MS = 5000;
 
@@ -65,7 +67,9 @@ export async function eventPreview(eventId: string): Promise<EventPreview | null
   >("events.list");
   const event = events?.find((e) => e.event_id === eventId);
   if (!event) return null;
-  const when = [formatDate(event.date), event.start_time].filter(Boolean).join(" · ");
+  // start_time arrives as the sheet's raw time-of-day value
+  // ("1899-12-30T03:53:50.000Z"); formatEventTime turns it into "9:15 AM".
+  const when = [formatDate(event.date), formatTime(event.start_time)].filter(Boolean).join(" · ");
   const description = [when, event.location].filter(Boolean).join(" · ");
   return { name: event.name, when, location: event.location ?? "", description: description || event.description || "" };
 }
@@ -75,4 +79,11 @@ function formatDate(value: string): string {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return String(value);
   return d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
+}
+
+/** "9:15 AM" from the sheet's time value; text that isn't a date (a time
+ *  typed in by hand) is shown as written rather than as "Invalid Date". */
+function formatTime(value: string): string {
+  if (!value) return "";
+  return Number.isNaN(new Date(value).getTime()) ? String(value) : formatEventTime(value);
 }
