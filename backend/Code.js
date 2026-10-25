@@ -10,6 +10,11 @@
  *  Announcements/Feedback/Bugs, PIN lookup, Backup, Audit Log, Reports)
  *  are always available, regardless of which modules are enabled. */
 
+/** Reviewing payments is shared: a sponsorship is recorded into the same
+ *  transactions list and verified there, so a festival with only
+ *  Sponsorships on still needs these routes. */
+const PAYMENT_REVIEW_MODULES = ["donations", "sponsorships"];
+
 const ROUTES = {
   // --- Public ---
   "festival.get": { handler: () => getFestivalInfo() },
@@ -55,12 +60,12 @@ const ROUTES = {
   // --- Volunteer (requires idToken; some also require a permission) ---
   "auth.check": { auth: true, handler: (p, v) => v },
   "volunteer.dashboard": { auth: true, handler: (p, v) => getVolunteerDashboard(v) },
-  "volunteer.transactions": { auth: true, module: "donations", handler: (p, v) => listTransactions(v) },
-  "volunteer.payment.verify": { auth: true, module: "donations", handler: (p, v) => verifyPaymentManual(v, p.transactionId, p.notes) },
-  "volunteer.payment.reject": { auth: true, module: "donations", handler: (p, v) => rejectPayment(v, p.transactionId, p.notes) },
+  "volunteer.transactions": { auth: true, module: PAYMENT_REVIEW_MODULES, handler: (p, v) => listTransactions(v) },
+  "volunteer.payment.verify": { auth: true, module: PAYMENT_REVIEW_MODULES, handler: (p, v) => verifyPaymentManual(v, p.transactionId, p.notes) },
+  "volunteer.payment.reject": { auth: true, module: PAYMENT_REVIEW_MODULES, handler: (p, v) => rejectPayment(v, p.transactionId, p.notes) },
   "volunteer.payment.attachScreenshot": {
     auth: true,
-    module: "donations",
+    module: PAYMENT_REVIEW_MODULES,
     handler: (p, v) => attachPaymentScreenshot(v, p.transactionId, p.screenshot, p.mimeType),
   },
   "volunteer.festival.setWrappedUp": { auth: true, handler: (p, v) => setFestivalWrappedUp(v, p.wrapped) },
