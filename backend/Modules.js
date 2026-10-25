@@ -66,7 +66,10 @@ function isModuleEnabled(moduleKey) {
 
 /** Thrown by the router (Code.js) before a gated route's handler runs. */
 function requireModuleEnabled(moduleKey) {
-  if (!isModuleEnabled(moduleKey)) {
+  // A route can list several modules ("any of these"), e.g. payment review
+  // serves both donations and sponsorships.
+  const keys = Array.isArray(moduleKey) ? moduleKey : [moduleKey];
+  if (!keys.some(isModuleEnabled)) {
     throw new ApiError("This feature isn't enabled for this festival.", 404);
   }
 }

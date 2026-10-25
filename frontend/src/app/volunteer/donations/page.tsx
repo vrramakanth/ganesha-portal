@@ -46,7 +46,7 @@ export default function VolunteerDonationsPage() {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [togglingOpen, setTogglingOpen] = useState(false);
-  const { festival: festivalInfo, refresh: refreshFestival } = useFestivalConfig();
+  const { festival: festivalInfo, refresh: refreshFestival, modules } = useFestivalConfig();
   const donationsOpen = festivalInfo ? festivalInfo.donations_open !== "false" : null;
 
   async function handleToggleDonations() {
@@ -133,13 +133,16 @@ export default function VolunteerDonationsPage() {
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
-      <PageHeader title="Donations" subtitle="Collections and payment review" />
+      <PageHeader
+        title={modules.donations ? "Donations" : "Payments"}
+        subtitle={modules.donations ? "Collections and payment review" : "Review and verify recorded payments"}
+      />
 
       <Link href="/volunteer/donations/screenshots" className="text-xs font-medium text-maroon underline -mt-4">
         Attach Missing Screenshots
       </Link>
 
-      {donationsOpen !== null && (
+      {modules.donations && donationsOpen !== null && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
           <div>
             <p className="text-sm font-semibold">Donations are {donationsOpen ? "open" : "closed"}</p>
