@@ -6,7 +6,7 @@ import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { useResidentProfile } from "@/lib/useResidentProfile";
-import { formatCurrency } from "@/lib/date";
+import { formatCurrency, formatEventDate } from "@/lib/date";
 import { fileToBase64 } from "@/lib/file";
 import { parseVolunteerAvailability, isAreaApproved } from "@/lib/volunteerAreas";
 import type { EventRegistration } from "@/lib/types";
@@ -450,7 +450,7 @@ export default function MyStuffPage() {
               <Row key={e.expense_id}>
                 <div>
                   <p className="font-semibold text-sm">{e.purpose}</p>
-                  <p className="text-xs text-muted">{e.date}</p>
+                  <p className="text-xs text-muted">{formatEventDate(e.date)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-maroon">{formatCurrency(Number(e.amount))}</p>
