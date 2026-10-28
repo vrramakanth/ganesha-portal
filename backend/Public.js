@@ -31,6 +31,7 @@ function getFestivalInfo() {
     "theme_banner",
     "theme_banner_label",
     "wrapup_message",
+    "wrapup_days",
     "wrapup_highlights",
     "wrapup_image_url",
   ];
