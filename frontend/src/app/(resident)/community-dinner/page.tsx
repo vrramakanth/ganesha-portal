@@ -1,5 +1,6 @@
 "use client";
 
+import { mealName, mealDeadlineLabel } from "@/lib/meal";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
@@ -220,7 +221,7 @@ export default function CommunityDinnerPage() {
       <div className="flex flex-col gap-4 px-5 pt-8 text-center items-center">
         <PageHeader title="Already Registered" backHref="/more" backLabel="← More" />
         <p className="text-sm text-muted">
-          You&apos;ve already registered for the Community Dinner.
+          You&apos;ve already registered for the {mealName(festival)}.
           <br />
           Registration ID: {registrationId}
         </p>
@@ -263,7 +264,7 @@ export default function CommunityDinnerPage() {
       <div className="flex flex-col gap-4 px-5 pt-8 text-center items-center">
         <PageHeader title="You're Registered!" backHref="/more" backLabel="← More" />
         <p className="text-sm text-muted">
-          Your Community Dinner registration is confirmed.
+          Your {mealName(festival)} registration is confirmed.
           <br />
           Registration ID: {registrationId}
         </p>
@@ -310,8 +311,8 @@ export default function CommunityDinnerPage() {
         />
         <p className="text-sm text-muted">
           {dinnerCount.wrappedUp
-            ? "The Community Dinner is over. Thank you for joining us!"
-            : "Community Dinner registrations are now closed. Thank you to everyone who signed up!"}
+            ? `The ${mealName(festival)} is over. Thank you for joining us!`
+            : `${mealName(festival)} registrations are now closed. Thank you to everyone who signed up!`}
         </p>
         <div className="w-full text-left">
           <FindYourCounter counters={dinnerCount?.counters} lateCounter={dinnerCount?.lateCounter} />
@@ -324,7 +325,7 @@ export default function CommunityDinnerPage() {
         {whatsappNumber && !dinnerCount.wrappedUp && (
           <a
             href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-              "Hi, I'd like to ask about registering for the Community Dinner after registrations closed.\nName: \nBlock/Flat: \nNumber of people: "
+              `Hi, I'd like to ask about registering for the ${mealName(festival)} after registrations closed.\nName: \nBlock/Flat: \nNumber of people: `
             )}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -340,12 +341,17 @@ export default function CommunityDinnerPage() {
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader
-        title="Community Dinner"
+        title={mealName(festival)}
         subtitle="Register your household — this is one-time, so please double-check before submitting."
         backHref="/more"
         backLabel="← More"
       />
-      <p className="-mt-4 text-sm font-medium text-saffron-text">20th September, evening — details to follow</p>
+      {festival?.meal_when?.trim() && (
+        <p className="-mt-4 text-sm font-medium text-saffron-text">{festival.meal_when.trim()}</p>
+      )}
+      {mealDeadlineLabel(festival) && (
+        <p className="-mt-4 text-sm text-muted">Register by {mealDeadlineLabel(festival)}.</p>
+      )}
       <p className="-mt-4 text-sm font-semibold">
         {everyonePaid
           ? `₹${adultPrice}/adult, ₹${childPrice}/child for everyone attending`

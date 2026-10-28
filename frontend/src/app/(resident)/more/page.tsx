@@ -1,5 +1,6 @@
 "use client";
 
+import { mealName } from "@/lib/meal";
 import { useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -73,7 +74,7 @@ export default function MorePage() {
         className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3.5"
       >
         <div>
-          <p className="font-semibold text-sm">Community Dinner</p>
+          <p className="font-semibold text-sm">{mealName(festival)}</p>
           <p className="text-xs text-muted">
             {dinnerCount?.open === false ? "Registrations are closed" : "Register your household — one time only"}
           </p>

@@ -20,7 +20,25 @@ const COMMUNITY_DINNER_OPEN_KEY = "community_dinner_registration_open";
 /** Open unless explicitly set to "false" in Configuration, so a missing
  *  row (the state before anyone's ever closed it) means open. */
 function isCommunityDinnerRegistrationOpen() {
-  return String(getConfig(COMMUNITY_DINNER_OPEN_KEY, "true")).trim().toLowerCase() !== "false";
+  if (String(getConfig(COMMUNITY_DINNER_OPEN_KEY, "true")).trim().toLowerCase() === "false") return false;
+  return !isMealRegistrationDeadlinePassed();
+}
+
+/** What this festival calls its meal ("Community Dinner", "Breakfast"…),
+ *  the `meal_name` Configuration key. */
+function getMealName() {
+  return String(getConfig("meal_name", "Community Dinner")).trim() || "Community Dinner";
+}
+
+/** Optional cut-off, the `meal_registration_deadline` key as YYYY-MM-DD:
+ *  registration stays open through the end of that day, India time, and
+ *  closes by itself after — no one has to remember to close it. Empty or
+ *  unreadable means no deadline. */
+function isMealRegistrationDeadlinePassed() {
+  const raw = String(getConfig("meal_registration_deadline", "")).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return false;
+  const today = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd");
+  return today > raw;
 }
 
 /** Closing only stops NEW registrations (enforced in
@@ -213,7 +231,7 @@ function registerCommunityDinner({ residentName, mobile, block, flatNumber, adul
     );
     if (pendingWhileClosed) return pendingWhileClosed;
     throw new ApiError(
-      "Community Dinner registrations are now closed. Please message an admin on WhatsApp if you still need to register.",
+      `${getMealName()} registrations are now closed. Please message an admin on WhatsApp if you still need to register.`,
       409
     );
   }
@@ -238,7 +256,7 @@ function registerCommunityDinner({ residentName, mobile, block, flatNumber, adul
     const locked = existing.some((r) => (r.status === "CONFIRMED" || r.status === "MANUAL_REVIEW") && matches(r));
     if (locked) {
       throw new ApiError(
-        "This mobile number or flat is already registered for the Community Dinner. Go to My Stuff in the app to message an admin directly if you need to make a change.",
+        `This mobile number or flat is already registered for the ${getMealName()}. Go to My Stuff in the app to message an admin directly if you need to make a change.`,
         409
       );
     }

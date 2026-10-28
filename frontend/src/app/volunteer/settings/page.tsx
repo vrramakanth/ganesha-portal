@@ -70,13 +70,16 @@ const MEAL_PRICING_FIELDS: Field[] = [
   {
     key: "meal_pricing_mode",
     label: "Pricing model",
-    description: "How Community Dinner charges attendees.",
+    description: "How the meal charges attendees.",
     type: "select",
     options: [
       { value: "household_free_guest_paid", label: "Household free, guests pay" },
       { value: "everyone_paid", label: "Everyone pays the same rate" },
     ],
   },
+  { key: "meal_name", label: "Meal name", description: "What residents see, e.g. Breakfast. Leave empty for \"Community Dinner\"." },
+  { key: "meal_when", label: "Meal day and place", description: "One line shown with the sign-up, e.g. Sunday 1 Nov, 8:30 AM · Central courtyard. Leave empty to show nothing." },
+  { key: "meal_registration_deadline", label: "Registration cut-off date", description: "YYYY-MM-DD, e.g. 2026-10-30. Sign-up closes by itself after that day. Leave empty for no cut-off." },
   { key: "meal_adult_price", label: "Adult price (₹)", description: "Per-plate rate for adults (12+).", type: "number" },
   { key: "meal_child_price", label: "Child price (₹)", description: "Per-plate rate for children (6-12).", type: "number" },
 ];
