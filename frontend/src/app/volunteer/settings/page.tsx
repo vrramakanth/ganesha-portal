@@ -63,6 +63,15 @@ const MONEY_FIELDS: Field[] = [
   { key: "upi_payee_name", label: "UPI payee name", description: "Shown to residents during payment." },
 ];
 
+/** What residents see for the meal. Always shown while the Meal module is on
+ *  (the Configuration row is created on first save), unlike the pricing
+ *  fields below, which wait for their rows to exist. */
+const MEAL_DISPLAY_FIELDS: Field[] = [
+  { key: "meal_name", label: "Meal name", description: "What residents see, e.g. Breakfast. Leave empty for \"Community Dinner\"." },
+  { key: "meal_when", label: "Meal day and place", description: "One line shown with the sign-up, e.g. Sunday 1 Nov, 8:30 AM · Central courtyard. Leave empty to show nothing." },
+  { key: "meal_registration_deadline", label: "Registration cut-off date", description: "YYYY-MM-DD, e.g. 2026-10-30. Sign-up closes by itself after that day. Leave empty for no cut-off." },
+];
+
 /** Finance-gated, same as Money — only shown when the Meal module is on.
  *  A caterer's rate is always subject to negotiation, so these are plain
  *  editable Configuration values, not a code-level constant. */
@@ -77,9 +86,6 @@ const MEAL_PRICING_FIELDS: Field[] = [
       { value: "everyone_paid", label: "Everyone pays the same rate" },
     ],
   },
-  { key: "meal_name", label: "Meal name", description: "What residents see, e.g. Breakfast. Leave empty for \"Community Dinner\"." },
-  { key: "meal_when", label: "Meal day and place", description: "One line shown with the sign-up, e.g. Sunday 1 Nov, 8:30 AM · Central courtyard. Leave empty to show nothing." },
-  { key: "meal_registration_deadline", label: "Registration cut-off date", description: "YYYY-MM-DD, e.g. 2026-10-30. Sign-up closes by itself after that day. Leave empty for no cut-off." },
   { key: "meal_adult_price", label: "Adult price (₹)", description: "Per-plate rate for adults (12+).", type: "number" },
   { key: "meal_child_price", label: "Child price (₹)", description: "Per-plate rate for children (6-12).", type: "number" },
 ];
@@ -123,6 +129,7 @@ export default function SettingsPage() {
   const handledKeys = new Set([
     ...IDENTITY_FIELDS.map((f) => f.key),
     ...MONEY_FIELDS.map((f) => f.key),
+    ...MEAL_DISPLAY_FIELDS.map((f) => f.key),
     ...MEAL_PRICING_FIELDS.map((f) => f.key),
     "enabled_modules",
     "hero_image_url",
@@ -336,6 +343,15 @@ export default function SettingsPage() {
               <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Money</h2>
               <div className="rounded-xl border border-border bg-card divide-y divide-border">
                 {MONEY_FIELDS.filter((f) => config.some((c) => c.key === f.key)).map(renderField)}
+              </div>
+            </div>
+          )}
+
+          {modules.meal && (
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Meal</h2>
+              <div className="rounded-xl border border-border bg-card divide-y divide-border">
+                {MEAL_DISPLAY_FIELDS.map(renderField)}
               </div>
             </div>
           )}
