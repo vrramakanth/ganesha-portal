@@ -43,6 +43,8 @@ function getFestivalInfo() {
   // Same fallback as the backend actually enforces in createDonation, so
   // the frontend can validate against a real number even before anyone
   // has added a maximum_donation row to Configuration.
+  info.meal_registration_deadline = getMealRegistrationDeadline();
+  info.meal_when = getMealWhenText();
   info.maximum_donation = getConfig("maximum_donation", "100000");
   // Read-only fallback here — no seeding side-effect from a public,
   // unauthenticated call. The row itself gets created for editing the

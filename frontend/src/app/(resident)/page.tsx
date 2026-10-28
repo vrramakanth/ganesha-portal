@@ -1,6 +1,6 @@
 "use client";
 
-import { mealName, mealDeadlineLabel } from "@/lib/meal";
+import { mealName, mealNameLower, mealDeadlineLabel, mealWhen } from "@/lib/meal";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -69,6 +69,9 @@ export default function Home() {
       return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
     })
     .slice(0, 2);
+  // A "Dinner"-category event is the meal's own listing (its page leads to the
+  // sign-up), so the separate meal card would just repeat it.
+  const hasMealEvent = (events ?? []).some((e) => e.category === "Dinner" && e.status !== "DRAFT");
   const news = (announcements ?? [])
     .slice()
     .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
@@ -269,7 +272,8 @@ export default function Home() {
             // Only the very next event shows the attending count — showing
             // it on every card made "upcoming" feel like a leaderboard
             // instead of pointing at what's happening soonest.
-            const attending = index === 0 ? Number(event.rsvp_yes) || 0 : 0;
+            const isMealEvent = event.category === "Dinner" && modules.meal;
+            const attending = index === 0 && !isMealEvent ? Number(event.rsvp_yes) || 0 : 0;
             return (
               <Link
                 key={event.event_id}
@@ -293,7 +297,9 @@ export default function Home() {
                       </>
                     )}
                     {isFreeOpen && !isCultural && (
-                      <p className="animate-twinkle text-xs font-bold text-saffron-text">RSVP to attend →</p>
+                      <p className="animate-twinkle text-xs font-bold text-saffron-text">
+                        {isMealEvent ? `Register for ${mealNameLower(festival)} →` : "RSVP to attend →"}
+                      </p>
                     )}
                   </div>
                 )}
@@ -307,12 +313,12 @@ export default function Home() {
       </section>
       )}
 
-      {stats && !stats.wrappedUp && modules.meal && (
+      {stats && !stats.wrappedUp && modules.meal && !hasMealEvent && (
       <section className="rounded-xl border border-border bg-card p-5 space-y-3">
         <div>
           <p className="font-semibold">{mealName(festival)}</p>
-          {festival?.meal_when?.trim() && (
-            <p className="text-xs font-medium text-saffron-text">{festival.meal_when.trim()}</p>
+          {mealWhen(festival) && (
+            <p className="text-xs font-medium text-saffron-text">{mealWhen(festival)}</p>
           )}
           <p className="text-sm font-semibold">Free for all residents</p>
           <p className="text-sm text-muted">

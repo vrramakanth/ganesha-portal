@@ -1,6 +1,6 @@
 "use client";
 
-import { mealName, mealDeadlineLabel } from "@/lib/meal";
+import { mealName, mealDeadlineLabel, mealWhen } from "@/lib/meal";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
@@ -346,8 +346,8 @@ export default function CommunityDinnerPage() {
         backHref="/more"
         backLabel="← More"
       />
-      {festival?.meal_when?.trim() && (
-        <p className="-mt-4 text-sm font-medium text-saffron-text">{festival.meal_when.trim()}</p>
+      {mealWhen(festival) && (
+        <p className="-mt-4 text-sm font-medium text-saffron-text">{mealWhen(festival)}</p>
       )}
       {mealDeadlineLabel(festival) && (
         <p className="-mt-4 text-sm text-muted">Register by {mealDeadlineLabel(festival)}.</p>
