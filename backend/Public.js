@@ -30,6 +30,9 @@ function getFestivalInfo() {
     "theme_accent",
     "theme_banner",
     "theme_banner_label",
+    "wrapup_message",
+    "wrapup_highlights",
+    "wrapup_image_url",
   ];
   const info = {};
   keys.forEach((k) => (info[k] = getConfig(k, "")));
