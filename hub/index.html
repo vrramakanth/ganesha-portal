@@ -35,9 +35,11 @@
 <script>
 const LABELS = { live: "Live now", past: "Completed", soon: "Coming soon" };
 const SECTIONS = [["live", "Happening now"], ["soon", "Upcoming"], ["past", "Past festivals"]];
-function render(data) {
+fetch("festivals.json").then(r => r.json()).then(data => {
+  document.getElementById("community").textContent = data.community;
+  document.getElementById("title").textContent = data.title;
+  document.getElementById("tagline").textContent = data.tagline;
   const list = document.getElementById("list");
-  list.textContent = "";
   SECTIONS.forEach(([status, heading]) => {
     const items = data.festivals.filter(f => f.status === status);
     if (!items.length) return;
@@ -59,35 +61,6 @@ function render(data) {
       list.appendChild(el);
     });
   });
-}
-
-// A festival listed as "live" is moved to Past as soon as its own portal
-// is marked wrapped up (Settings > Mark festival as wrapped up) — no edit
-// to festivals.json needed. If a portal can't be reached the list simply
-// keeps what festivals.json says.
-function checkWrappedUp(data) {
-  const live = data.festivals.filter(f => f.status === "live" && f.url);
-  return Promise.all(live.map(f =>
-    fetch(f.url.replace(/\/$/, "") + "/api/festival-status", { signal: AbortSignal.timeout(5000) })
-      .then(r => r.json())
-      .then(s => {
-        if (s && s.ok && s.wrappedUp) {
-          f.status = "past";
-          f.blurb = f.pastBlurb || "Wrapped up. Thank you for joining!";
-          return true;
-        }
-        return false;
-      })
-      .catch(() => false)
-  )).then(changes => changes.some(Boolean));
-}
-
-fetch("festivals.json").then(r => r.json()).then(data => {
-  document.getElementById("community").textContent = data.community;
-  document.getElementById("title").textContent = data.title;
-  document.getElementById("tagline").textContent = data.tagline;
-  render(data);
-  checkWrappedUp(data).then(changed => { if (changed) render(data); });
 });
 </script>
 </body>
