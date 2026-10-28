@@ -1,5 +1,6 @@
 "use client";
 
+import { mealName, mealDeadlineLabel } from "@/lib/meal";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -309,13 +310,15 @@ export default function Home() {
       {stats && !stats.wrappedUp && modules.meal && (
       <section className="rounded-xl border border-border bg-card p-5 space-y-3">
         <div>
-          <p className="font-semibold">Community Dinner</p>
-          <p className="text-xs font-medium text-saffron-text">20th September, evening — details to follow</p>
+          <p className="font-semibold">{mealName(festival)}</p>
+          {festival?.meal_when?.trim() && (
+            <p className="text-xs font-medium text-saffron-text">{festival.meal_when.trim()}</p>
+          )}
           <p className="text-sm font-semibold">Free for all residents</p>
           <p className="text-sm text-muted">
             {dinnerCount?.open === false
               ? "Registrations are now closed. Thank you to everyone who signed up!"
-              : "Register your household — one time only. Guests welcome at ₹200/adult, ₹100/child."}
+              : `Register your household — one time only. Guests welcome at ₹${Number(festival?.meal_adult_price || "200")}/adult, ₹${Number(festival?.meal_child_price || "100")}/child.${mealDeadlineLabel(festival) ? ` Register by ${mealDeadlineLabel(festival)}.` : ""}`}
           </p>
           {!!dinnerCount && dinnerCount.registered > 0 && (
             <p className="mt-1 text-sm font-semibold text-maroon">

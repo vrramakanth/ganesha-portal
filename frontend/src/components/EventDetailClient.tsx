@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import LinkifiedText from "@/components/LinkifiedText";
 import { useEffect, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
@@ -9,7 +10,9 @@ import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatEventDate, formatEventTime } from "@/lib/date";
 import { eventSubCategories } from "@/lib/culturalSubCategories";
 import { fileToBase64 } from "@/lib/file";
-import type { EventRecord, EventRegistration } from "@/lib/types";
+import { mealName, mealNameLower, mealDeadlineLabel } from "@/lib/meal";
+import { trackEvent } from "@/lib/track";
+import type { EventRecord, EventRegistration, FestivalInfo } from "@/lib/types";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
@@ -113,13 +116,41 @@ function RsvpSection({ event }: { event: EventRecord }) {
   );
 }
 
+/** A "Dinner"-category event is a shared meal: its sign-up is the household
+ *  meal registration (adults, children, guests), not a one-tap RSVP, so the
+ *  event's own address can be shared and lead straight to it. */
+function MealSignupCard({ festival }: { festival: FestivalInfo | null }) {
+  const name = mealName(festival);
+  const deadline = mealDeadlineLabel(festival);
+  const adult = Number(festival?.meal_adult_price || "200");
+  const child = Number(festival?.meal_child_price || "100");
+  return (
+    <div className="space-y-2 rounded-xl border border-border bg-card p-4">
+      <p className="text-sm font-semibold">Register for {mealNameLower(festival)}</p>
+      <p className="text-sm text-muted">
+        {festival?.meal_pricing_mode === "everyone_paid"
+          ? `₹${adult}/adult, ₹${child}/child.`
+          : `Free for residents and their families. Guests are welcome at ₹${adult}/adult, ₹${child}/child.`}
+        {deadline ? ` Register by ${deadline}.` : ""}
+      </p>
+      <Link
+        href="/community-dinner"
+        onClick={() => trackEvent("meal_register_click")}
+        className="block w-full rounded-xl bg-maroon py-3 text-center text-sm font-semibold text-white active:bg-maroon-dark transition-colors"
+      >
+        Register for {name} →
+      </Link>
+    </div>
+  );
+}
+
 type SubmitOutcome =
   | { performance: Performance; registration: EventRegistration; error?: undefined }
   | { performance: Performance; registration?: undefined; error: string };
 
 export default function EventDetailClient({ eventId }: { eventId: string }) {
   const { data: events, loading, error } = useAsync(() => api.events.list(), []);
-  const { festival: festivalInfo } = useFestivalConfig();
+  const { festival: festivalInfo, modules } = useFestivalConfig();
   const wrappedUp = festivalInfo?.festival_wrapped_up === "true";
   const event = (events ?? []).find((e) => e.event_id === eventId);
   const { profile, saveProfile, loaded } = useResidentProfile();
@@ -292,7 +323,13 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
           This event has ended. Thank you for celebrating with us! 🙏
         </p>
       ) : (
-        event.status !== "CANCELLED" && event.status !== "COMPLETED" && <RsvpSection event={event} />
+        event.status !== "CANCELLED" &&
+        event.status !== "COMPLETED" &&
+        (event.category === "Dinner" && modules.meal ? (
+          <MealSignupCard festival={festivalInfo} />
+        ) : (
+          <RsvpSection event={event} />
+        ))
       )}
 
       {isCultural && !canRegister && (

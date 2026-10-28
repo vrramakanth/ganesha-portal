@@ -1,5 +1,6 @@
 "use client";
 
+import { mealName } from "@/lib/meal";
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { api, ApiClientError } from "@/lib/api";
@@ -361,8 +362,8 @@ export default function MyStuffPage() {
 
           {modules.meal && communityDinner && (
             <Section
-              title="My Community Dinner"
-              subtitle="Your household's one-time Community Dinner signup — separate from Dinner Tokens above"
+              title={`My ${mealName(festival)}`}
+              subtitle={`Your household's one-time ${mealName(festival)} signup — separate from Dinner Tokens above`}
             >
               <div className="px-4 py-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -394,7 +395,7 @@ export default function MyStuffPage() {
                   )}
                 <a
                   href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-                    `Hi, I'd like to request a change to my Community Dinner registration.\nRegistration ID: ${communityDinner.registration_id}\nName: ${communityDinner.resident_name}\nBlock/Flat: ${communityDinner.block} ${communityDinner.flat_number}\n\nWhat needs to change: `
+                    `Hi, I'd like to request a change to my ${mealName(festival)} registration.\nRegistration ID: ${communityDinner.registration_id}\nName: ${communityDinner.resident_name}\nBlock/Flat: ${communityDinner.block} ${communityDinner.flat_number}\n\nWhat needs to change: `
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
