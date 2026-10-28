@@ -52,6 +52,7 @@ export type FestivalInfo = {
   theme_banner_label?: string;
   /** Wrap-up page for festivals without donations: closing line, one highlight per line, and a poster image. */
   wrapup_message?: string;
+  wrapup_days?: string;
   wrapup_highlights?: string;
   wrapup_image_url?: string;
   volunteer_areas: { label: string; note: string | null }[];

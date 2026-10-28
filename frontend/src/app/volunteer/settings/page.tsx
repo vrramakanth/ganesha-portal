@@ -44,6 +44,7 @@ const IDENTITY_FIELDS: Field[] = [
   { key: "theme_banner", label: "Theme banner", description: "This year's theme in big letters across the Home page, e.g. BENGALURU. Leave empty for no banner." },
   { key: "theme_banner_label", label: "Theme banner small heading", description: "The small line above the theme. Leave empty to use \"This year's theme\"." },
   { key: "wrapup_message", label: "Wrap-up closing message", description: "The thank-you line shown on Home once the festival is wrapped up. Leave empty for the default." },
+  { key: "wrapup_days", label: "Wrap-up days of celebration", type: "number", description: "Shown as \"days of celebration\" on the wrap-up. Leave empty to count the days that have events." },
   { key: "wrapup_highlights", label: "Wrap-up highlights", type: "textarea", description: "One highlight per line, shown as a checklist on the wrap-up. Leave empty for none." },
   { key: "wrapup_image_url", label: "Wrap-up poster image", description: "Address of a poster or photo shown at the top of the wrap-up, e.g. /images/navratri-garba-poster.jpg. Leave empty for none." },
   { key: "photo_album_url", label: "Photo album link", description: "Google Photos (or similar) album residents can add to. Leave empty to hide the button." },

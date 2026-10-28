@@ -53,7 +53,12 @@ export default function FestivalWrapUp({
       const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
       return dateDiff !== 0 ? dateDiff : new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
     });
-  const days = new Set(timeline.map((e) => formatEventDate(e.date))).size;
+  // A festival can state its length outright (Festival Setup) when not every
+  // day has an event listed; the events tile is then dropped, since it would
+  // undercount.
+  const daysOverride = Number(festival.wrapup_days);
+  const hasDaysOverride = Number.isInteger(daysOverride) && daysOverride > 0;
+  const days = hasDaysOverride ? daysOverride : new Set(timeline.map((e) => formatEventDate(e.date))).size;
   const finale = timeline.length > 1 ? timeline[timeline.length - 1] : null;
   const earlier = finale ? timeline.slice(0, -1) : timeline;
 
@@ -69,10 +74,10 @@ export default function FestivalWrapUp({
         <img src={poster} alt={`${festival.festival_name} finale`} className="w-full rounded-lg border border-border" />
       )}
 
-      {timeline.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
+      {(hasDaysOverride || timeline.length > 0) && (
+        <div className={`grid gap-2 ${hasDaysOverride ? "grid-cols-1" : "grid-cols-2"}`}>
           <Tile value={days} label={days === 1 ? "day of celebration" : "days of celebration"} />
-          <Tile value={timeline.length} label="events" />
+          {!hasDaysOverride && <Tile value={timeline.length} label="events" />}
         </div>
       )}
 
