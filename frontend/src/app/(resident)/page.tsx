@@ -16,6 +16,7 @@ import LinkifiedText from "@/components/LinkifiedText";
 import FindYourCounter from "@/components/FindYourCounter";
 import DonationsClosed from "@/components/DonationsClosed";
 import WrapUpSummary from "@/components/WrapUpSummary";
+import FestivalWrapUp from "@/components/FestivalWrapUp";
 
 // Traffic-light read on (spent + worst-case costs ahead) vs collected —
 // a resident-facing signal that stays honest (the estimate is real, so
@@ -152,12 +153,14 @@ export default function Home() {
         </section>
       )}
 
-      {stats?.wrappedUp && (
-        <WrapUpSummary
-          stats={stats}
-          eventsCount={(events ?? []).length}
-          voices={feedback ?? []}
-        />
+      {stats?.wrappedUp && festival && (
+        // Only a festival that collects donations has the money-and-turnout
+        // summary; every other festival gets the events-only thank-you.
+        modules.donations ? (
+          <WrapUpSummary stats={stats} eventsCount={(events ?? []).length} voices={feedback ?? []} />
+        ) : (
+          <FestivalWrapUp festival={festival} events={events ?? []} voices={feedback ?? []} />
+        )
       )}
 
       {/* Waits for stats to actually load before picking a branch — stats

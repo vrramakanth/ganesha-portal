@@ -24,7 +24,7 @@ type Field = {
   key: string;
   label: string;
   description: string;
-  type?: "text" | "number" | "select";
+  type?: "text" | "number" | "select" | "textarea";
   options?: { value: string; label: string }[];
 };
 
@@ -43,6 +43,9 @@ const IDENTITY_FIELDS: Field[] = [
   { key: "theme_accent", label: "Theme: accent colour", description: "Hex colour, e.g. #f4791f — highlights and badges. Leave empty for the default saffron." },
   { key: "theme_banner", label: "Theme banner", description: "This year's theme in big letters across the Home page, e.g. BENGALURU. Leave empty for no banner." },
   { key: "theme_banner_label", label: "Theme banner small heading", description: "The small line above the theme. Leave empty to use \"This year's theme\"." },
+  { key: "wrapup_message", label: "Wrap-up closing message", description: "The thank-you line shown on Home once the festival is wrapped up. Leave empty for the default." },
+  { key: "wrapup_highlights", label: "Wrap-up highlights", type: "textarea", description: "One highlight per line, shown as a checklist on the wrap-up. Leave empty for none." },
+  { key: "wrapup_image_url", label: "Wrap-up poster image", description: "Address of a poster or photo shown at the top of the wrap-up, e.g. /images/navratri-garba-poster.jpg. Leave empty for none." },
   { key: "photo_album_url", label: "Photo album link", description: "Google Photos (or similar) album residents can add to. Leave empty to hide the button." },
   { key: "id_prefix", label: "ID prefix", description: "Prefix for every generated ID (transactions, receipts, tokens…), e.g. \"GWG\"." },
 ];
@@ -230,6 +233,13 @@ export default function SettingsPage() {
                 </option>
               ))}
             </select>
+          ) : field.type === "textarea" ? (
+            <textarea
+              rows={4}
+              defaultValue={value}
+              onChange={(e) => setEdits((prev) => ({ ...prev, [field.key]: e.target.value }))}
+              className="w-3/5 rounded-lg border border-border px-2 py-1.5 text-sm"
+            />
           ) : (
             <input
               type={field.type || "text"}
