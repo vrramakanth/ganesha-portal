@@ -4,6 +4,11 @@
       "source": "/rajyotsava",
       "destination": "https://rajyotsava.nammahabba.in",
       "permanent": false
+    },
+    {
+      "source": "/halloween2026",
+      "destination": "https://rajyotsava.nammahabba.in/events/EVT-edfaea92",
+      "permanent": false
     }
   ]
 }
