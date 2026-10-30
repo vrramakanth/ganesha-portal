@@ -216,6 +216,72 @@ function rsvpEvent(eventId, response) {
   });
 }
 
+/** "Is your flat taking part?" — for an event of category "Flat Opt-in"
+ *  (e.g. Trick or Treat, where children visit only the flats that said yes).
+ *  One answer per flat, so answering again simply changes it. The sheet is
+ *  created on first use, like Feedback. */
+const FLAT_OPT_IN_CATEGORY = "Flat Opt-in";
+
+function getFlatParticipationSheet() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.FLAT_PARTICIPATION);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.FLAT_PARTICIPATION);
+    const headers = SHEET_SCHEMAS[SHEETS.FLAT_PARTICIPATION];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function requireFlatOptInEvent(eventId) {
+  const event = getEvent(eventId);
+  if (event.category !== FLAT_OPT_IN_CATEGORY) throw new ApiError("This event doesn't collect flat participation", 400);
+  return event;
+}
+
+function setFlatParticipation({ eventId, block, flatNumber, participating }) {
+  requireFestivalActive();
+  requireFields({ eventId, block, flatNumber }, ["eventId", "block", "flatNumber"]);
+  const event = requireFlatOptInEvent(eventId);
+  if (event.status !== "OPEN") throw new ApiError("This is not open for answers right now", 400);
+  validateBlock(block);
+  const flat = String(flatNumber).trim();
+  if (!/^\d{3}$/.test(flat)) throw new ApiError("Flat number must be 3 digits, e.g. 005", 400);
+  const yes = participating === true || String(participating).toLowerCase() === "true";
+
+  return withLock(() => {
+    const sheet = getFlatParticipationSheet();
+    const rows = rowsToObjects(sheet);
+    const index = rows.findIndex(
+      (r) =>
+        String(r.event_id) === String(eventId) &&
+        String(r.block).toUpperCase() === String(block).toUpperCase() &&
+        String(r.flat_number).padStart(3, "0") === flat
+    );
+    const fields = { participating: yes ? "TRUE" : "FALSE", updated_at: new Date() };
+    if (index === -1) {
+      appendObject(sheet, Object.assign({ event_id: eventId, block: String(block).toUpperCase(), flat_number: "'" + flat }, fields));
+    } else {
+      updateRowFields(sheet, index + 2, fields);
+    }
+    return { eventId, block: String(block).toUpperCase(), flatNumber: flat, participating: yes };
+  });
+}
+
+/** The flats that said yes (block, flat), sorted, plus how many said no. */
+function listFlatParticipation(eventId) {
+  requireFields({ eventId }, ["eventId"]);
+  requireFlatOptInEvent(eventId);
+  const rows = rowsToObjects(getFlatParticipationSheet()).filter((r) => String(r.event_id) === String(eventId));
+  const isYes = (r) => r.participating === true || String(r.participating).toUpperCase() === "TRUE";
+  const flats = rows
+    .filter(isYes)
+    .map((r) => ({ block: String(r.block).toUpperCase(), flat_number: String(r.flat_number).replace(/^'/, "").padStart(3, "0") }))
+    .sort((a, b) => (a.block === b.block ? a.flat_number.localeCompare(b.flat_number) : a.block.localeCompare(b.block)));
+  return { participating: flats, notParticipating: rows.filter((r) => !isYes(r)).length };
+}
+
 const MAX_SONG_BASE64_LENGTH = 14 * 1024 * 1024; // ~10MB raw — comfortably covers a full song at typical MP3 bitrates
 
 function getCulturalSongsFolder() {

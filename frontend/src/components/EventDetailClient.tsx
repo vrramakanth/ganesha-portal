@@ -1,5 +1,6 @@
 "use client";
 
+import FlatOptIn from "@/components/FlatOptIn";
 import Link from "next/link";
 import LinkifiedText from "@/components/LinkifiedText";
 import { useEffect, useState } from "react";
@@ -325,7 +326,9 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       ) : (
         event.status !== "CANCELLED" &&
         event.status !== "COMPLETED" &&
-        (event.category === "Dinner" && modules.meal ? (
+        (event.category === "Flat Opt-in" ? (
+          <FlatOptIn eventId={event.event_id} open={event.status === "OPEN"} />
+        ) : event.category === "Dinner" && modules.meal ? (
           <MealSignupCard festival={festivalInfo} />
         ) : (
           <RsvpSection event={event} />
