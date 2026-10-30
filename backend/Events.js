@@ -240,7 +240,7 @@ function requireFlatOptInEvent(eventId) {
   return event;
 }
 
-function setFlatParticipation({ eventId, block, flatNumber, participating }) {
+function setFlatParticipation({ eventId, block, flatNumber, participating, kids }) {
   requireFestivalActive();
   requireFields({ eventId, block, flatNumber }, ["eventId", "block", "flatNumber"]);
   const event = requireFlatOptInEvent(eventId);
@@ -249,9 +249,17 @@ function setFlatParticipation({ eventId, block, flatNumber, participating }) {
   const flat = String(flatNumber).trim();
   if (!/^\d{3}$/.test(flat)) throw new ApiError("Flat number must be 3 digits, e.g. 005", 400);
   const yes = participating === true || String(participating).toLowerCase() === "true";
+  // How many children from this flat will go trick-or-treating — separate
+  // from whether the flat opens its door, so a flat can send kids out
+  // without welcoming visitors, or the other way round.
+  const kidsNum = kids === undefined || kids === "" || kids === null ? 0 : Number(kids);
+  if (!Number.isInteger(kidsNum) || kidsNum < 0 || kidsNum > 20) {
+    throw new ApiError("Number of kids must be a whole number from 0 to 20", 400);
+  }
 
   return withLock(() => {
     const sheet = getFlatParticipationSheet();
+    ensureColumn(sheet, "kids");
     const rows = rowsToObjects(sheet);
     const index = rows.findIndex(
       (r) =>
@@ -259,17 +267,18 @@ function setFlatParticipation({ eventId, block, flatNumber, participating }) {
         String(r.block).toUpperCase() === String(block).toUpperCase() &&
         String(r.flat_number).padStart(3, "0") === flat
     );
-    const fields = { participating: yes ? "TRUE" : "FALSE", updated_at: new Date() };
+    const fields = { participating: yes ? "TRUE" : "FALSE", kids: kidsNum, updated_at: new Date() };
     if (index === -1) {
       appendObject(sheet, Object.assign({ event_id: eventId, block: String(block).toUpperCase(), flat_number: "'" + flat }, fields));
     } else {
       updateRowFields(sheet, index + 2, fields);
     }
-    return { eventId, block: String(block).toUpperCase(), flatNumber: flat, participating: yes };
+    return { eventId, block: String(block).toUpperCase(), flatNumber: flat, participating: yes, kids: kidsNum };
   });
 }
 
-/** The flats that said yes (block, flat), sorted, plus how many said no. */
+/** The flats that said yes (block, flat), sorted, how many said no, and the
+ *  total children going out (and from how many flats). */
 function listFlatParticipation(eventId) {
   requireFields({ eventId }, ["eventId"]);
   requireFlatOptInEvent(eventId);
@@ -279,7 +288,13 @@ function listFlatParticipation(eventId) {
     .filter(isYes)
     .map((r) => ({ block: String(r.block).toUpperCase(), flat_number: String(r.flat_number).replace(/^'/, "").padStart(3, "0") }))
     .sort((a, b) => (a.block === b.block ? a.flat_number.localeCompare(b.flat_number) : a.block.localeCompare(b.block)));
-  return { participating: flats, notParticipating: rows.filter((r) => !isYes(r)).length };
+  const kidCounts = rows.map((r) => Number(r.kids) || 0);
+  return {
+    participating: flats,
+    notParticipating: rows.filter((r) => !isYes(r)).length,
+    kidsTotal: kidCounts.reduce((sum, n) => sum + n, 0),
+    kidsFlats: kidCounts.filter((n) => n > 0).length,
+  };
 }
 
 const MAX_SONG_BASE64_LENGTH = 14 * 1024 * 1024; // ~10MB raw — comfortably covers a full song at typical MP3 bitrates
