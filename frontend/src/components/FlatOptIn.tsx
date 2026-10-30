@@ -37,7 +37,7 @@ export default function FlatOptIn({ eventId, open }: { eventId: string; open: bo
         block,
         flatNumber: flat,
         participating: welcoming,
-        kids: Number(kids) || 0,
+        kids: kidsSupported ? Number(kids) || 0 : 0,
       });
       setSaved({ participating: result.participating, kids: result.kids ?? 0, label: `${result.block}-${result.flatNumber}` });
       saveProfile({ ...profile, block, flatNumber: flat });
@@ -49,6 +49,10 @@ export default function FlatOptIn({ eventId, open }: { eventId: string; open: bo
     }
   }
 
+  // The kids question only appears once the backend reports a kids total, so
+  // a backend that hasn't been updated yet shows the plain yes/no form
+  // instead of a box whose answer would be thrown away.
+  const kidsSupported = data?.kidsTotal !== undefined;
   const byBlock = new Map<string, string[]>();
   (data?.participating ?? []).forEach((f) => byBlock.set(f.block, [...(byBlock.get(f.block) ?? []), f.flat_number]));
   const ready = /^[A-Z]$/.test(block) && /^\d{3}$/.test(flat) && welcoming !== null;
@@ -102,6 +106,7 @@ export default function FlatOptIn({ eventId, open }: { eventId: string; open: bo
                 </div>
               </div>
 
+              {kidsSupported && (
               <div className="space-y-1">
                 <label className="text-sm font-semibold">Kids from your flat going trick-or-treating</label>
                 <input
@@ -116,6 +121,7 @@ export default function FlatOptIn({ eventId, open }: { eventId: string; open: bo
                 />
                 <p className="text-xs text-muted">Leave empty if none.</p>
               </div>
+              )}
 
               <button
                 type="button"
@@ -132,17 +138,19 @@ export default function FlatOptIn({ eventId, open }: { eventId: string; open: bo
       )}
 
       <div className="space-y-2">
-        <div className="grid grid-cols-2 gap-2">
+        <div className={`grid gap-2 ${kidsSupported ? "grid-cols-2" : "grid-cols-1"}`}>
           <div className="rounded-lg border border-border bg-background px-3 py-2.5 text-center">
             <p className="text-lg font-bold leading-tight text-maroon">{data ? data.participating.length : "–"}</p>
             <p className="text-[11px] leading-tight text-muted">flats welcoming</p>
           </div>
+          {kidsSupported && (
           <div className="rounded-lg border border-border bg-background px-3 py-2.5 text-center">
             <p className="text-lg font-bold leading-tight text-maroon">{data?.kidsTotal ?? "–"}</p>
             <p className="text-[11px] leading-tight text-muted">
               kids joining{data?.kidsFlats ? ` from ${data.kidsFlats} ${data.kidsFlats === 1 ? "flat" : "flats"}` : ""}
             </p>
           </div>
+          )}
         </div>
         <p className="pt-1 text-xs font-semibold tracking-wide uppercase text-muted">Flats welcoming</p>
         {data && data.participating.length === 0 && <p className="text-sm text-muted">No flats yet.</p>}
