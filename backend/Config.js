@@ -24,6 +24,7 @@ const SHEETS = {
   AUDIT_LOG: "Audit Log",
   BUGS: "Bugs",
   FEEDBACK: "Feedback",
+  FLAT_PARTICIPATION: "Flat Participation",
   COMMUNITY_DINNER: "Community Dinner",
   BHOG_SPONSORS: "Bhog Sponsors",
   FUTURE_COSTS: "Future Costs",

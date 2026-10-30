@@ -23,7 +23,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   COMPLETED: "info",
 };
 
-const CATEGORIES = ["General", "Dinner", "Kids", "Cultural", "Sports"];
+const CATEGORIES = ["General", "Dinner", "Kids", "Cultural", "Sports", "Flat Opt-in"];
 
 /** A one-line hook per category so the broadcast reads like an invitation
  *  from the community, not a calendar entry — the volunteer never has to
@@ -34,6 +34,7 @@ const CATEGORY_INTRO: Record<string, string> = {
   Kids: "Fun, games, and giggles for our little ones — don't miss it! 🎈",
   Cultural: "An evening of music, dance, and community spirit! 🎶",
   Sports: "Game on! Come cheer, compete, and have a blast. 🏆",
+  "Flat Opt-in": "Is your flat joining in? Tell us — it only takes a tap! 🎃",
   General: "Let's celebrate together as one community family! 🎉",
 };
 

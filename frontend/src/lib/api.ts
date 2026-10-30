@@ -186,6 +186,12 @@ export const api = {
         song,
         songMimeType,
       }),
+    flatSet: (payload: { eventId: string; block: string; flatNumber: string; participating: boolean }) =>
+      apiPost<{ eventId: string; block: string; flatNumber: string; participating: boolean }>("events.flat.set", payload),
+    flatList: (eventId: string) =>
+      apiGet<{ participating: { block: string; flat_number: string }[]; notParticipating: number }>("events.flat.list", {
+        eventId,
+      }),
     rsvp: (eventId: string, response: "YES" | "NO") =>
       apiPost<{ eventId: string; rsvpYes: number; rsvpNo: number }>("events.rsvp", { eventId, response }),
   },
