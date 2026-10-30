@@ -1,5 +1,6 @@
 "use client";
 
+import { isUnlisted } from "@/lib/events";
 import FlatOptIn from "@/components/FlatOptIn";
 import Link from "next/link";
 import LinkifiedText from "@/components/LinkifiedText";
@@ -272,7 +273,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         <PageHeader
           title={succeeded.length > 0 ? "Nomination submitted!" : "Something went wrong"}
           subtitle={event.name}
-          backHref="/events"
+          backHref={isUnlisted(event) ? undefined : "/events"}
           backLabel="← Events"
         />
         {succeeded.length > 0 && (
@@ -310,7 +311,8 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       <PageHeader
         title={event.name}
         subtitle={`${formatEventDate(event.date)} · ${formatEventTime(event.start_time)} · ${event.location}`}
-        backHref="/events"
+        // An unlisted event isn't in the Events list, so there's nothing to go back to.
+        backHref={isUnlisted(event) ? undefined : "/events"}
         backLabel="← Events"
       />
       {event.description && (
