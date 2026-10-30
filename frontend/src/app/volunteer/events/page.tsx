@@ -1,5 +1,6 @@
 "use client";
 
+import { isUnlisted } from "@/lib/events";
 import { useState } from "react";
 import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
@@ -65,6 +66,7 @@ type EventFormValues = {
   capacity: string;
   subCategories: string[];
   whatsappIntro: string;
+  unlisted: boolean;
 };
 
 /** Shared by "+ New Event" and "Edit" — keyed by the parent on the event's
@@ -104,6 +106,7 @@ function EventForm({
       capacity: String(form.get("capacity") || ""),
       subCategories,
       whatsappIntro: String(form.get("whatsappIntro") || ""),
+      unlisted: form.get("unlisted") === "on",
     });
   }
 
@@ -200,6 +203,17 @@ function EventForm({
         </p>
       </div>
 
+      <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-sm">
+        <input type="checkbox" name="unlisted" defaultChecked={event ? isUnlisted(event) : false} className="mt-0.5" />
+        <span>
+          <span className="font-semibold">Unlisted</span>
+          <span className="block text-xs text-muted">
+            Hide from Home and the Events list. The event still opens, and takes sign-ups, at its own link — for an
+            event promoted elsewhere, such as the Namma Habba hub.
+          </span>
+        </span>
+      </label>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button
@@ -267,6 +281,7 @@ export default function VolunteerEventsPage() {
         capacity: values.capacity ? Number(values.capacity) : undefined,
         subCategories: values.subCategories,
         whatsappIntro: values.whatsappIntro,
+        unlisted: values.unlisted,
       };
       if (editingEvent) {
         await api.volunteer.updateEvent(idToken as string, editingEvent.event_id, payload);
@@ -347,6 +362,7 @@ export default function VolunteerEventsPage() {
                 </p>
               </div>
               <StatusBadge label={event.status} tone={STATUS_TONE[event.status] ?? "neutral"} />
+              {isUnlisted(event) && <StatusBadge label="UNLISTED" tone="neutral" />}
             </div>
             <div className="flex items-center justify-end gap-2 flex-wrap">
               {canCreate && (

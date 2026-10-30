@@ -91,6 +91,8 @@ export type EventRecord = {
   rsvp_yes?: number | string;
   rsvp_no?: number | string;
   whatsapp_intro?: string;
+  /** "TRUE"/true when the event is hidden from lists and reachable only by its direct link. */
+  unlisted?: string | boolean;
 };
 
 export type PublicStats = {

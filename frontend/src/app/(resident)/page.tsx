@@ -1,5 +1,6 @@
 "use client";
 
+import { isUnlisted } from "@/lib/events";
 import { mealName, mealNameLower, mealDeadlineLabel, mealWhen } from "@/lib/meal";
 import { useState } from "react";
 import Image from "next/image";
@@ -62,7 +63,7 @@ export default function Home() {
   const [expandedNews, setExpandedNews] = useState<Record<string, boolean>>({});
 
   const upcoming = (events ?? [])
-    .filter((e) => e.status === "OPEN")
+    .filter((e) => e.status === "OPEN" && !isUnlisted(e))
     .sort((a, b) => {
       const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
       if (dateDiff !== 0) return dateDiff;
@@ -71,7 +72,7 @@ export default function Home() {
     .slice(0, 2);
   // A "Dinner"-category event is the meal's own listing (its page leads to the
   // sign-up), so the separate meal card would just repeat it.
-  const hasMealEvent = (events ?? []).some((e) => e.category === "Dinner" && e.status !== "DRAFT");
+  const hasMealEvent = (events ?? []).some((e) => e.category === "Dinner" && e.status !== "DRAFT" && !isUnlisted(e));
   const news = (announcements ?? [])
     .slice()
     .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
