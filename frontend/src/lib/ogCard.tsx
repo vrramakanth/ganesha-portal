@@ -2,18 +2,54 @@ import { ImageResponse } from "next/og";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
+/** A simple jack-o'-lantern drawn from boxes, for Halloween cards. */
+function Pumpkin({ face }: { face: string }) {
+  return (
+    <div style={{ position: "absolute", right: 80, bottom: 70, width: 300, height: 290, display: "flex" }}>
+      <div style={{ position: "absolute", left: 130, top: 0, width: 40, height: 60, background: "#3b7d23", borderRadius: 10 }} />
+      <div style={{ position: "absolute", left: 0, top: 40, width: 300, height: 250, background: "#ff7a00", borderRadius: 150 }} />
+      <div
+        style={{
+          position: "absolute",
+          left: 70,
+          top: 110,
+          width: 0,
+          height: 0,
+          borderLeft: "28px solid transparent",
+          borderRight: "28px solid transparent",
+          borderBottom: `50px solid ${face}`,
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: 174,
+          top: 110,
+          width: 0,
+          height: 0,
+          borderLeft: "28px solid transparent",
+          borderRight: "28px solid transparent",
+          borderBottom: `50px solid ${face}`,
+        }}
+      />
+      <div style={{ position: "absolute", left: 80, top: 190, width: 140, height: 60, background: face, borderRadius: "0 0 70px 70px" }} />
+    </div>
+  );
+}
+
 type Card = {
   primary: string;
   accent: string;
   eyebrow: string;
   title: string;
   lines?: string[];
+  decor?: "pumpkin";
 };
 
 /** The shared link-card image: festival colours, a small heading, a big
  *  title and a couple of detail lines. Flexbox only — that is all
  *  ImageResponse supports. */
-export function ogCard({ primary, accent, eyebrow, title, lines = [] }: Card) {
+export function ogCard({ primary, accent, eyebrow, title, lines = [], decor }: Card) {
   const size = title.length > 60 ? 56 : title.length > 32 ? 72 : 92;
   return new ImageResponse(
     (
@@ -27,12 +63,14 @@ export function ogCard({ primary, accent, eyebrow, title, lines = [] }: Card) {
           padding: "64px 72px",
           background: primary,
           color: "white",
+          position: "relative",
         }}
       >
+        {decor === "pumpkin" && <Pumpkin face={primary} />}
         <div style={{ display: "flex", fontSize: 34, letterSpacing: 2, color: accent, textTransform: "uppercase" }}>
           {eyebrow}
         </div>
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", flexDirection: "column", ...(decor ? { maxWidth: 700 } : {}) }}>
           <div style={{ display: "flex", fontSize: size, fontWeight: 700, lineHeight: 1.1 }}>{title}</div>
           {lines.filter(Boolean).map((line) => (
             <div key={line} style={{ display: "flex", fontSize: 38, marginTop: 20, opacity: 0.92 }}>
