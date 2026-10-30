@@ -56,7 +56,7 @@ const SHEET_SCHEMAS = {
     "bug_id", "description", "screenshot_url", "status", "reporter_name", "reporter_mobile",
     "page_url", "reported_at", "updated_at",
   ],
-  [SHEETS.FLAT_PARTICIPATION]: ["event_id", "block", "flat_number", "participating", "updated_at"],
+  [SHEETS.FLAT_PARTICIPATION]: ["event_id", "block", "flat_number", "participating", "kids", "updated_at"],
   [SHEETS.FEEDBACK]: [
     "feedback_id", "message", "reporter_name", "reporter_mobile", "page_url", "status",
     "reviewed_by", "reviewed_at", "created_at", "updated_at",
