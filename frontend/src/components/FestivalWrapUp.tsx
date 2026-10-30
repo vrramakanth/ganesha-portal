@@ -1,5 +1,6 @@
 "use client";
 
+import { isUnlisted } from "@/lib/events";
 import { useState } from "react";
 import Link from "next/link";
 import { formatEventDate, formatEventTime } from "@/lib/date";
@@ -47,7 +48,7 @@ export default function FestivalWrapUp({
     .filter(Boolean);
 
   const timeline = events
-    .filter((e) => e.status !== "DRAFT" && e.status !== "CANCELLED")
+    .filter((e) => e.status !== "DRAFT" && e.status !== "CANCELLED" && !isUnlisted(e))
     .slice()
     .sort((a, b) => {
       const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();

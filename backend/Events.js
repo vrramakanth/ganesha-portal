@@ -72,6 +72,7 @@ function createEvent(volunteer, payload) {
   const sheet = getSheet(SHEETS.EVENTS);
   ensureColumn(sheet, "sub_categories");
   ensureColumn(sheet, "whatsapp_intro");
+  ensureColumn(sheet, "unlisted");
 
   const event = {
     event_id: `EVT-${Utilities.getUuid().slice(0, 8)}`,
@@ -96,6 +97,9 @@ function createEvent(volunteer, payload) {
     // or instruments) — left blank, the Share button falls back to the
     // category default (see buildWhatsAppShareUrl on the frontend).
     whatsapp_intro: payload.whatsappIntro || "",
+    // Unlisted events are left out of the portal's own lists but still open
+    // at their direct link (e.g. from the hub) and take registrations.
+    unlisted: payload.unlisted ? "TRUE" : "FALSE",
   };
   appendObject(sheet, event);
   invalidateEventsCache();
@@ -117,6 +121,7 @@ function updateEvent(volunteer, eventId, payload) {
     const sheet = getSheet(SHEETS.EVENTS);
     ensureColumn(sheet, "sub_categories");
     ensureColumn(sheet, "whatsapp_intro");
+    ensureColumn(sheet, "unlisted");
     const rowIndex = findRowIndexById(sheet, "event_id", eventId);
     if (rowIndex === -1) throw new ApiError("Unknown event", 404);
     const before = getRowObject(sheet, rowIndex);
@@ -136,6 +141,7 @@ function updateEvent(volunteer, eventId, payload) {
       fee: payload.fee || 0,
       sub_categories: buildSubCategories(payload.category, payload.subCategories),
       whatsapp_intro: payload.whatsappIntro || "",
+      unlisted: payload.unlisted ? "TRUE" : "FALSE",
     };
     updateRowFields(sheet, rowIndex, fields);
     invalidateEventsCache();
