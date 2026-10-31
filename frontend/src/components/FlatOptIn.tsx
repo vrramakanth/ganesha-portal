@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useResidentProfile } from "@/lib/useResidentProfile";
@@ -152,6 +153,14 @@ export default function FlatOptIn({ eventId, open }: { eventId: string; open: bo
           </div>
           )}
         </div>
+        {data && data.participating.length > 0 && (
+          <Link
+            href={`/events/${eventId}/report`}
+            className="block rounded-xl border border-border bg-card py-3 text-center text-sm font-semibold text-maroon"
+          >
+            🎃 Download the houses list (PDF)
+          </Link>
+        )}
         <p className="pt-1 text-xs font-semibold tracking-wide uppercase text-muted">Flats welcoming</p>
         {data && data.participating.length === 0 && <p className="text-sm text-muted">No flats yet.</p>}
         {[...byBlock.entries()].map(([b, flats]) => (
