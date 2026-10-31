@@ -325,7 +325,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
           <LinkifiedText text={description.text} />
         </p>
       )}
-      {description.url && <MagicMomentsButton url={description.url} />}
+      {description.url && <MagicMomentsButton url={description.url} label="Memories" />}
 
       {wrappedUp ? (
         <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">

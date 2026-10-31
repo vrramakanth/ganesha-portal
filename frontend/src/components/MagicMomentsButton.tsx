@@ -1,11 +1,12 @@
-/** The "Magic Moments" photo-album button, the same look as on Home. */
-export default function MagicMomentsButton({ url }: { url: string }) {
+/** The photo-album button, the same look as on Home. `label` is what it says:
+ *  "Magic Moments" on Home, "Memories" on an event page. */
+export default function MagicMomentsButton({ url, label = "Magic Moments" }: { url: string; label?: string }) {
   return (
     <a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Magic Moments — view and add your photos"
+      aria-label={`${label} — view and add your photos`}
       className="relative mx-auto inline-flex items-center gap-1.5 rounded-full bg-saffron pl-3 pr-4 py-2.5 text-on-saffron shadow-sm active:bg-saffron-dark transition-colors"
     >
       <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-white">
@@ -17,7 +18,7 @@ export default function MagicMomentsButton({ url }: { url: string }) {
         <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
         <circle cx="12" cy="13" r="3.5" />
       </svg>
-      <span className="text-sm font-bold">Magic Moments</span>
+      <span className="text-sm font-bold">{label}</span>
       <span className="text-xs font-medium opacity-80">· view &amp; add photos</span>
     </a>
   );
