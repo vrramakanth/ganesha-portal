@@ -1,5 +1,7 @@
 "use client";
 
+import MagicMomentsButton from "@/components/MagicMomentsButton";
+import { splitMagicMoments } from "@/lib/magicMoments";
 import KidsStallForm from "@/components/KidsStallForm";
 import { HUB_URL } from "@/lib/hub";
 import { isUnlisted } from "@/lib/events";
@@ -194,6 +196,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
 
   const canRegister = event.status === "OPEN" && Number(event.fee || 0) === 0 && !wrappedUp;
   const isCultural = event.category === "Cultural";
+  const description = splitMagicMoments(event.description ?? "");
 
   function updatePerformance(key: string, patch: Partial<Performance>) {
     setPerformances((prev) => prev.map((p) => (p.key === key ? { ...p, ...patch } : p)));
@@ -317,11 +320,12 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         backHref={isUnlisted(event) ? HUB_URL : "/events"}
         backLabel={isUnlisted(event) ? "← Namma Habba" : "← Events"}
       />
-      {event.description && (
+      {description.text && (
         <p className="text-sm text-muted whitespace-pre-line">
-          <LinkifiedText text={event.description} />
+          <LinkifiedText text={description.text} />
         </p>
       )}
+      {description.url && <MagicMomentsButton url={description.url} />}
 
       {wrappedUp ? (
         <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">
