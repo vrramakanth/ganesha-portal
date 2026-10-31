@@ -2,6 +2,25 @@ import { ImageResponse } from "next/og";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
+/** Three party balloons on strings, for Children's Day cards. */
+function Balloons() {
+  const balloons = [
+    { left: 0, top: 60, color: "#ef476f" },
+    { left: 110, top: 0, color: "#ffd23f" },
+    { left: 220, top: 70, color: "#06d6a0" },
+  ];
+  return (
+    <div style={{ position: "absolute", right: 90, bottom: 60, width: 320, height: 420, display: "flex" }}>
+      {balloons.map((b) => (
+        <div key={b.left} style={{ position: "absolute", left: b.left, top: b.top, width: 100, height: 330, display: "flex" }}>
+          <div style={{ position: "absolute", left: 0, top: 0, width: 100, height: 120, borderRadius: 60, background: b.color }} />
+          <div style={{ position: "absolute", left: 48, top: 120, width: 4, height: 210, background: "#ffffffaa" }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** A simple jack-o'-lantern drawn from boxes, for Halloween cards. */
 function Pumpkin({ face }: { face: string }) {
   return (
@@ -43,7 +62,7 @@ type Card = {
   eyebrow: string;
   title: string;
   lines?: string[];
-  decor?: "pumpkin";
+  decor?: "pumpkin" | "balloons";
 };
 
 /** The shared link-card image: festival colours, a small heading, a big
@@ -67,6 +86,7 @@ export function ogCard({ primary, accent, eyebrow, title, lines = [], decor }: C
         }}
       >
         {decor === "pumpkin" && <Pumpkin face={primary} />}
+        {decor === "balloons" && <Balloons />}
         <div style={{ display: "flex", fontSize: 34, letterSpacing: 2, color: accent, textTransform: "uppercase" }}>
           {eyebrow}
         </div>
