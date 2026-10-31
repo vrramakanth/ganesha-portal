@@ -10,8 +10,7 @@ import { useResidentProfile } from "@/lib/useResidentProfile";
  *  tagged with the event's name so it's easy to pick out. */
 export default function EventFeedback({ eventName }: { eventName: string }) {
   const { profile } = useResidentProfile();
-  const [worked, setWorked] = useState("");
-  const [better, setBetter] = useState("");
+  const [feedback, setFeedback] = useState("");
   const [typedName, setName] = useState<string | null>(null);
   const name = typedName ?? profile.name;
   const [submitting, setSubmitting] = useState(false);
@@ -20,20 +19,14 @@ export default function EventFeedback({ eventName }: { eventName: string }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!worked.trim() && !better.trim()) {
-      setError("Please share a few words in at least one box.");
+    if (!feedback.trim()) {
+      setError("Please share a few words before sending.");
       return;
     }
     setError(null);
     setSubmitting(true);
     try {
-      const message = [
-        `Feedback on ${eventName}`,
-        worked.trim() && `What worked: ${worked.trim()}`,
-        better.trim() && `What could be better: ${better.trim()}`,
-      ]
-        .filter(Boolean)
-        .join("\n");
+      const message = `Feedback on ${eventName}\n${feedback.trim()}`;
       await api.feedback.submit({
         message,
         reporterName: name.trim() || undefined,
@@ -62,15 +55,17 @@ export default function EventFeedback({ eventName }: { eventName: string }) {
     <form onSubmit={submit} className="space-y-3 rounded-xl border border-border bg-card p-4">
       <div>
         <p className="text-sm font-semibold">How was it? Tell us 💬</p>
-        <p className="text-xs text-muted">What&apos;s working and what&apos;s not. It only takes a minute.</p>
+        <p className="text-xs text-muted">What you liked and what could be better. It only takes a minute.</p>
       </div>
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">👍 What worked well</label>
-        <textarea rows={3} value={worked} onChange={(e) => setWorked(e.target.value)} className={input} />
-      </div>
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium">👎 What could be better</label>
-        <textarea rows={3} value={better} onChange={(e) => setBetter(e.target.value)} className={input} />
+        <label className="text-sm font-medium">👍 What you liked, 👎 what could be better</label>
+        <textarea
+          rows={5}
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          placeholder="Tell us in your own words…"
+          className={input}
+        />
       </div>
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Your name (optional)</label>
