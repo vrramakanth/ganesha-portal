@@ -1,5 +1,6 @@
 "use client";
 
+import EventFeedback from "@/components/EventFeedback";
 import MagicMomentsButton from "@/components/MagicMomentsButton";
 import { splitMagicMoments } from "@/lib/magicMoments";
 import KidsStallForm from "@/components/KidsStallForm";
@@ -343,6 +344,10 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         ) : (
           <RsvpSection event={event} />
         ))
+      )}
+
+      {(event.category === "Flat Opt-in" || event.category === "Kids Stall") && (
+        <EventFeedback eventName={event.name} />
       )}
 
       {isCultural && !canRegister && (
