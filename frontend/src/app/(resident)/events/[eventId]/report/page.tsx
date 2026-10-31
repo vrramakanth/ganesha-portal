@@ -1,6 +1,7 @@
 "use client";
 
 import { use } from "react";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -20,6 +21,7 @@ export default function FlatOptInReportPage({ params }: { params: Promise<{ even
   const { data: events, loading: eventsLoading } = useAsync(() => api.events.list(), []);
   const { data: flats, loading: flatsLoading, error } = useAsync(() => api.events.flatList(eventId), [eventId]);
   const event = (events ?? []).find((e) => e.event_id === eventId);
+  const { communityName } = useFestivalConfig();
 
   if (eventsLoading || flatsLoading) return <LoadingIndicator label="Getting the list…" className="px-5 pt-8" />;
   if (error || !event || !flats) {
@@ -32,6 +34,17 @@ export default function FlatOptInReportPage({ params }: { params: Promise<{ even
   const byBlock = new Map<string, string[]>();
   flats.participating.forEach((f) => byBlock.set(f.block, [...(byBlock.get(f.block) ?? []), f.flat_number]));
   const halloween = /halloween/i.test(event.name);
+  // The browser names a saved PDF after the page title, so set it to a tidy
+  // file name: "Brigade Woods Halloween 2026".
+  const fileName = halloween
+    ? `${communityName} Halloween ${new Date(event.date).toLocaleDateString("en-CA", { year: "numeric", timeZone: "Asia/Kolkata" })}`
+    : `${communityName} ${event.name}`;
+  function printList() {
+    const previous = document.title;
+    document.title = fileName;
+    window.addEventListener("afterprint", () => (document.title = previous), { once: true });
+    window.print();
+  }
   const when = [formatEventDate(event.date), formatEventTime(event.start_time), event.location].filter(Boolean).join(" · ");
   const asOf = new Date().toLocaleString("en-IN", {
     day: "numeric",
@@ -47,7 +60,7 @@ export default function FlatOptInReportPage({ params }: { params: Promise<{ even
       <div className="flex gap-2 print:hidden">
         <button
           type="button"
-          onClick={() => window.print()}
+          onClick={printList}
           className="flex-1 rounded-xl bg-maroon py-3 text-sm font-semibold text-white"
         >
           Save as PDF / Print
