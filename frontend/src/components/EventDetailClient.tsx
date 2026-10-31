@@ -1,5 +1,6 @@
 "use client";
 
+import KidsStallForm from "@/components/KidsStallForm";
 import { HUB_URL } from "@/lib/hub";
 import { isUnlisted } from "@/lib/events";
 import FlatOptIn from "@/components/FlatOptIn";
@@ -331,6 +332,8 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         event.status !== "COMPLETED" &&
         (event.category === "Flat Opt-in" ? (
           <FlatOptIn eventId={event.event_id} open={event.status === "OPEN"} />
+        ) : event.category === "Kids Stall" ? (
+          <KidsStallForm eventId={event.event_id} open={event.status === "OPEN"} />
         ) : event.category === "Dinner" && modules.meal ? (
           <MealSignupCard festival={festivalInfo} />
         ) : (
