@@ -338,7 +338,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         (event.category === "Flat Opt-in" ? (
           <FlatOptIn eventId={event.event_id} open={event.status === "OPEN"} />
         ) : event.category === "Kids Stall" ? (
-          <KidsStallForm eventId={event.event_id} open={event.status === "OPEN"} />
+          <KidsStallForm eventId={event.event_id} open={event.status === "OPEN"} description={event.description} />
         ) : event.category === "Dinner" && modules.meal ? (
           <MealSignupCard festival={festivalInfo} />
         ) : (
