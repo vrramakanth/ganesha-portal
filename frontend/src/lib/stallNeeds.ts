@@ -12,6 +12,14 @@ import type { EventRegistration } from "./types";
  *
  *  `buildStallComments` writes that text; `parseStallNeeds` reads it back so
  *  volunteers can total tables, chairs and power for the whole event. */
+/** What one table costs, read from a "Table fee: 150" line in the event's
+ *  description so each event can set its own; 150 when there's no such line. */
+export const DEFAULT_TABLE_FEE = 150;
+export function tableFee(description: string | undefined): number {
+  const match = (description ?? "").match(/table\s*fee\D{0,6}(\d+)/i);
+  return match ? Number(match[1]) : DEFAULT_TABLE_FEE;
+}
+
 export type StallNeeds = {
   idea: string;
   kids: number;
@@ -20,6 +28,10 @@ export type StallNeeds = {
   power: boolean;
   powerDetails: string;
   other: string;
+  /** Amount due for the tables, in rupees, and the UPI reference the parent
+   *  typed after paying (empty when nothing is due or not yet paid). */
+  fee?: number;
+  paymentRef?: string;
 };
 
 export function buildStallComments(n: StallNeeds): string {
@@ -30,6 +42,8 @@ export function buildStallComments(n: StallNeeds): string {
     `Chairs: ${n.chairs}`,
     `Power: ${n.power ? `Yes${n.powerDetails.trim() ? `: ${n.powerDetails.trim()}` : ""}` : "No"}`,
     n.other.trim() && `Other needs: ${n.other.trim()}`,
+    n.fee ? `Table fee due: ${n.fee}` : "",
+    n.fee ? `Payment ref: ${n.paymentRef?.trim() || "none yet"}` : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -41,11 +55,7 @@ function lineValue(comments: string, label: string): string | null {
 }
 
 /** Null when the registration isn't a stall sign-up (no "Tables:" line). */
-export function parseStallNeeds(comments: string | undefined): Omit<StallNeeds, "kids" | "idea" | "other"> & {
-  kids: number;
-  idea: string;
-  other: string;
-} | null {
+export function parseStallNeeds(comments: string | undefined): Required<StallNeeds> | null {
   if (!comments) return null;
   const tables = lineValue(comments, "Tables");
   if (tables === null) return null;
@@ -58,6 +68,8 @@ export function parseStallNeeds(comments: string | undefined): Omit<StallNeeds, 
     power: /^yes/i.test(power),
     powerDetails: power.replace(/^yes:?\s*/i, ""),
     other: lineValue(comments, "Other needs") ?? "",
+    fee: Number(lineValue(comments, "Table fee due")) || 0,
+    paymentRef: (lineValue(comments, "Payment ref") ?? "").replace(/^none yet$/i, ""),
   };
 }
 
@@ -68,6 +80,8 @@ export function summariseStalls(registrations: EventRegistration[]) {
   let chairs = 0;
   let power = 0;
   let kids = 0;
+  let feeDue = 0;
+  let feePaid = 0;
   registrations.forEach((r) => {
     if (r.status === "REJECTED" || r.status === "CANCELLED") return;
     const needs = parseStallNeeds(r.comments);
@@ -77,6 +91,8 @@ export function summariseStalls(registrations: EventRegistration[]) {
     chairs += needs.chairs;
     kids += needs.kids;
     if (needs.power) power += 1;
+    feeDue += needs.fee;
+    if (needs.fee && needs.paymentRef) feePaid += needs.fee;
   });
-  return { stalls, tables, chairs, power, kids };
+  return { stalls, tables, chairs, power, kids, feeDue, feePaid };
 }

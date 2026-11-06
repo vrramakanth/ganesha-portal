@@ -30,7 +30,7 @@ function csvEscape(value: string): string {
  *  columns (resident_id, reviewed_by, timestamps, …), just what an
  *  organizer actually wants to scan or print for event-day planning. */
 function buildReportCsv(registrations: EventRegistration[], eventNameById: Map<string, string>): string {
-  const headers = ["Event", "Participant", "Age", "Block", "Flat", "Mobile", "Type", "Status", "Song", "Tables", "Chairs", "Power", "Details"];
+  const headers = ["Event", "Participant", "Age", "Block", "Flat", "Mobile", "Type", "Status", "Song", "Tables", "Chairs", "Power", "Amount due", "Payment ref", "Details"];
   const rows = registrations.map((r) => [
     eventNameById.get(r.event_id) ?? r.event_id,
     r.participant_name,
@@ -50,11 +50,13 @@ function buildReportCsv(registrations: EventRegistration[], eventNameById: Map<s
  *  other registrations keep their comments in the last column only. */
 function stallNeedsCells(comments: string | undefined): string[] {
   const needs = parseStallNeeds(comments);
-  if (!needs) return ["", "", "", (comments ?? "").replace(/\s*\n\s*/g, " | ")];
+  if (!needs) return ["", "", "", "", "", (comments ?? "").replace(/\s*\n\s*/g, " | ")];
   return [
     String(needs.tables),
     String(needs.chairs),
     needs.power ? `Yes${needs.powerDetails ? `: ${needs.powerDetails}` : ""}` : "No",
+    needs.fee ? String(needs.fee) : "",
+    needs.paymentRef,
     [needs.idea, needs.other && `Other: ${needs.other}`].filter(Boolean).join(" | "),
   ];
 }
@@ -268,6 +270,9 @@ export default function EventRegistrationsPage() {
               { value: stallTotals.tables, label: "tables" },
               { value: stallTotals.chairs, label: "chairs" },
               { value: stallTotals.power, label: "need power" },
+              ...(stallTotals.feeDue > 0
+                ? [{ value: `₹${stallTotals.feePaid} / ₹${stallTotals.feeDue}`, label: "table fees reported paid / due" }]
+                : []),
             ].map((t) => (
               <div key={t.label} className="rounded-lg border border-border bg-card px-3 py-2.5">
                 <p className="text-lg font-bold leading-tight text-maroon">{t.value}</p>

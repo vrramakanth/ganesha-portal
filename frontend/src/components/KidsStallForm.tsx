@@ -1,6 +1,9 @@
 "use client";
 
-import { buildStallComments } from "@/lib/stallNeeds";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
+import { formatCurrency } from "@/lib/date";
+import StallPaymentStep from "@/components/StallPaymentStep";
+import { buildStallComments, tableFee } from "@/lib/stallNeeds";
 import { useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useResidentProfile } from "@/lib/useResidentProfile";
@@ -15,8 +18,10 @@ const STALL_TYPES = ["Food & snacks", "Drinks", "Games", "Art & crafts", "Toys &
  *  and what the stall will offer. Goes through the ordinary event
  *  registration, so volunteers approve each stall in the volunteer Events
  *  area like any other registration. */
-export default function KidsStallForm({ eventId, open }: { eventId: string; open: boolean }) {
+export default function KidsStallForm({ eventId, open, description }: { eventId: string; open: boolean; description?: string }) {
   const { profile, saveProfile, loaded } = useResidentProfile();
+  const { festival } = useFestivalConfig();
+  const fee = tableFee(description);
   const [childName, setChildName] = useState("");
   const [age, setAge] = useState("");
   const [parentName, setParentName] = useState("");
@@ -37,6 +42,10 @@ export default function KidsStallForm({ eventId, open }: { eventId: string; open
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [step, setStep] = useState<"form" | "pay">("form");
+  const [paymentRef, setPaymentRef] = useState("");
+
+  const amountDue = (Number(tables) || 0) * fee;
 
   if (!open) {
     return (
@@ -72,6 +81,11 @@ export default function KidsStallForm({ eventId, open }: { eventId: string; open
       setError("Tell us whether your stall needs a power socket.");
       return;
     }
+    // Tables cost money, so go to payment first; a stall with no tables is free.
+    if (amountDue > 0 && step === "form") {
+      setStep("pay");
+      return;
+    }
     setSubmitting(true);
     try {
       await api.events.register({
@@ -92,6 +106,8 @@ export default function KidsStallForm({ eventId, open }: { eventId: string; open
           power,
           powerDetails,
           other,
+          fee: amountDue,
+          paymentRef,
         }),
       });
       saveProfile({ name: parentName.trim() || profile.name, mobile, block, flatNumber: flat });
@@ -104,6 +120,23 @@ export default function KidsStallForm({ eventId, open }: { eventId: string; open
   }
 
   const input = "w-full rounded-lg border border-border bg-card px-3 py-3 text-sm";
+
+  if (step === "pay") {
+    return (
+      <StallPaymentStep
+        amount={amountDue}
+        tables={Number(tables) || 0}
+        fee={fee}
+        festival={festival}
+        reference={paymentRef}
+        onReference={setPaymentRef}
+        onBack={() => setStep("form")}
+        onSubmit={() => submit({ preventDefault() {} } as React.FormEvent)}
+        submitting={submitting}
+        error={error}
+      />
+    );
+  }
 
   return (
     <form onSubmit={submit} className="space-y-4 rounded-xl border border-border bg-card p-4">
@@ -254,13 +287,18 @@ export default function KidsStallForm({ eventId, open }: { eventId: string; open
         </div>
       </div>
 
+      {amountDue > 0 && (
+        <p className="rounded-lg bg-saffron/10 px-3 py-2 text-sm font-semibold text-maroon">
+          {formatCurrency(fee)} per table · {formatCurrency(amountDue)} for {Number(tables)} {Number(tables) === 1 ? "table" : "tables"}
+        </p>
+      )}
       {error && <p className="text-xs text-red-600">{error}</p>}
       <button
         type="submit"
         disabled={submitting}
         className="w-full rounded-xl bg-maroon py-3 text-sm font-semibold text-white disabled:opacity-60"
       >
-        {submitting ? "Sending…" : "Request a stall"}
+        {submitting ? "Sending…" : amountDue > 0 ? "Next: pay for tables" : "Request a stall"}
       </button>
     </form>
   );
