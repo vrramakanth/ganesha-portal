@@ -347,7 +347,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       )}
 
       {(event.category === "Flat Opt-in" || event.category === "Kids Stall") && (
-        <EventFeedback eventName={event.name} />
+        <EventFeedback eventName={event.name} eventDate={event.date} />
       )}
 
       {isCultural && !canRegister && (
