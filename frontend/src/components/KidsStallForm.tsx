@@ -1,5 +1,6 @@
 "use client";
 
+import { buildStallComments } from "@/lib/stallNeeds";
 import { useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useResidentProfile } from "@/lib/useResidentProfile";
@@ -28,6 +29,11 @@ export default function KidsStallForm({ eventId, open }: { eventId: string; open
   const [stallType, setStallType] = useState("");
   const [idea, setIdea] = useState("");
   const [kids, setKids] = useState("1");
+  const [tables, setTables] = useState("1");
+  const [chairs, setChairs] = useState("2");
+  const [power, setPower] = useState<boolean | null>(null);
+  const [powerDetails, setPowerDetails] = useState("");
+  const [other, setOther] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -62,6 +68,10 @@ export default function KidsStallForm({ eventId, open }: { eventId: string; open
       setError("Pick what kind of stall it will be.");
       return;
     }
+    if (power === null) {
+      setError("Tell us whether your stall needs a power socket.");
+      return;
+    }
     setSubmitting(true);
     try {
       await api.events.register({
@@ -74,7 +84,15 @@ export default function KidsStallForm({ eventId, open }: { eventId: string; open
         flatNumber: flat,
         mobile,
         subCategory: stallType,
-        comments: [idea.trim(), `Kids running the stall: ${Number(kids) || 1}`].filter(Boolean).join("\n"),
+        comments: buildStallComments({
+          idea,
+          kids: Number(kids) || 1,
+          tables: Number(tables) || 0,
+          chairs: Number(chairs) || 0,
+          power,
+          powerDetails,
+          other,
+        }),
       });
       saveProfile({ name: parentName.trim() || profile.name, mobile, block, flatNumber: flat });
       setDone(true);
@@ -165,6 +183,75 @@ export default function KidsStallForm({ eventId, open }: { eventId: string; open
           placeholder="e.g. Homemade lemonade and cookies, or ring toss and face painting"
           className={input}
         />
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-border p-3">
+        <p className="text-sm font-semibold">What does your stall need?</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Tables</label>
+            <select value={tables} onChange={(e) => setTables(e.target.value)} className={input}>
+              {[0, 1, 2, 3, 4].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Chairs</label>
+            <select value={chairs} onChange={(e) => setChairs(e.target.value)} className={input}>
+              {[0, 1, 2, 3, 4, 5, 6].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Do you need a power socket?</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPower(true)}
+              className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold ${
+                power === true ? "border-maroon bg-maroon text-white" : "border-border text-foreground"
+              }`}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              onClick={() => setPower(false)}
+              className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold ${
+                power === false ? "border-maroon bg-maroon text-white" : "border-border text-foreground"
+              }`}
+            >
+              No
+            </button>
+          </div>
+        </div>
+        {power && (
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">What will you plug in?</label>
+            <input
+              value={powerDetails}
+              onChange={(e) => setPowerDetails(e.target.value)}
+              placeholder="e.g. a blender, string lights, a speaker"
+              className={input}
+            />
+          </div>
+        )}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Anything else you need? (optional)</label>
+          <input
+            value={other}
+            onChange={(e) => setOther(e.target.value)}
+            placeholder="e.g. shade, a banner stand, access to water"
+            className={input}
+          />
+        </div>
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
