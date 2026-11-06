@@ -1,5 +1,6 @@
 "use client";
 
+import { parseStallNeeds, summariseStalls } from "@/lib/stallNeeds";
 import { useMemo, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -29,7 +30,7 @@ function csvEscape(value: string): string {
  *  columns (resident_id, reviewed_by, timestamps, …), just what an
  *  organizer actually wants to scan or print for event-day planning. */
 function buildReportCsv(registrations: EventRegistration[], eventNameById: Map<string, string>): string {
-  const headers = ["Event", "Participant", "Age", "Block", "Flat", "Mobile", "Type", "Status", "Song"];
+  const headers = ["Event", "Participant", "Age", "Block", "Flat", "Mobile", "Type", "Status", "Song", "Tables", "Chairs", "Power", "Details"];
   const rows = registrations.map((r) => [
     eventNameById.get(r.event_id) ?? r.event_id,
     r.participant_name,
@@ -40,8 +41,22 @@ function buildReportCsv(registrations: EventRegistration[], eventNameById: Map<s
     r.sub_category || "",
     STATUS_LABEL[r.status] ?? r.status,
     r.song_url ? "Yes" : "No",
-  ]);
+    stallNeedsCells(r.comments),
+  ].flat());
   return [headers, ...rows].map((row) => row.map((v) => csvEscape(String(v))).join(",")).join("\n");
+}
+
+/** Tables, chairs, power and the free-text details, for stall sign-ups;
+ *  other registrations keep their comments in the last column only. */
+function stallNeedsCells(comments: string | undefined): string[] {
+  const needs = parseStallNeeds(comments);
+  if (!needs) return ["", "", "", (comments ?? "").replace(/\s*\n\s*/g, " | ")];
+  return [
+    String(needs.tables),
+    String(needs.chairs),
+    needs.power ? `Yes${needs.powerDetails ? `: ${needs.powerDetails}` : ""}` : "No",
+    [needs.idea, needs.other && `Other: ${needs.other}`].filter(Boolean).join(" | "),
+  ];
 }
 
 function confirmationMessage(r: EventRegistration, eventName: string): string {
@@ -93,6 +108,8 @@ export default function EventRegistrationsPage() {
       }),
     [allRegistrations, eventNameById]
   );
+
+  const stallTotals = useMemo(() => summariseStalls(allRegistrations), [allRegistrations]);
 
   function downloadReport() {
     const csv = buildReportCsv(sortedReport, eventNameById);
@@ -240,6 +257,27 @@ export default function EventRegistrationsPage() {
           </div>
         ))}
       </div>
+
+      {stallTotals.stalls > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Stall set-up needs</h2>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[
+              { value: stallTotals.stalls, label: "stalls" },
+              { value: stallTotals.kids, label: "kids" },
+              { value: stallTotals.tables, label: "tables" },
+              { value: stallTotals.chairs, label: "chairs" },
+              { value: stallTotals.power, label: "need power" },
+            ].map((t) => (
+              <div key={t.label} className="rounded-lg border border-border bg-card px-3 py-2.5">
+                <p className="text-lg font-bold leading-tight text-maroon">{t.value}</p>
+                <p className="text-[11px] leading-tight text-muted">{t.label}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted">Counts every stall sign-up that hasn&apos;t been rejected (pending and confirmed).</p>
+        </section>
+      )}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
