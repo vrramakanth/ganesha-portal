@@ -367,6 +367,12 @@ export default function VolunteerEventsPage() {
               {isUnlisted(event) && <StatusBadge label="UNLISTED" tone="neutral" />}
             </div>
             <div className="flex items-center justify-end gap-2 flex-wrap">
+              <Link
+                href={`/volunteer/events/registrations?event=${encodeURIComponent(event.event_id)}`}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-maroon"
+              >
+                Nominations
+              </Link>
               {canCreate && (
                 <button
                   onClick={() => openEditForm(event)}
