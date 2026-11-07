@@ -102,16 +102,65 @@ export default function EventRegistrationsPage() {
     return map;
   }, [events]);
 
+  // Which event the admin is looking at ("" = all), kept in the address as
+  // ?event=<id> so one event's reviewers can bookmark or be sent a link that
+  // opens straight on theirs.
+  const [eventFilter, setEventFilter] = useState(() =>
+    typeof window === "undefined" ? "" : (new URLSearchParams(window.location.search).get("event") ?? "")
+  );
+  function chooseEvent(id: string) {
+    setEventFilter(id);
+    const url = new URL(window.location.href);
+    if (id) url.searchParams.set("event", id);
+    else url.searchParams.delete("event");
+    window.history.replaceState(null, "", url.toString());
+  }
+
+  /** One chip per event that has any nomination, with how many await review. */
+  const eventChips = useMemo(() => {
+    const chips = new Map<string, { id: string; name: string; pending: number; total: number }>();
+    allRegistrations.forEach((r) => {
+      const chip = chips.get(r.event_id) ?? {
+        id: r.event_id,
+        name: eventNameById.get(r.event_id) ?? r.event_id,
+        pending: 0,
+        total: 0,
+      };
+      chip.total += 1;
+      if (r.status === "PENDING_REVIEW") chip.pending += 1;
+      chips.set(r.event_id, chip);
+    });
+    return [...chips.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [allRegistrations, eventNameById]);
+
+  const shownPending = useMemo(
+    () => registrations.filter((r) => !eventFilter || r.event_id === eventFilter),
+    [registrations, eventFilter]
+  );
+  /** The pending list, one group per event so each event's admins find theirs. */
+  const pendingGroups = useMemo(() => {
+    const groups = new Map<string, EventRegistration[]>();
+    shownPending.forEach((r) => groups.set(r.event_id, [...(groups.get(r.event_id) ?? []), r]));
+    return [...groups.entries()]
+      .map(([id, list]) => ({ id, name: eventNameById.get(id) ?? id, list }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [shownPending, eventNameById]);
+
   const sortedReport = useMemo(
     () =>
-      [...allRegistrations].sort((a, b) => {
+      allRegistrations
+        .filter((r) => !eventFilter || r.event_id === eventFilter)
+        .sort((a, b) => {
         const eventCompare = (eventNameById.get(a.event_id) ?? "").localeCompare(eventNameById.get(b.event_id) ?? "");
         return eventCompare !== 0 ? eventCompare : a.participant_name.localeCompare(b.participant_name);
       }),
-    [allRegistrations, eventNameById]
+    [allRegistrations, eventNameById, eventFilter]
   );
 
-  const stallTotals = useMemo(() => summariseStalls(allRegistrations), [allRegistrations]);
+  const stallTotals = useMemo(
+    () => summariseStalls(allRegistrations.filter((r) => !eventFilter || r.event_id === eventFilter)),
+    [allRegistrations, eventFilter]
+  );
 
   function downloadReport() {
     const csv = buildReportCsv(sortedReport, eventNameById);
@@ -208,17 +257,53 @@ export default function EventRegistrationsPage() {
         </section>
       )}
 
-      <div className="rounded-xl border border-border bg-card divide-y divide-border">
-        {registrations.length === 0 && !loading && (
+      {eventChips.length > 1 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Event</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => chooseEvent("")}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                !eventFilter ? "border-maroon bg-maroon text-white" : "border-border text-foreground"
+              }`}
+            >
+              All events{registrations.length > 0 ? ` (${registrations.length} to review)` : ""}
+            </button>
+            {eventChips.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => chooseEvent(c.id)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                  eventFilter === c.id ? "border-maroon bg-maroon text-white" : "border-border text-foreground"
+                }`}
+              >
+                {c.name}
+                {c.pending > 0 ? ` (${c.pending} to review)` : ""}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pendingGroups.length === 0 && !loading && (
+        <div className="rounded-xl border border-border bg-card">
           <p className="px-4 py-3 text-sm text-muted">No nominations awaiting review.</p>
-        )}
-        {registrations.map((r) => (
+        </div>
+      )}
+      {pendingGroups.map((group) => (
+      <section key={group.id} className="space-y-2">
+        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
+          {group.name} <span className="font-normal normal-case">· {group.list.length} awaiting review</span>
+        </h2>
+      <div className="rounded-xl border border-border bg-card divide-y divide-border">
+        {group.list.map((r) => (
           <div key={r.registration_id} className="px-4 py-3 space-y-2">
             <div>
               <p className="font-semibold text-sm">{r.participant_name}</p>
               <p className="text-xs text-muted">
-                {eventNameById.get(r.event_id) ?? r.event_id}
-                {r.sub_category ? ` · ${r.sub_category}` : ""}
+                {r.sub_category ?? ""}
               </p>
               <p className="text-xs text-muted">
                 Block {r.block}, Flat {r.flat_number} · {r.mobile}
@@ -259,10 +344,14 @@ export default function EventRegistrationsPage() {
           </div>
         ))}
       </div>
+      </section>
+      ))}
 
       {stallTotals.stalls > 0 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Stall set-up needs</h2>
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
+            Stall set-up needs{eventFilter ? ` · ${eventNameById.get(eventFilter) ?? ""}` : ""}
+          </h2>
           <div className="grid grid-cols-3 gap-2 text-center">
             {[
               { value: stallTotals.stalls, label: "stalls" },
@@ -288,7 +377,10 @@ export default function EventRegistrationsPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Participant Report</h2>
-            <p className="text-xs text-muted">{sortedReport.length} total nominations across every event</p>
+            <p className="text-xs text-muted">
+              {sortedReport.length} total nominations{" "}
+              {eventFilter ? `for ${eventNameById.get(eventFilter) ?? "this event"}` : "across every event"}
+            </p>
           </div>
           <button
             type="button"
