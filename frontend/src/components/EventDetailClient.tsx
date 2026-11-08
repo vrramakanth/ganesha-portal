@@ -486,6 +486,23 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
           </form>
         </>
       )}
+
+      {/* An unlisted event isn't reachable from Home's Admin Login without
+          first hunting for it, so give its organisers a way in from here:
+          straight to this event's nominations where it takes sign-ups, else
+          to the Events list. The volunteer area asks for sign-in as usual. */}
+      {isUnlisted(event) && (
+        <Link
+          href={
+            event.category === "Kids Stall" || isCultural
+              ? `/volunteer/events/registrations?event=${encodeURIComponent(event.event_id)}`
+              : "/volunteer/events"
+          }
+          className="mx-auto pb-4 text-xs font-medium text-muted"
+        >
+          Admin login
+        </Link>
+      )}
     </div>
   );
 }
