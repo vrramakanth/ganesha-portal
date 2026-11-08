@@ -1,5 +1,6 @@
 "use client";
 
+import StallDetails from "@/components/StallDetails";
 import { parseStallNeeds, summariseStalls } from "@/lib/stallNeeds";
 import { useMemo, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
@@ -155,6 +156,18 @@ export default function EventRegistrationsPage() {
         return eventCompare !== 0 ? eventCompare : a.participant_name.localeCompare(b.participant_name);
       }),
     [allRegistrations, eventNameById, eventFilter]
+  );
+
+  /** Confirmed stall sign-ups, with everything an organiser needs to set them up. */
+  const approvedStalls = useMemo(
+    () =>
+      allRegistrations
+        .filter((r) => r.status === "CONFIRMED" && (!eventFilter || r.event_id === eventFilter) && parseStallNeeds(r.comments))
+        .sort((a, b) => {
+          const byEvent = (eventNameById.get(a.event_id) ?? "").localeCompare(eventNameById.get(b.event_id) ?? "");
+          return byEvent !== 0 ? byEvent : a.participant_name.localeCompare(b.participant_name);
+        }),
+    [allRegistrations, eventFilter, eventNameById]
   );
 
   const stallTotals = useMemo(
@@ -319,7 +332,11 @@ export default function EventRegistrationsPage() {
                   🎵 Play song
                 </a>
               )}
-              {r.comments && <p className="text-xs text-muted italic">“{r.comments}”</p>}
+              {parseStallNeeds(r.comments) ? (
+                <StallDetails registration={r} />
+              ) : (
+                r.comments && <p className="text-xs text-muted italic">“{r.comments}”</p>
+              )}
             </div>
             {canReview && (
               <div className="flex gap-2">
@@ -346,6 +363,33 @@ export default function EventRegistrationsPage() {
       </div>
       </section>
       ))}
+
+      {approvedStalls.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
+            Approved stalls{eventFilter ? ` · ${eventNameById.get(eventFilter) ?? ""}` : ""}{" "}
+            <span className="font-normal normal-case">· {approvedStalls.length}</span>
+          </h2>
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {approvedStalls.map((r) => (
+              <div key={r.registration_id} className="px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-sm">{r.participant_name}</p>
+                    <p className="text-xs text-muted">
+                      {!eventFilter ? `${eventNameById.get(r.event_id) ?? r.event_id} · ` : ""}
+                      Block {r.block}, Flat {r.flat_number} · {r.mobile}
+                      {r.participant_age ? ` · Age ${r.participant_age}` : ""}
+                    </p>
+                  </div>
+                  <StatusBadge label="Confirmed" tone="success" />
+                </div>
+                <StallDetails registration={r} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {stallTotals.stalls > 0 && (
         <section className="space-y-2">
