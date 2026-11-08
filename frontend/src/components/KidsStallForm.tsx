@@ -33,9 +33,9 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
   const flat = typedFlat ?? (loaded ? profile.flatNumber : "");
   const [stallType, setStallType] = useState("");
   const [idea, setIdea] = useState("");
-  const [kids, setKids] = useState("1");
-  const [tables, setTables] = useState("1");
-  const [chairs, setChairs] = useState("2");
+  const [kids, setKids] = useState("");
+  const [tables, setTables] = useState("");
+  const [chairs, setChairs] = useState("");
   const [power, setPower] = useState<boolean | null>(null);
   const [powerDetails, setPowerDetails] = useState("");
   const [other, setOther] = useState("");
@@ -77,8 +77,16 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
       setError("Pick what kind of stall it will be.");
       return;
     }
+    if (!tables || !chairs) {
+      setError("Choose how many tables and chairs you need (0 if none).");
+      return;
+    }
     if (power === null) {
       setError("Tell us whether your stall needs a power socket.");
+      return;
+    }
+    if (power && !powerDetails.trim()) {
+      setError("Tell us what you will plug in.");
       return;
     }
     // Tables cost money, so go to payment first; a stall with no tables is free.
@@ -100,7 +108,7 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
         subCategory: stallType,
         comments: buildStallComments({
           idea,
-          kids: Number(kids) || 1,
+          kids: Number(kids),
           tables: Number(tables) || 0,
           chairs: Number(chairs) || 0,
           power,
@@ -163,6 +171,7 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Kids at the stall</label>
           <input
+            required
             type="number"
             inputMode="numeric"
             min={1}
@@ -223,7 +232,10 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Tables</label>
-            <select value={tables} onChange={(e) => setTables(e.target.value)} className={input}>
+            <select required value={tables} onChange={(e) => setTables(e.target.value)} className={input}>
+              <option value="" disabled>
+                Choose
+              </option>
               {[0, 1, 2, 3, 4].map((n) => (
                 <option key={n} value={n}>
                   {n}
@@ -233,7 +245,10 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Chairs</label>
-            <select value={chairs} onChange={(e) => setChairs(e.target.value)} className={input}>
+            <select required value={chairs} onChange={(e) => setChairs(e.target.value)} className={input}>
+              <option value="" disabled>
+                Choose
+              </option>
               {[0, 1, 2, 3, 4, 5, 6].map((n) => (
                 <option key={n} value={n}>
                   {n}
@@ -269,6 +284,7 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
           <div className="space-y-1.5">
             <label className="text-sm font-medium">What will you plug in?</label>
             <input
+              required
               value={powerDetails}
               onChange={(e) => setPowerDetails(e.target.value)}
               placeholder="e.g. a blender, string lights, a speaker"
