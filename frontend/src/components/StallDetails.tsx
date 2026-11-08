@@ -6,9 +6,33 @@ import type { EventRegistration } from "@/lib/types";
  *  sells, how many kids run it, tables, chairs and power, anything else it
  *  needs, who to call, and what was paid. Renders nothing for a registration
  *  that isn't a stall sign-up. */
-export default function StallDetails({ registration: r }: { registration: EventRegistration }) {
+export default function StallDetails({
+  registration: r,
+  isStall = false,
+}: {
+  registration: EventRegistration;
+  /** True for a registration known to be a stall sign-up (its event is a Kids
+   *  Stall event). One made before the form asked for tables, chairs and
+   *  power has none of those answers; it is shown with what it did give. */
+  isStall?: boolean;
+}) {
   const needs = parseStallNeeds(r.comments);
-  if (!needs) return null;
+  if (!needs) {
+    if (!isStall) return null;
+    const parent = [r.parent_name, r.parent_mobile && r.parent_mobile !== r.mobile ? r.parent_mobile : ""].filter(Boolean).join(" · ");
+    return (
+      <div className="mt-1 space-y-0.5 rounded-lg bg-background px-3 py-2 text-xs">
+        <p>
+          <span className="font-semibold">🎈 {r.sub_category || "Stall"}</span>
+          {r.comments ? `: ${r.comments.replace(/\s*\n\s*/g, " · ")}` : ""}
+        </p>
+        {parent && <p className="text-muted">Parent: {parent}</p>}
+        <p className="text-saffron-text">
+          No tables, chairs, power or payment details on this one. It was sent before the form asked for them.
+        </p>
+      </div>
+    );
+  }
   const parent = [r.parent_name, r.parent_mobile && r.parent_mobile !== r.mobile ? r.parent_mobile : ""].filter(Boolean).join(" · ");
   return (
     <div className="mt-1 space-y-0.5 rounded-lg bg-background px-3 py-2 text-xs">
