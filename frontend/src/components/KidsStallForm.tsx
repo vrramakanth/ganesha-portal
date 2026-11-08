@@ -149,14 +149,17 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
   return (
     <form onSubmit={submit} className="space-y-4 rounded-xl border border-border bg-card p-4">
       <p className="text-sm font-semibold">🎈 Set up your own stall</p>
+      <p className="-mt-2 text-xs text-muted">
+        Fields marked <span className="text-red-600">*</span> are required.
+      </p>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Child&apos;s name</label>
+        <label className="text-sm font-medium">Child&apos;s name <span className="text-red-600" aria-hidden="true">*</span></label>
         <input required value={childName} onChange={(e) => setChildName(e.target.value)} className={input} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Age</label>
+          <label className="text-sm font-medium">Age <span className="text-red-600" aria-hidden="true">*</span></label>
           <input
             required
             type="number"
@@ -169,7 +172,7 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Kids at the stall</label>
+          <label className="text-sm font-medium">Kids at the stall <span className="text-red-600" aria-hidden="true">*</span></label>
           <input
             required
             type="number"
@@ -184,26 +187,26 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Parent / guardian name</label>
+        <label className="text-sm font-medium">Parent / guardian name <span className="text-red-600" aria-hidden="true">*</span></label>
         <input required value={parentName} onChange={(e) => setParentName(e.target.value)} className={input} />
       </div>
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Parent&apos;s mobile</label>
+        <label className="text-sm font-medium">Parent&apos;s mobile <span className="text-red-600" aria-hidden="true">*</span></label>
         <MobileInput value={mobile} onChange={setMobile} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Block</label>
+          <label className="text-sm font-medium">Block <span className="text-red-600" aria-hidden="true">*</span></label>
           <BlockSelect value={block} onChange={setBlock} />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Flat (3 digits)</label>
+          <label className="text-sm font-medium">Flat (3 digits) <span className="text-red-600" aria-hidden="true">*</span></label>
           <FlatInput value={flat} onChange={setFlat} />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">What kind of stall?</label>
+        <label className="text-sm font-medium">What kind of stall? <span className="text-red-600" aria-hidden="true">*</span></label>
         <select required value={stallType} onChange={(e) => setStallType(e.target.value)} className={input}>
           <option value="" disabled>
             Choose one
@@ -216,7 +219,7 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
         </select>
       </div>
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">What will your stall offer?</label>
+        <label className="text-sm font-medium">What will your stall offer? <span className="text-red-600" aria-hidden="true">*</span></label>
         <textarea
           required
           rows={3}
@@ -231,7 +234,7 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
         <p className="text-sm font-semibold">What does your stall need?</p>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Tables</label>
+            <label className="text-sm font-medium">Tables <span className="text-red-600" aria-hidden="true">*</span></label>
             <select required value={tables} onChange={(e) => setTables(e.target.value)} className={input}>
               <option value="" disabled>
                 Choose
@@ -244,7 +247,7 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Chairs</label>
+            <label className="text-sm font-medium">Chairs <span className="text-red-600" aria-hidden="true">*</span></label>
             <select required value={chairs} onChange={(e) => setChairs(e.target.value)} className={input}>
               <option value="" disabled>
                 Choose
@@ -258,7 +261,7 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Do you need a power socket?</label>
+          <label className="text-sm font-medium">Do you need a power socket? <span className="text-red-600" aria-hidden="true">*</span></label>
           <div className="flex gap-2">
             <button
               type="button"
@@ -282,7 +285,7 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
         </div>
         {power && (
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">What will you plug in?</label>
+            <label className="text-sm font-medium">What will you plug in? <span className="text-red-600" aria-hidden="true">*</span></label>
             <input
               required
               value={powerDetails}
