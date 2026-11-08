@@ -158,17 +158,23 @@ export default function EventRegistrationsPage() {
     [allRegistrations, eventNameById, eventFilter]
   );
 
+  const stallEventIds = useMemo(
+    () => new Set(events.filter((e) => e.category === "Kids Stall").map((e) => e.event_id)),
+    [events]
+  );
+
   /** Confirmed stall sign-ups, with everything an organiser needs to set them up. */
   const approvedStalls = useMemo(
     () =>
       allRegistrations
-        .filter((r) => r.status === "CONFIRMED" && (!eventFilter || r.event_id === eventFilter) && parseStallNeeds(r.comments))
+        .filter((r) => r.status === "CONFIRMED" && (!eventFilter || r.event_id === eventFilter) && stallEventIds.has(r.event_id))
         .sort((a, b) => {
           const byEvent = (eventNameById.get(a.event_id) ?? "").localeCompare(eventNameById.get(b.event_id) ?? "");
           return byEvent !== 0 ? byEvent : a.participant_name.localeCompare(b.participant_name);
         }),
-    [allRegistrations, eventFilter, eventNameById]
+    [allRegistrations, eventFilter, eventNameById, stallEventIds]
   );
+  const approvedWithoutDetails = approvedStalls.filter((r) => !parseStallNeeds(r.comments)).length;
 
   const stallTotals = useMemo(
     () => summariseStalls(allRegistrations.filter((r) => !eventFilter || r.event_id === eventFilter)),
@@ -332,8 +338,8 @@ export default function EventRegistrationsPage() {
                   🎵 Play song
                 </a>
               )}
-              {parseStallNeeds(r.comments) ? (
-                <StallDetails registration={r} />
+              {parseStallNeeds(r.comments) || stallEventIds.has(r.event_id) ? (
+                <StallDetails registration={r} isStall={stallEventIds.has(r.event_id)} />
               ) : (
                 r.comments && <p className="text-xs text-muted italic">“{r.comments}”</p>
               )}
@@ -384,10 +390,17 @@ export default function EventRegistrationsPage() {
                   </div>
                   <StatusBadge label="Confirmed" tone="success" />
                 </div>
-                <StallDetails registration={r} />
+                <StallDetails registration={r} isStall />
               </div>
             ))}
           </div>
+          {approvedWithoutDetails > 0 && (
+            <p className="text-xs text-muted">
+              {approvedWithoutDetails} of these {approvedWithoutDetails === 1 ? "was" : "were"} sent before the form asked for
+              tables, chairs and power, so {approvedWithoutDetails === 1 ? "it isn't" : "they aren't"} in the totals below. Ask{" "}
+              {approvedWithoutDetails === 1 ? "that parent" : "those parents"} for the details.
+            </p>
+          )}
         </section>
       )}
 
