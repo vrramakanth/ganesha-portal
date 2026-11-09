@@ -4,6 +4,7 @@ import EventFeedback from "@/components/EventFeedback";
 import MagicMomentsButton from "@/components/MagicMomentsButton";
 import { splitMagicMoments } from "@/lib/magicMoments";
 import KidsStallForm from "@/components/KidsStallForm";
+import { kidsStallIntro } from "@/lib/kidsStallIntro";
 import { HUB_URL } from "@/lib/hub";
 import { isUnlisted } from "@/lib/events";
 import FlatOptIn from "@/components/FlatOptIn";
@@ -321,11 +322,25 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         backHref={isUnlisted(event) ? HUB_URL : "/events"}
         backLabel={isUnlisted(event) ? "← Namma Habba" : "← Events"}
       />
-      {description.text && (
-        <p className="text-sm text-muted whitespace-pre-line">
-          <LinkifiedText text={description.text} />
-        </p>
+      {event.category === "Kids Stall" && kidsStallIntro(event.name) && (
+        <div className="rounded-2xl bg-[#1457c9] p-4 text-white shadow-sm">
+          <p className="text-base font-bold leading-snug">🎈 {kidsStallIntro(event.name)!.headline}</p>
+          <p className="mt-1.5 text-sm text-white/90">{kidsStallIntro(event.name)!.line}</p>
+        </div>
       )}
+      {description.text &&
+        (event.category === "Kids Stall" && kidsStallIntro(event.name) ? (
+          <details className="rounded-xl border border-border bg-card p-3 text-sm">
+            <summary className="cursor-pointer text-xs font-semibold">Read the full details</summary>
+            <p className="mt-2 text-sm text-muted whitespace-pre-line">
+              <LinkifiedText text={description.text} />
+            </p>
+          </details>
+        ) : (
+          <p className="text-sm text-muted whitespace-pre-line">
+            <LinkifiedText text={description.text} />
+          </p>
+        ))}
       {description.url && <MagicMomentsButton url={description.url} label="Memories" />}
 
       {wrappedUp ? (
@@ -338,7 +353,10 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         (event.category === "Flat Opt-in" ? (
           <FlatOptIn eventId={event.event_id} open={event.status === "OPEN"} />
         ) : event.category === "Kids Stall" ? (
-          <KidsStallForm eventId={event.event_id} open={event.status === "OPEN"} description={event.description} />
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold">Register for a stall</h2>
+            <KidsStallForm eventId={event.event_id} open={event.status === "OPEN"} description={event.description} />
+          </section>
         ) : event.category === "Dinner" && modules.meal ? (
           <MealSignupCard festival={festivalInfo} />
         ) : (
