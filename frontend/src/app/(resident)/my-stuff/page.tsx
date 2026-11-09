@@ -1,6 +1,7 @@
 "use client";
 
-import { isStallComments, parsePayment } from "@/lib/stallNeeds";
+import { isStallComments, parsePayment, parseStallNeeds } from "@/lib/stallNeeds";
+import StallPaymentStep from "@/components/StallPaymentStep";
 import { mealName } from "@/lib/meal";
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
@@ -337,7 +338,29 @@ export default function MyStuffPage() {
                   ) : pay.ref ? (
                     <p className="text-xs text-muted">Payment reference received. A volunteer is checking it.</p>
                   ) : (
-                    <p className="text-xs text-saffron-text">Payment not received yet. Please send your UPI reference to a volunteer.</p>
+                    <p className="text-xs text-saffron-text">Payment not received yet.</p>
+                  );
+                })()}
+                {(() => {
+                  const pay = parsePayment(r.comments);
+                  const needs = parseStallNeeds(r.comments);
+                  if (!pay.fee || pay.ref || pay.verified || r.status === "REJECTED" || r.status === "CANCELLED") return null;
+                  return (
+                    <details className="rounded-lg border border-border">
+                      <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-maroon">
+                        Pay for tables / add payment reference
+                      </summary>
+                      <div className="p-2">
+                        <StallPaymentStep
+                          amount={pay.fee}
+                          tables={needs?.tables ?? 0}
+                          fee={needs && needs.tables ? pay.fee / needs.tables : pay.fee}
+                          festival={festival}
+                          registrationId={r.registration_id}
+                          mobile={activeMobile}
+                        />
+                      </div>
+                    </details>
                   );
                 })()}
                 {r.sub_category && !isStallComments(r.comments) && r.status !== "REJECTED" && r.status !== "CANCELLED" && (

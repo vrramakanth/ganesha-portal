@@ -61,7 +61,7 @@ export default function StallDetails({
             ? `✓ paid, UPI ref ${needs.paymentRef} · verified ${needs.verified}`
             : needs.paymentRef
               ? `UPI ref ${needs.paymentRef} (check against the bank)`
-              : "no payment reference yet"}
+              : "payment not received yet"}
         </p>
       )}
     </div>

@@ -41,9 +41,7 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
   const [other, setOther] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
-  const [step, setStep] = useState<"form" | "pay">("form");
-  const [paymentRef, setPaymentRef] = useState("");
+  const [registered, setRegistered] = useState<{ registrationId: string; amount: number; tables: number; mobile: string } | null>(null);
 
   const amountDue = (Number(tables) || 0) * fee;
 
@@ -55,13 +53,26 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
     );
   }
 
-  if (done) {
+  if (registered) {
     return (
-      <div className="space-y-2 rounded-xl border border-border bg-card p-4 text-sm">
-        <p className="font-semibold text-green-700">🎈 Stall request received!</p>
-        <p className="text-muted">
-          A volunteer will review it and get in touch on the mobile number you gave. Start dreaming up a great stall.
-        </p>
+      <div className="space-y-3">
+        <div className="space-y-2 rounded-xl border border-border bg-card p-4 text-sm">
+          <p className="font-semibold text-green-700">🎈 Your stall request is in!</p>
+          <p className="text-muted">
+            A volunteer will review it and get in touch on the mobile number you gave.
+            {registered.amount > 0 ? " Please pay for your tables below." : " Start dreaming up a great stall."}
+          </p>
+        </div>
+        {registered.amount > 0 && (
+          <StallPaymentStep
+            amount={registered.amount}
+            tables={registered.tables}
+            fee={fee}
+            festival={festival}
+            registrationId={registered.registrationId}
+            mobile={registered.mobile}
+          />
+        )}
       </div>
     );
   }
@@ -89,14 +100,11 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
       setError("Tell us what you will plug in.");
       return;
     }
-    // Tables cost money, so go to payment first; a stall with no tables is free.
-    if (amountDue > 0 && step === "form") {
-      setStep("pay");
-      return;
-    }
     setSubmitting(true);
     try {
-      await api.events.register({
+      // Saved right away, before any payment, so a parent who pays and stops
+      // never loses the sign-up; the payment step comes next.
+      const registration = await api.events.register({
         eventId,
         participantName: childName.trim(),
         participantAge: age,
@@ -115,11 +123,11 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
           powerDetails,
           other,
           fee: amountDue,
-          paymentRef,
+          paymentRef: "",
         }),
       });
       saveProfile({ name: parentName.trim() || profile.name, mobile, block, flatNumber: flat });
-      setDone(true);
+      setRegistered({ registrationId: registration.registration_id, amount: amountDue, tables: Number(tables) || 0, mobile });
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -128,23 +136,6 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
   }
 
   const input = "w-full rounded-lg border border-border bg-card px-3 py-3 text-sm";
-
-  if (step === "pay") {
-    return (
-      <StallPaymentStep
-        amount={amountDue}
-        tables={Number(tables) || 0}
-        fee={fee}
-        festival={festival}
-        reference={paymentRef}
-        onReference={setPaymentRef}
-        onBack={() => setStep("form")}
-        onSubmit={() => submit({ preventDefault() {} } as React.FormEvent)}
-        submitting={submitting}
-        error={error}
-      />
-    );
-  }
 
   return (
     <form onSubmit={submit} className="space-y-4 rounded-xl border border-border bg-card p-4">
@@ -317,7 +308,7 @@ export default function KidsStallForm({ eventId, open, description }: { eventId:
         disabled={submitting}
         className="w-full rounded-xl bg-maroon py-3 text-sm font-semibold text-white disabled:opacity-60"
       >
-        {submitting ? "Sending…" : amountDue > 0 ? "Next: pay for tables" : "Request a stall"}
+        {submitting ? "Sending…" : "Submit stall request"}
       </button>
     </form>
   );

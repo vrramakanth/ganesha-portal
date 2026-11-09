@@ -549,6 +549,35 @@ function recordRegistrationPayment(volunteer, registrationId, reference, amount)
   });
 }
 
+/** A parent adds the UPI reference to their own stall sign-up after paying.
+ *  Checked by registration ID and the mobile number it was made with (the
+ *  same identity the rest of "My Stuff" uses). It only records the reference:
+ *  nothing is marked paid until an organiser verifies it against the bank, so
+ *  a verified payment can't be changed, and a rejected or cancelled sign-up
+ *  takes none. */
+function addRegistrationPaymentRef({ registrationId, mobile, reference }) {
+  requireFields({ registrationId, mobile, reference }, ["registrationId", "mobile", "reference"]);
+  const ref = String(reference).trim();
+  if (!/^[A-Za-z0-9-]{6,30}$/.test(ref)) {
+    throw new ApiError("That doesn't look like a UPI reference. It is usually 12 digits, shown as UTR in your payment app", 400);
+  }
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+    ensureColumn(sheet, "comments");
+    const rowIndex = findRowIndexById(sheet, "registration_id", registrationId);
+    if (rowIndex === -1) throw new ApiError("Unknown registration", 404);
+    const before = getRowObject(sheet, rowIndex);
+    if (String(before.mobile) !== String(mobile)) throw new ApiError("Unknown registration", 404);
+    if (before.status === "REJECTED" || before.status === "CANCELLED") {
+      throw new ApiError(`Cannot add a payment to a ${String(before.status).toLowerCase()} registration`, 400);
+    }
+    const comments = String(before.comments || "");
+    if (/^payment verified:/im.test(comments)) return { registrationId, alreadyVerified: true };
+    updateRowFields(sheet, rowIndex, { comments: setCommentLine_(comments, "Payment ref", ref) });
+    return { registrationId, alreadyVerified: false };
+  });
+}
+
 function listRegistrationsByMobile(mobile) {
   requireFields({ mobile }, ["mobile"]);
   const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
