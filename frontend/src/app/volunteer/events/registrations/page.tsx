@@ -1,8 +1,9 @@
 "use client";
 
+import StallEditControl from "@/components/StallEditControl";
 import StallPaymentControl from "@/components/StallPaymentControl";
 import StallDetails from "@/components/StallDetails";
-import { parseStallNeeds, summariseStalls } from "@/lib/stallNeeds";
+import { parseStallNeeds, summariseStalls, tableFee } from "@/lib/stallNeeds";
 import { useMemo, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -163,6 +164,8 @@ export default function EventRegistrationsPage() {
     () => new Set(events.filter((e) => e.category === "Kids Stall").map((e) => e.event_id)),
     [events]
   );
+
+  const feeFor = (eventId: string) => tableFee(events.find((e) => e.event_id === eventId)?.description);
 
   /** Confirmed stall sign-ups, with everything an organiser needs to set them up. */
   const approvedStalls = useMemo(
@@ -343,7 +346,10 @@ export default function EventRegistrationsPage() {
                 <>
                   <StallDetails registration={r} isStall={stallEventIds.has(r.event_id)} />
                   {canReview && stallEventIds.has(r.event_id) && (
-                    <StallPaymentControl registration={r} idToken={idToken as string} onSaved={() => setRefreshKey((k) => k + 1)} />
+                    <>
+                      <StallEditControl registration={r} idToken={idToken as string} feePerTable={feeFor(r.event_id)} onSaved={() => setRefreshKey((k) => k + 1)} />
+                      <StallPaymentControl registration={r} idToken={idToken as string} onSaved={() => setRefreshKey((k) => k + 1)} />
+                    </>
                   )}
                 </>
               ) : (
@@ -398,7 +404,10 @@ export default function EventRegistrationsPage() {
                 </div>
                 <StallDetails registration={r} isStall />
                 {canReview && (
-                  <StallPaymentControl registration={r} idToken={idToken as string} onSaved={() => setRefreshKey((k) => k + 1)} />
+                  <>
+                    <StallEditControl registration={r} idToken={idToken as string} feePerTable={feeFor(r.event_id)} onSaved={() => setRefreshKey((k) => k + 1)} />
+                    <StallPaymentControl registration={r} idToken={idToken as string} onSaved={() => setRefreshKey((k) => k + 1)} />
+                  </>
                 )}
               </div>
             ))}

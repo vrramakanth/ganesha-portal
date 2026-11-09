@@ -563,6 +563,48 @@ function recordRegistrationPayment(volunteer, registrationId, reference, amount)
   });
 }
 
+/** An organiser fills in or corrects a stall's details (idea, kids, tables,
+ *  chairs, power, other needs) for a sign-up whose details were lost or
+ *  need changing. Only the stall lines are written; payment lines are left as
+ *  they are, except the amount due, which follows the tables unless a payment
+ *  has already been verified. */
+function updateRegistrationStall(volunteer, registrationId, d) {
+  requirePermission(volunteer, "Events");
+  d = d || {};
+  const num = (v) => Math.max(0, Math.min(50, Math.floor(Number(v) || 0)));
+  const idea = String(d.idea || "").trim().slice(0, 300);
+  if (!idea) throw new ApiError("Enter what the stall will be", 400);
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+    ensureColumn(sheet, "comments");
+    ensureColumn(sheet, "sub_category");
+    const rowIndex = findRowIndexById(sheet, "registration_id", registrationId);
+    if (rowIndex === -1) throw new ApiError("Unknown registration", 404);
+    const before = getRowObject(sheet, rowIndex);
+    let comments = String(before.comments || "");
+    const power = d.power ? "Yes" + (String(d.powerDetails || "").trim() ? ": " + String(d.powerDetails).trim().slice(0, 200) : "") : "No";
+    comments = setCommentLine_(comments, "Stall", idea.replace(/\n/g, " "));
+    comments = setCommentLine_(comments, "Kids at stall", String(num(d.kids)));
+    comments = setCommentLine_(comments, "Tables", String(num(d.tables)));
+    comments = setCommentLine_(comments, "Chairs", String(num(d.chairs)));
+    comments = setCommentLine_(comments, "Power", power);
+    const other = String(d.other || "").replace(/\n/g, " ").trim().slice(0, 300);
+    if (other) comments = setCommentLine_(comments, "Other needs", other);
+    else comments = comments.split("\n").filter((l) => !/^other needs:/i.test(l)).join("\n");
+    const fee = Number(d.fee);
+    if (fee >= 0 && d.fee !== undefined && d.fee !== null && !/^payment verified:/im.test(comments)) {
+      comments = setCommentLine_(comments, "Table fee due", String(Math.floor(fee)));
+      if (!/^payment ref:/im.test(comments)) comments = setCommentLine_(comments, "Payment ref", "none yet");
+    }
+    const fields = { comments };
+    const type = String(d.stallType || "").trim().slice(0, 60);
+    if (type) fields.sub_category = type;
+    updateRowFields(sheet, rowIndex, fields);
+    logAudit(volunteer.email, "Edited stall details", "EventRegistration", registrationId, String(before.comments || ""), comments);
+    return Object.assign({}, before, fields, { registration_id: registrationId });
+  });
+}
+
 /** A parent adds the UPI reference to their own stall sign-up after paying.
  *  Checked by registration ID and the mobile number it was made with (the
  *  same identity the rest of "My Stuff" uses). It only records the reference:

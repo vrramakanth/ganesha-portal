@@ -419,6 +419,21 @@ export const api = {
         reference,
         amount,
       }),
+    updateStallDetails: (
+      idToken: string,
+      registrationId: string,
+      details: {
+        stallType: string;
+        idea: string;
+        kids: number;
+        tables: number;
+        chairs: number;
+        power: boolean;
+        powerDetails: string;
+        other: string;
+        fee?: number;
+      }
+    ) => apiPost<EventRegistration>("volunteer.events.registrations.stall", { idToken, registrationId, ...details }),
     rejectRegistration: (idToken: string, registrationId: string, reason?: string) =>
       apiPost<EventRegistration>("volunteer.events.registrations.reject", { idToken, registrationId, reason }),
     checkIn: (idToken: string, registrationId: string) =>

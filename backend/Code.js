@@ -86,6 +86,11 @@ const ROUTES = {
     module: "events",
     handler: (p, v) => recordRegistrationPayment(v, p.registrationId, p.reference, p.amount),
   },
+  "volunteer.events.registrations.stall": {
+    auth: true,
+    module: "events",
+    handler: (p, v) => updateRegistrationStall(v, p.registrationId, p),
+  },
   "volunteer.events.registrations.reject": { auth: true, module: "events", handler: (p, v) => rejectRegistration(v, p.registrationId, p.reason) },
   "volunteer.events.checkin": { auth: true, module: "events", handler: (p, v) => checkInRegistration(v, p.registrationId) },
   "volunteer.dinner.dashboard": { auth: true, module: "meal", handler: (p) => getDinnerDashboard(p.eventId) },
