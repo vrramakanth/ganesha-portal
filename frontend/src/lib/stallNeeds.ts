@@ -20,6 +20,25 @@ export function tableFee(description: string | undefined): number {
   return match ? Number(match[1]) : DEFAULT_TABLE_FEE;
 }
 
+/** The payment lines of a stall registration, whether or not it has the
+ *  other stall answers (an older sign-up can have only these, added later by
+ *  an organiser): amount due, the UPI reference, and who verified it. */
+export function parsePayment(comments: string | undefined): { fee: number; ref: string; verified: string } {
+  const text = comments ?? "";
+  const ref = lineValue(text, "Payment ref") ?? "";
+  return {
+    fee: Number(lineValue(text, "Table fee due")) || 0,
+    ref: /^none yet$/i.test(ref) ? "" : ref,
+    verified: lineValue(text, "Payment verified") ?? "",
+  };
+}
+
+/** True for a stall sign-up, which keeps its answers in labelled comment lines
+ *  (so it isn't a performance and has no song to upload). */
+export function isStallComments(comments: string | undefined): boolean {
+  return /^(Tables|Stall|Table fee due|Payment ref):/im.test(comments ?? "");
+}
+
 export type StallNeeds = {
   idea: string;
   kids: number;
@@ -32,6 +51,8 @@ export type StallNeeds = {
    *  typed after paying (empty when nothing is due or not yet paid). */
   fee?: number;
   paymentRef?: string;
+  /** "<volunteer email> on 9 Nov 2026" once an organiser checked it against the bank. */
+  verified?: string;
 };
 
 export function buildStallComments(n: StallNeeds): string {
@@ -70,6 +91,7 @@ export function parseStallNeeds(comments: string | undefined): Required<StallNee
     other: lineValue(comments, "Other needs") ?? "",
     fee: Number(lineValue(comments, "Table fee due")) || 0,
     paymentRef: (lineValue(comments, "Payment ref") ?? "").replace(/^none yet$/i, ""),
+    verified: lineValue(comments, "Payment verified") ?? "",
   };
 }
 
@@ -82,6 +104,7 @@ export function summariseStalls(registrations: EventRegistration[]) {
   let kids = 0;
   let feeDue = 0;
   let feePaid = 0;
+  let feeVerified = 0;
   registrations.forEach((r) => {
     if (r.status === "REJECTED" || r.status === "CANCELLED") return;
     const needs = parseStallNeeds(r.comments);
@@ -93,6 +116,7 @@ export function summariseStalls(registrations: EventRegistration[]) {
     if (needs.power) power += 1;
     feeDue += needs.fee;
     if (needs.fee && needs.paymentRef) feePaid += needs.fee;
+    if (needs.fee && needs.verified) feeVerified += needs.fee;
   });
-  return { stalls, tables, chairs, power, kids, feeDue, feePaid };
+  return { stalls, tables, chairs, power, kids, feeDue, feePaid, feeVerified };
 }

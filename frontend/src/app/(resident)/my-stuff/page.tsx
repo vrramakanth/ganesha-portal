@@ -1,5 +1,6 @@
 "use client";
 
+import { isStallComments, parsePayment } from "@/lib/stallNeeds";
 import { mealName } from "@/lib/meal";
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
@@ -328,7 +329,18 @@ export default function MyStuffPage() {
                     tone={r.check_in_at ? "success" : statusTone(r.status)}
                   />
                 </div>
-                {r.sub_category && r.status !== "REJECTED" && r.status !== "CANCELLED" && (
+                {(() => {
+                  const pay = parsePayment(r.comments);
+                  if (!pay.fee && !pay.verified) return null;
+                  return pay.verified ? (
+                    <p className="text-xs font-semibold text-green-700">✓ Payment received</p>
+                  ) : pay.ref ? (
+                    <p className="text-xs text-muted">Payment reference received. A volunteer is checking it.</p>
+                  ) : (
+                    <p className="text-xs text-saffron-text">Payment not received yet. Please send your UPI reference to a volunteer.</p>
+                  );
+                })()}
+                {r.sub_category && !isStallComments(r.comments) && r.status !== "REJECTED" && r.status !== "CANCELLED" && (
                   <SongUploader registration={r} mobile={activeMobile} onUpdated={() => setRefreshKey((k) => k + 1)} />
                 )}
               </div>

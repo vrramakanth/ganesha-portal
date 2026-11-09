@@ -507,6 +507,48 @@ function rejectRegistration(volunteer, registrationId, reason) {
   });
 }
 
+/** Sets one labelled line ("Payment ref: …") in a registration's comments,
+ *  replacing the line if it is there and adding it if not. */
+function setCommentLine_(comments, label, value) {
+  const lines = String(comments || "").split("\n").filter((l) => l.trim() !== "");
+  const prefix = label.toLowerCase() + ":";
+  const index = lines.findIndex((l) => l.toLowerCase().startsWith(prefix));
+  const line = `${label}: ${value}`;
+  if (index === -1) lines.push(line);
+  else lines[index] = line;
+  return lines.join("\n");
+}
+
+/** An organiser records the UPI reference for a stall's table fee and marks it
+ *  checked against the bank. For parents who paid but never typed the
+ *  reference, or whose stall was sent before the payment step existed. The
+ *  facts are kept as labelled lines in the registration's comments, the same
+ *  place the sign-up form puts them, so nothing else needs to change. */
+function recordRegistrationPayment(volunteer, registrationId, reference, amount) {
+  requirePermission(volunteer, "Events");
+  const ref = String(reference || "").trim();
+  if (!ref) throw new ApiError("Enter the UPI reference (UTR) from the bank record", 400);
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+    ensureColumn(sheet, "comments");
+    const rowIndex = findRowIndexById(sheet, "registration_id", registrationId);
+    if (rowIndex === -1) throw new ApiError("Unknown registration", 404);
+    const before = getRowObject(sheet, rowIndex);
+    let comments = String(before.comments || "");
+    const amountNum = Number(amount);
+    if (amountNum > 0 && !/^table fee due:/im.test(comments)) comments = setCommentLine_(comments, "Table fee due", String(amountNum));
+    comments = setCommentLine_(comments, "Payment ref", ref);
+    comments = setCommentLine_(
+      comments,
+      "Payment verified",
+      `${volunteer.email} on ${Utilities.formatDate(new Date(), "Asia/Kolkata", "d MMM yyyy")}`
+    );
+    updateRowFields(sheet, rowIndex, { comments });
+    logAudit(volunteer.email, "Recorded stall payment", "EventRegistration", registrationId, String(before.comments || ""), comments);
+    return Object.assign({}, before, { comments, registration_id: registrationId });
+  });
+}
+
 function listRegistrationsByMobile(mobile) {
   requireFields({ mobile }, ["mobile"]);
   const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);

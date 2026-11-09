@@ -1,5 +1,6 @@
 "use client";
 
+import StallPaymentControl from "@/components/StallPaymentControl";
 import StallDetails from "@/components/StallDetails";
 import { parseStallNeeds, summariseStalls } from "@/lib/stallNeeds";
 import { useMemo, useState } from "react";
@@ -339,7 +340,12 @@ export default function EventRegistrationsPage() {
                 </a>
               )}
               {parseStallNeeds(r.comments) || stallEventIds.has(r.event_id) ? (
-                <StallDetails registration={r} isStall={stallEventIds.has(r.event_id)} />
+                <>
+                  <StallDetails registration={r} isStall={stallEventIds.has(r.event_id)} />
+                  {canReview && stallEventIds.has(r.event_id) && (
+                    <StallPaymentControl registration={r} idToken={idToken as string} onSaved={() => setRefreshKey((k) => k + 1)} />
+                  )}
+                </>
               ) : (
                 r.comments && <p className="text-xs text-muted italic">“{r.comments}”</p>
               )}
@@ -391,6 +397,9 @@ export default function EventRegistrationsPage() {
                   <StatusBadge label="Confirmed" tone="success" />
                 </div>
                 <StallDetails registration={r} isStall />
+                {canReview && (
+                  <StallPaymentControl registration={r} idToken={idToken as string} onSaved={() => setRefreshKey((k) => k + 1)} />
+                )}
               </div>
             ))}
           </div>
@@ -417,7 +426,7 @@ export default function EventRegistrationsPage() {
               { value: stallTotals.chairs, label: "chairs" },
               { value: stallTotals.power, label: "need power" },
               ...(stallTotals.feeDue > 0
-                ? [{ value: `₹${stallTotals.feePaid} / ₹${stallTotals.feeDue}`, label: "table fees reported paid / due" }]
+                ? [{ value: `₹${stallTotals.feeVerified} / ₹${stallTotals.feeDue}`, label: "table fees verified / due" }]
                 : []),
             ].map((t) => (
               <div key={t.label} className="rounded-lg border border-border bg-card px-3 py-2.5">

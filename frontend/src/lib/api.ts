@@ -406,6 +406,13 @@ export const api = {
       apiGet<EventRegistration[]>("volunteer.events.registrations.all", { idToken }),
     approveRegistration: (idToken: string, registrationId: string) =>
       apiPost<EventRegistration>("volunteer.events.registrations.approve", { idToken, registrationId }),
+    recordStallPayment: (idToken: string, registrationId: string, reference: string, amount?: number) =>
+      apiPost<EventRegistration>("volunteer.events.registrations.recordPayment", {
+        idToken,
+        registrationId,
+        reference,
+        amount,
+      }),
     rejectRegistration: (idToken: string, registrationId: string, reason?: string) =>
       apiPost<EventRegistration>("volunteer.events.registrations.reject", { idToken, registrationId, reason }),
     checkIn: (idToken: string, registrationId: string) =>
