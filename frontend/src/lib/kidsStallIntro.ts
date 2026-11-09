@@ -4,9 +4,9 @@
 export type KidsStallIntro = { headline: string; line: string };
 
 export function kidsStallIntro(eventName: string): KidsStallIntro | null {
-  if (/child(?:ren)?['‘’`]?s?\s*day/i.test(eventName)) {
+  if (/child(?:ren)?['‘’`]?s?\s*day|fiesta\s*fantasia/i.test(eventName)) {
     return {
-      headline: "Fiesta Fantasia 2: Eat, Play, Laugh, Repeat! A fair planned and run entirely by our kids.",
+      headline: "Fiesta Fantasia 2.0: Eat, Play, Laugh, Repeat! A fair planned and run entirely by our kids.",
       line: "Kids under 18 run stalls (games, food, crafts, used books), everyone plays Tambola, and the money raised supports Angels Orphanage, Bangalore. Stall registrations close 12 Nov.",
     };
   }
