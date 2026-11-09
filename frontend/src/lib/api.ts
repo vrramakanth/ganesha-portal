@@ -242,6 +242,12 @@ export const api = {
   },
   registrations: {
     mine: (mobile: string) => apiGet<EventRegistration[]>("registrations.mine", { mobile }),
+    addPaymentRef: (registrationId: string, mobile: string, reference: string) =>
+      apiPost<{ registrationId: string; alreadyVerified: boolean }>("registrations.paymentRef", {
+        registrationId,
+        mobile,
+        reference,
+      }),
   },
   dinner: {
     register: (payload: {

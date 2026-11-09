@@ -45,6 +45,7 @@ const ROUTES = {
   "events.flat.set": { module: "events", handler: (p) => setFlatParticipation(p) },
   "events.flat.list": { module: "events", handler: (p) => listFlatParticipation(p.eventId) },
   "events.registrations.updateSong": { module: "events", handler: (p) => updateRegistrationSong(p) },
+  "registrations.paymentRef": { module: "events", handler: (p) => addRegistrationPaymentRef(p) },
   "registrations.mine": { module: "events", handler: (p) => listRegistrationsByMobile(p.mobile) },
   "dinner.register": { module: "meal", handler: (p) => registerDinner(p) },
   "dinner.submitReference": { module: "meal", handler: (p) => submitDinnerPaymentReference(p) },
