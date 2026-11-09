@@ -3,6 +3,7 @@
 import StallPaymentControl from "@/components/StallPaymentControl";
 import StallDetails from "@/components/StallDetails";
 import { parseStallNeeds, summariseStalls } from "@/lib/stallNeeds";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -305,6 +306,15 @@ export default function EventRegistrationsPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {stallEventIds.size > 0 && (
+        <Link
+          href={`/volunteer/events/stalls${eventFilter && stallEventIds.has(eventFilter) ? `?event=${encodeURIComponent(eventFilter)}` : ""}`}
+          className="block rounded-xl border border-border bg-card py-3 text-center text-sm font-semibold text-maroon"
+        >
+          📄 Stall list (PDF) · every stall on one sheet
+        </Link>
       )}
 
       {pendingGroups.length === 0 && !loading && (

@@ -373,6 +373,14 @@ export default function VolunteerEventsPage() {
               >
                 Nominations
               </Link>
+              {event.category === "Kids Stall" && (
+                <Link
+                  href={`/volunteer/events/stalls?event=${encodeURIComponent(event.event_id)}`}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-maroon"
+                >
+                  Stall list
+                </Link>
+              )}
               {canCreate && (
                 <button
                   onClick={() => openEditForm(event)}
