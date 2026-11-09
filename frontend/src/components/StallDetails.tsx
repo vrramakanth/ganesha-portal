@@ -34,7 +34,7 @@ export default function StallDetails({
           </p>
         ) : (
           <p className="text-saffron-text">
-            No tables, chairs, power or payment details on this one. It was sent before the form asked for them.
+            No stall details are saved for this one (tables, chairs, power, payment). Ask the parent to send them again.
           </p>
         )}
       </div>

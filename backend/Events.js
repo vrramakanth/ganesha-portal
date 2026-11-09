@@ -390,9 +390,23 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
     mobile,
     parent_name: parentName || "",
     parent_mobile: parentMobile || "",
-    sub_category: event.category === "Cultural" ? normalizedSubCategory : "",
+    // Cultural events validate and keep a performance type; Kids Stall events
+    // keep the stall type and the stall answers (kids, tables, chairs, power,
+    // fee and payment lines) that the sign-up form writes into the comments.
+    // Every other kind of event stores neither.
+    sub_category:
+      event.category === "Cultural"
+        ? normalizedSubCategory
+        : event.category === "Kids Stall"
+          ? String(subCategory || "").trim().slice(0, 60)
+          : "",
     song_url: songUrl,
-    comments: event.category === "Cultural" ? (comments || "") : "",
+    comments:
+      event.category === "Cultural"
+        ? comments || ""
+        : event.category === "Kids Stall"
+          ? String(comments || "").slice(0, 2000)
+          : "",
     status: "PENDING_REVIEW",
     reviewed_by: "",
     reviewed_at: "",
