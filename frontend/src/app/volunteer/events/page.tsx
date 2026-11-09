@@ -334,6 +334,14 @@ export default function VolunteerEventsPage() {
           Review Nominations
         </Link>
       )}
+      {canCreate && (
+        <Link
+          href="/volunteer/events/summary"
+          className="block w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon"
+        >
+          📊 Events summary · sign-ups across events
+        </Link>
+      )}
 
       {showForm && (
         <EventForm
