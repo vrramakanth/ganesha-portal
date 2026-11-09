@@ -405,9 +405,9 @@ export default function EventRegistrationsPage() {
           </div>
           {approvedWithoutDetails > 0 && (
             <p className="text-xs text-muted">
-              {approvedWithoutDetails} of these {approvedWithoutDetails === 1 ? "was" : "were"} sent before the form asked for
-              tables, chairs and power, so {approvedWithoutDetails === 1 ? "it isn't" : "they aren't"} in the totals below. Ask{" "}
-              {approvedWithoutDetails === 1 ? "that parent" : "those parents"} for the details.
+              {approvedWithoutDetails} of these {approvedWithoutDetails === 1 ? "has" : "have"} no stall details saved (tables,
+              chairs, power, payment), so {approvedWithoutDetails === 1 ? "it isn't" : "they aren't"} in the totals below. Ask{" "}
+              {approvedWithoutDetails === 1 ? "that parent" : "those parents"} to send them again.
             </p>
           )}
         </section>
