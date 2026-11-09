@@ -80,6 +80,11 @@ const ROUTES = {
   "volunteer.events.registrations.pending": { auth: true, module: "events", handler: (p, v) => listPendingRegistrations(v) },
   "volunteer.events.registrations.all": { auth: true, module: "events", handler: (p, v) => listAllRegistrations(v) },
   "volunteer.events.registrations.approve": { auth: true, module: "events", handler: (p, v) => approveRegistration(v, p.registrationId) },
+  "volunteer.events.registrations.recordPayment": {
+    auth: true,
+    module: "events",
+    handler: (p, v) => recordRegistrationPayment(v, p.registrationId, p.reference, p.amount),
+  },
   "volunteer.events.registrations.reject": { auth: true, module: "events", handler: (p, v) => rejectRegistration(v, p.registrationId, p.reason) },
   "volunteer.events.checkin": { auth: true, module: "events", handler: (p, v) => checkInRegistration(v, p.registrationId) },
   "volunteer.dinner.dashboard": { auth: true, module: "meal", handler: (p) => getDinnerDashboard(p.eventId) },

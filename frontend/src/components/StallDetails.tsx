@@ -1,5 +1,5 @@
 import { formatCurrency } from "@/lib/date";
-import { parseStallNeeds } from "@/lib/stallNeeds";
+import { parsePayment, parseStallNeeds } from "@/lib/stallNeeds";
 import type { EventRegistration } from "@/lib/types";
 
 /** The full picture of one kids' stall sign-up for an organiser: what it
@@ -20,6 +20,7 @@ export default function StallDetails({
   if (!needs) {
     if (!isStall) return null;
     const parent = [r.parent_name, r.parent_mobile && r.parent_mobile !== r.mobile ? r.parent_mobile : ""].filter(Boolean).join(" · ");
+    const payment = parsePayment(r.comments);
     return (
       <div className="mt-1 space-y-0.5 rounded-lg bg-background px-3 py-2 text-xs">
         <p>
@@ -27,9 +28,15 @@ export default function StallDetails({
           {r.comments ? `: ${r.comments.replace(/\s*\n\s*/g, " · ")}` : ""}
         </p>
         {parent && <p className="text-muted">Parent: {parent}</p>}
-        <p className="text-saffron-text">
-          No tables, chairs, power or payment details on this one. It was sent before the form asked for them.
-        </p>
+        {payment.verified ? (
+          <p className="text-green-700">
+            ✓ {payment.fee > 0 ? `${formatCurrency(payment.fee)} paid` : "Paid"} · UPI ref {payment.ref} · verified {payment.verified}
+          </p>
+        ) : (
+          <p className="text-saffron-text">
+            No tables, chairs, power or payment details on this one. It was sent before the form asked for them.
+          </p>
+        )}
       </div>
     );
   }
@@ -48,9 +55,13 @@ export default function StallDetails({
       {needs.other && <p className="text-muted">Also needs: {needs.other}</p>}
       {parent && <p className="text-muted">Parent: {parent}</p>}
       {needs.fee > 0 && (
-        <p className={needs.paymentRef ? "text-green-700" : "text-saffron-text"}>
+        <p className={needs.verified ? "text-green-700" : needs.paymentRef ? "text-muted" : "text-saffron-text"}>
           {formatCurrency(needs.fee)} for tables ·{" "}
-          {needs.paymentRef ? `UPI ref ${needs.paymentRef} (check against the bank)` : "no payment reference yet"}
+          {needs.verified
+            ? `✓ paid, UPI ref ${needs.paymentRef} · verified ${needs.verified}`
+            : needs.paymentRef
+              ? `UPI ref ${needs.paymentRef} (check against the bank)`
+              : "no payment reference yet"}
         </p>
       )}
     </div>
