@@ -324,7 +324,8 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       />
       {event.category === "Kids Stall" && kidsStallIntro(event.name) && (
         <div className="rounded-2xl bg-[#1457c9] p-4 text-white shadow-sm">
-          <p className="text-base font-bold leading-snug">🎈 {kidsStallIntro(event.name)!.headline}</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#ffd23f]">🎈 {kidsStallIntro(event.name)!.title}</p>
+          <p className="mt-1.5 text-base font-bold leading-snug">{kidsStallIntro(event.name)!.headline}</p>
           <p className="mt-1.5 text-sm text-white/90">{kidsStallIntro(event.name)!.line}</p>
         </div>
       )}
