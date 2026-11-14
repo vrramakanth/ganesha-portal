@@ -10,7 +10,7 @@ const STALL_LIKES = ["The stalls", "Tambola", "Food", "Games", "Arts & crafts", 
 const GENERAL_LIKES = ["The activities", "Food", "Meeting neighbours", "The organisation", "The vibe"];
 
 /** After an event: a short feedback form (stars, who you are, what you liked,
- *  what to improve, whether you'd help next time). It is sent as one message to
+ *  what to improve, ideas for the next events). It is sent as one message to
  *  the festival's ordinary Feedback list, one labelled line per answer, so
  *  volunteers read it in Admin → Feedback like any other feedback. */
 export default function EventRatingFeedback({ eventName }: { eventName: string }) {
@@ -20,7 +20,7 @@ export default function EventRatingFeedback({ eventName }: { eventName: string }
   const [role, setRole] = useState("");
   const [liked, setLiked] = useState<string[]>([]);
   const [improve, setImprove] = useState("");
-  const [help, setHelp] = useState<"" | "Yes" | "Maybe" | "No">("");
+  const [ideas, setIdeas] = useState("");
   const [typedName, setName] = useState<string | null>(null);
   const [typedMobile, setMobile] = useState<string | null>(null);
   const name = typedName ?? profile.name;
@@ -39,10 +39,6 @@ export default function EventRatingFeedback({ eventName }: { eventName: string }
       setError("That doesn't look like a valid 10-digit mobile number.");
       return;
     }
-    if ((help === "Yes" || help === "Maybe") && !mobile) {
-      setError("Add your mobile so we can reach you about helping.");
-      return;
-    }
     setError(null);
     setSubmitting(true);
     try {
@@ -52,7 +48,7 @@ export default function EventRatingFeedback({ eventName }: { eventName: string }
         role && `Who: ${role}`,
         liked.length > 0 && `Enjoyed: ${liked.join(", ")}`,
         improve.trim() && `To improve: ${improve.trim()}`,
-        help && `Would help next time: ${help}`,
+        ideas.trim() && `Ideas for next events: ${ideas.trim()}`,
       ].filter(Boolean);
       await api.feedback.submit({
         message: lines.join("\n"),
@@ -145,14 +141,14 @@ export default function EventRatingFeedback({ eventName }: { eventName: string }
       </div>
 
       <div className="space-y-1.5">
-        <p className="text-sm font-medium">Would you help organise next time?</p>
-        <div className="flex flex-wrap gap-2">
-          {(["Yes", "Maybe", "No"] as const).map((h) => (
-            <button key={h} type="button" onClick={() => setHelp(help === h ? "" : h)} className={chip(help === h)}>
-              {h}
-            </button>
-          ))}
-        </div>
+        <label className="text-sm font-medium">Any ideas for our next events?</label>
+        <textarea
+          rows={3}
+          value={ideas}
+          onChange={(e) => setIdeas(e.target.value)}
+          placeholder="e.g. a talent show, a book fair, a sports day…"
+          className={input}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -161,9 +157,7 @@ export default function EventRatingFeedback({ eventName }: { eventName: string }
           <input value={name} onChange={(e) => setName(e.target.value)} className={input} />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">
-            Mobile {help === "Yes" || help === "Maybe" ? "" : "(optional)"}
-          </label>
+          <label className="text-sm font-medium">Mobile (optional)</label>
           <input
             type="tel"
             inputMode="numeric"
