@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
+import EventRatingFeedback from "@/components/EventRatingFeedback";
 import { useResidentProfile } from "@/lib/useResidentProfile";
 
 const TYPES = [
@@ -21,7 +22,7 @@ type Type = (typeof TYPES)[number]["value"];
 export default function EventFeedback({ eventName, eventDate }: { eventName: string; eventDate: string }) {
   const { profile } = useResidentProfile();
   // Decided once when the page opens (it can't change while someone is typing).
-  const [eventOver] = useState(() => new Date(eventDate).getTime() + 24 * 60 * 60 * 1000 < Date.now());
+  const [eventOver] = useState(() => new Date(eventDate).getTime() <= Date.now());
   const [type, setType] = useState<Type>(eventOver ? "Feedback" : "Idea");
   const [text, setText] = useState("");
   const [typedName, setName] = useState<string | null>(null);
@@ -58,6 +59,9 @@ export default function EventFeedback({ eventName, eventDate }: { eventName: str
       setSubmitting(false);
     }
   }
+
+  // From the day of the event on, ask for a rating and a few quick answers.
+  if (eventOver) return <EventRatingFeedback eventName={eventName} />;
 
   if (done) {
     return (
