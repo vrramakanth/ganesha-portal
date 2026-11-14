@@ -354,10 +354,18 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         (event.category === "Flat Opt-in" ? (
           <FlatOptIn eventId={event.event_id} open={event.status === "OPEN"} />
         ) : event.category === "Kids Stall" ? (
-          <section className="space-y-3">
-            <h2 className="text-lg font-bold">Register for a stall</h2>
-            <KidsStallForm eventId={event.event_id} open={event.status === "OPEN"} description={event.description} />
-          </section>
+          event.status === "CLOSED" || event.status === "FULL" ? (
+            <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">
+              {event.status === "FULL"
+                ? "🎈 All stall spots are taken. Thank you for the great response!"
+                : "🎈 Stall sign-ups are closed. Thank you to everyone who took part!"}
+            </p>
+          ) : (
+            <section className="space-y-3">
+              <h2 className="text-lg font-bold">Register for a stall</h2>
+              <KidsStallForm eventId={event.event_id} open={event.status === "OPEN"} description={event.description} />
+            </section>
+          )
         ) : event.category === "Dinner" && modules.meal ? (
           <MealSignupCard festival={festivalInfo} />
         ) : (
