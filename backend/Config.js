@@ -151,15 +151,24 @@ function getAdminWhatsappNumber() {
 }
 
 /** Invalidated on every write below, so an admin's change takes effect
- *  on the very next read rather than waiting out the cache TTL. */
+ *  on the very next read rather than waiting out the cache TTL.
+ *
+ *  The value cell is set to plain text before writing, so Sheets keeps
+ *  exactly what was typed: otherwise "Dec 2026" became a date (served as
+ *  "2026-11-30T18:30:00.000Z"), and a prefix or tagline that looks like a
+ *  number or date could be silently converted too. Every reader already
+ *  coerces with Number()/String() or accepts text, so storing text is safe. */
 function setConfig(key, value) {
   const sheet = getSheet(SHEETS.CONFIGURATION);
-  const rowIndex = findRowIndexById(sheet, "key", key);
+  const valueCol = getHeaders(sheet).indexOf("value") + 1;
+  let rowIndex = findRowIndexById(sheet, "key", key);
   if (rowIndex === -1) {
-    appendObject(sheet, { key, value });
-  } else {
-    updateRowFields(sheet, rowIndex, { value });
+    appendObject(sheet, { key, value: "" });
+    rowIndex = findRowIndexById(sheet, "key", key);
   }
+  const text = value === null || value === undefined ? "" : String(value);
+  sheet.getRange(rowIndex, valueCol).setNumberFormat("@").setValue(text);
+  invalidateDashboardCache_();
   CacheService.getScriptCache().remove(CONFIG_CACHE_KEY);
 }
 
