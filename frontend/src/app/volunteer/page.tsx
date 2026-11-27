@@ -1,5 +1,6 @@
 "use client";
 
+import { mealName } from "@/lib/meal";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -13,21 +14,21 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function VolunteerDashboardPage() {
   const { idToken, volunteer } = useVolunteerAuth();
-  const { modules } = useFestivalConfig();
+  const { festival, modules } = useFestivalConfig();
   const { data, loading, error } = useAsync(
     () => takePrefetchedDashboard(idToken as string) ?? api.volunteer.dashboard(idToken as string),
     [idToken]
   );
 
   const quickActions = [
-    ...(modules.donations && volunteer?.permissions.includes("Finance")
+    ...((modules.donations || modules.sponsorships) && volunteer?.permissions.includes("Finance")
       ? [{ href: "/volunteer/donations", label: "Review Payments" }]
       : []),
     ...(modules.sponsorships && volunteer?.permissions.includes("Finance")
       ? [{ href: "/volunteer/sponsorships", label: "Record Sponsorship" }]
       : []),
     ...(modules.meal && (volunteer?.permissions.includes("Finance") || volunteer?.permissions.includes("Dinner"))
-      ? [{ href: "/volunteer/community-dinner", label: "Community Dinner" }]
+      ? [{ href: "/volunteer/community-dinner", label: mealName(festival) }]
       : []),
     ...(modules.meal ? [{ href: "/volunteer/dinner/counter", label: "Dinner Counter" }] : []),
     // A bhog sponsor is recorded against a donation the sponsor already made

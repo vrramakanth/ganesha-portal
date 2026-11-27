@@ -1,5 +1,6 @@
 "use client";
 
+import { isUnlisted } from "@/lib/events";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -18,7 +19,7 @@ const STATUS_TONE = {
 
 export default function EventsPage() {
   const { data: events, loading, error } = useAsync(() => api.events.list(), []);
-  const visible = (events ?? []).filter((e) => e.status !== "DRAFT");
+  const visible = (events ?? []).filter((e) => e.status !== "DRAFT" && !isUnlisted(e));
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">

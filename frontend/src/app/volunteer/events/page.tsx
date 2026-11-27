@@ -1,5 +1,6 @@
 "use client";
 
+import { isUnlisted } from "@/lib/events";
 import { useState } from "react";
 import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
@@ -22,7 +23,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   COMPLETED: "info",
 };
 
-const CATEGORIES = ["General", "Dinner", "Kids", "Cultural", "Sports"];
+const CATEGORIES = ["General", "Dinner", "Kids", "Cultural", "Sports", "Flat Opt-in", "Kids Stall"];
 
 /** A one-line hook per category so the broadcast reads like an invitation
  *  from the community, not a calendar entry — the volunteer never has to
@@ -33,6 +34,8 @@ const CATEGORY_INTRO: Record<string, string> = {
   Kids: "Fun, games, and giggles for our little ones — don't miss it! 🎈",
   Cultural: "An evening of music, dance, and community spirit! 🎶",
   Sports: "Game on! Come cheer, compete, and have a blast. 🏆",
+  "Kids Stall": "Calling all young entrepreneurs — set up your very own stall! 🎈",
+  "Flat Opt-in": "Is your flat joining in? Tell us — it only takes a tap! 🎃",
   General: "Let's celebrate together as one community family! 🎉",
 };
 
@@ -65,6 +68,7 @@ type EventFormValues = {
   capacity: string;
   subCategories: string[];
   whatsappIntro: string;
+  unlisted: boolean;
 };
 
 /** Shared by "+ New Event" and "Edit" — keyed by the parent on the event's
@@ -104,6 +108,7 @@ function EventForm({
       capacity: String(form.get("capacity") || ""),
       subCategories,
       whatsappIntro: String(form.get("whatsappIntro") || ""),
+      unlisted: form.get("unlisted") === "on",
     });
   }
 
@@ -119,7 +124,7 @@ function EventForm({
       <textarea
         name="description"
         defaultValue={event?.description}
-        placeholder="Description (optional)"
+        placeholder="Description (optional; paste a YouTube link to show the video)"
         className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
       />
       <div className="grid grid-cols-2 gap-2">
@@ -200,6 +205,17 @@ function EventForm({
         </p>
       </div>
 
+      <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-sm">
+        <input type="checkbox" name="unlisted" defaultChecked={event ? isUnlisted(event) : false} className="mt-0.5" />
+        <span>
+          <span className="font-semibold">Unlisted</span>
+          <span className="block text-xs text-muted">
+            Hide from Home and the Events list. The event still opens, and takes sign-ups, at its own link — for an
+            event promoted elsewhere, such as the Namma Habba hub.
+          </span>
+        </span>
+      </label>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button
@@ -267,6 +283,7 @@ export default function VolunteerEventsPage() {
         capacity: values.capacity ? Number(values.capacity) : undefined,
         subCategories: values.subCategories,
         whatsappIntro: values.whatsappIntro,
+        unlisted: values.unlisted,
       };
       if (editingEvent) {
         await api.volunteer.updateEvent(idToken as string, editingEvent.event_id, payload);
@@ -317,6 +334,14 @@ export default function VolunteerEventsPage() {
           Review Nominations
         </Link>
       )}
+      {canCreate && (
+        <Link
+          href="/volunteer/events/summary"
+          className="block w-full rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon"
+        >
+          📊 Events summary · sign-ups across events
+        </Link>
+      )}
 
       {showForm && (
         <EventForm
@@ -347,8 +372,23 @@ export default function VolunteerEventsPage() {
                 </p>
               </div>
               <StatusBadge label={event.status} tone={STATUS_TONE[event.status] ?? "neutral"} />
+              {isUnlisted(event) && <StatusBadge label="UNLISTED" tone="neutral" />}
             </div>
             <div className="flex items-center justify-end gap-2 flex-wrap">
+              <Link
+                href={`/volunteer/events/registrations?event=${encodeURIComponent(event.event_id)}`}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-maroon"
+              >
+                Nominations
+              </Link>
+              {event.category === "Kids Stall" && (
+                <Link
+                  href={`/volunteer/events/stalls?event=${encodeURIComponent(event.event_id)}`}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-maroon"
+                >
+                  Stall list
+                </Link>
+              )}
               {canCreate && (
                 <button
                   onClick={() => openEditForm(event)}

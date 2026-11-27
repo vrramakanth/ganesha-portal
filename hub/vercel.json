@@ -4,6 +4,16 @@
       "source": "/rajyotsava",
       "destination": "https://rajyotsava.nammahabba.in",
       "permanent": false
+    },
+    {
+      "source": "/halloween2026",
+      "destination": "https://rajyotsava.nammahabba.in/events/EVT-edfaea92",
+      "permanent": false
+    },
+    {
+      "source": "/childrensday2026",
+      "destination": "https://rajyotsava.nammahabba.in/events/EVT-a391d7cd?v=2",
+      "permanent": false
     }
   ]
 }

@@ -186,6 +186,19 @@ export const api = {
         song,
         songMimeType,
       }),
+    flatSet: (payload: { eventId: string; block: string; flatNumber: string; participating: boolean; kids: number }) =>
+      apiPost<{ eventId: string; block: string; flatNumber: string; participating: boolean; kids: number }>(
+        "events.flat.set",
+        payload
+      ),
+    flatList: (eventId: string) =>
+      apiGet<{
+        participating: { block: string; flat_number: string }[];
+        notParticipating: number;
+        /** Absent on a backend that predates the kids count. */
+        kidsTotal?: number;
+        kidsFlats?: number;
+      }>("events.flat.list", { eventId }),
     rsvp: (eventId: string, response: "YES" | "NO") =>
       apiPost<{ eventId: string; rsvpYes: number; rsvpNo: number }>("events.rsvp", { eventId, response }),
   },
@@ -229,6 +242,12 @@ export const api = {
   },
   registrations: {
     mine: (mobile: string) => apiGet<EventRegistration[]>("registrations.mine", { mobile }),
+    addPaymentRef: (registrationId: string, mobile: string, reference: string) =>
+      apiPost<{ registrationId: string; alreadyVerified: boolean }>("registrations.paymentRef", {
+        registrationId,
+        mobile,
+        reference,
+      }),
   },
   dinner: {
     register: (payload: {
@@ -361,6 +380,7 @@ export const api = {
         tokenCode?: string;
         subCategories?: string[];
         whatsappIntro?: string;
+        unlisted?: boolean;
       }
     ) => apiPost<EventRecord>("volunteer.events.create", { idToken, ...payload }),
     updateEvent: (
@@ -379,6 +399,7 @@ export const api = {
         fee?: number;
         subCategories?: string[];
         whatsappIntro?: string;
+        unlisted?: boolean;
       }
     ) => apiPost<EventRecord>("volunteer.events.update", { idToken, eventId, ...payload }),
     updateEventStatus: (idToken: string, eventId: string, status: string) =>
@@ -391,6 +412,28 @@ export const api = {
       apiGet<EventRegistration[]>("volunteer.events.registrations.all", { idToken }),
     approveRegistration: (idToken: string, registrationId: string) =>
       apiPost<EventRegistration>("volunteer.events.registrations.approve", { idToken, registrationId }),
+    recordStallPayment: (idToken: string, registrationId: string, reference: string, amount?: number) =>
+      apiPost<EventRegistration>("volunteer.events.registrations.recordPayment", {
+        idToken,
+        registrationId,
+        reference,
+        amount,
+      }),
+    updateStallDetails: (
+      idToken: string,
+      registrationId: string,
+      details: {
+        stallType: string;
+        idea: string;
+        kids: number;
+        tables: number;
+        chairs: number;
+        power: boolean;
+        powerDetails: string;
+        other: string;
+        fee?: number;
+      }
+    ) => apiPost<EventRegistration>("volunteer.events.registrations.stall", { idToken, registrationId, ...details }),
     rejectRegistration: (idToken: string, registrationId: string, reason?: string) =>
       apiPost<EventRegistration>("volunteer.events.registrations.reject", { idToken, registrationId, reason }),
     checkIn: (idToken: string, registrationId: string) =>

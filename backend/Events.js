@@ -72,6 +72,7 @@ function createEvent(volunteer, payload) {
   const sheet = getSheet(SHEETS.EVENTS);
   ensureColumn(sheet, "sub_categories");
   ensureColumn(sheet, "whatsapp_intro");
+  ensureColumn(sheet, "unlisted");
 
   const event = {
     event_id: `EVT-${Utilities.getUuid().slice(0, 8)}`,
@@ -96,6 +97,9 @@ function createEvent(volunteer, payload) {
     // or instruments) — left blank, the Share button falls back to the
     // category default (see buildWhatsAppShareUrl on the frontend).
     whatsapp_intro: payload.whatsappIntro || "",
+    // Unlisted events are left out of the portal's own lists but still open
+    // at their direct link (e.g. from the hub) and take registrations.
+    unlisted: payload.unlisted ? "TRUE" : "FALSE",
   };
   appendObject(sheet, event);
   invalidateEventsCache();
@@ -117,6 +121,7 @@ function updateEvent(volunteer, eventId, payload) {
     const sheet = getSheet(SHEETS.EVENTS);
     ensureColumn(sheet, "sub_categories");
     ensureColumn(sheet, "whatsapp_intro");
+    ensureColumn(sheet, "unlisted");
     const rowIndex = findRowIndexById(sheet, "event_id", eventId);
     if (rowIndex === -1) throw new ApiError("Unknown event", 404);
     const before = getRowObject(sheet, rowIndex);
@@ -136,6 +141,7 @@ function updateEvent(volunteer, eventId, payload) {
       fee: payload.fee || 0,
       sub_categories: buildSubCategories(payload.category, payload.subCategories),
       whatsapp_intro: payload.whatsappIntro || "",
+      unlisted: payload.unlisted ? "TRUE" : "FALSE",
     };
     updateRowFields(sheet, rowIndex, fields);
     invalidateEventsCache();
@@ -208,6 +214,87 @@ function rsvpEvent(eventId, response) {
       rsvpNo: Number(field === "rsvp_no" ? updated : before.rsvp_no) || 0,
     };
   });
+}
+
+/** "Is your flat taking part?" — for an event of category "Flat Opt-in"
+ *  (e.g. Trick or Treat, where children visit only the flats that said yes).
+ *  One answer per flat, so answering again simply changes it. The sheet is
+ *  created on first use, like Feedback. */
+const FLAT_OPT_IN_CATEGORY = "Flat Opt-in";
+
+function getFlatParticipationSheet() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.FLAT_PARTICIPATION);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.FLAT_PARTICIPATION);
+    const headers = SHEET_SCHEMAS[SHEETS.FLAT_PARTICIPATION];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function requireFlatOptInEvent(eventId) {
+  const event = getEvent(eventId);
+  if (event.category !== FLAT_OPT_IN_CATEGORY) throw new ApiError("This event doesn't collect flat participation", 400);
+  return event;
+}
+
+function setFlatParticipation({ eventId, block, flatNumber, participating, kids }) {
+  requireFestivalActive();
+  requireFields({ eventId, block, flatNumber }, ["eventId", "block", "flatNumber"]);
+  const event = requireFlatOptInEvent(eventId);
+  if (event.status !== "OPEN") throw new ApiError("This is not open for answers right now", 400);
+  validateBlock(block);
+  const flat = String(flatNumber).trim();
+  if (!/^\d{3}$/.test(flat)) throw new ApiError("Flat number must be 3 digits, e.g. 005", 400);
+  const yes = participating === true || String(participating).toLowerCase() === "true";
+  // How many children from this flat will go trick-or-treating — separate
+  // from whether the flat opens its door, so a flat can send kids out
+  // without welcoming visitors, or the other way round.
+  const kidsNum = kids === undefined || kids === "" || kids === null ? 0 : Number(kids);
+  if (!Number.isInteger(kidsNum) || kidsNum < 0 || kidsNum > 20) {
+    throw new ApiError("Number of kids must be a whole number from 0 to 20", 400);
+  }
+
+  return withLock(() => {
+    const sheet = getFlatParticipationSheet();
+    ensureColumn(sheet, "kids");
+    const rows = rowsToObjects(sheet);
+    const index = rows.findIndex(
+      (r) =>
+        String(r.event_id) === String(eventId) &&
+        String(r.block).toUpperCase() === String(block).toUpperCase() &&
+        String(r.flat_number).padStart(3, "0") === flat
+    );
+    const fields = { participating: yes ? "TRUE" : "FALSE", kids: kidsNum, updated_at: new Date() };
+    if (index === -1) {
+      appendObject(sheet, Object.assign({ event_id: eventId, block: String(block).toUpperCase(), flat_number: "'" + flat }, fields));
+    } else {
+      updateRowFields(sheet, index + 2, fields);
+    }
+    return { eventId, block: String(block).toUpperCase(), flatNumber: flat, participating: yes, kids: kidsNum };
+  });
+}
+
+/** The flats that said yes (block, flat), sorted, how many said no, and the
+ *  total children going out (and from how many flats). */
+function listFlatParticipation(eventId) {
+  requireFields({ eventId }, ["eventId"]);
+  requireFlatOptInEvent(eventId);
+  const rows = rowsToObjects(getFlatParticipationSheet()).filter((r) => String(r.event_id) === String(eventId));
+  const isYes = (r) => r.participating === true || String(r.participating).toUpperCase() === "TRUE";
+  const flats = rows
+    .filter(isYes)
+    .map((r) => ({ block: String(r.block).toUpperCase(), flat_number: String(r.flat_number).replace(/^'/, "").padStart(3, "0") }))
+    .sort((a, b) => (a.block === b.block ? a.flat_number.localeCompare(b.flat_number) : a.block.localeCompare(b.block)));
+  const kidCounts = rows.map((r) => Number(r.kids) || 0);
+  return {
+    participating: flats,
+    notParticipating: rows.filter((r) => !isYes(r)).length,
+    kidsTotal: kidCounts.reduce((sum, n) => sum + n, 0),
+    kidsFlats: kidCounts.filter((n) => n > 0).length,
+  };
 }
 
 const MAX_SONG_BASE64_LENGTH = 14 * 1024 * 1024; // ~10MB raw — comfortably covers a full song at typical MP3 bitrates
@@ -303,9 +390,23 @@ function registerForEvent({ eventId, participantName, participantAge, block, fla
     mobile,
     parent_name: parentName || "",
     parent_mobile: parentMobile || "",
-    sub_category: event.category === "Cultural" ? normalizedSubCategory : "",
+    // Cultural events validate and keep a performance type; Kids Stall events
+    // keep the stall type and the stall answers (kids, tables, chairs, power,
+    // fee and payment lines) that the sign-up form writes into the comments.
+    // Every other kind of event stores neither.
+    sub_category:
+      event.category === "Cultural"
+        ? normalizedSubCategory
+        : event.category === "Kids Stall"
+          ? String(subCategory || "").trim().slice(0, 60)
+          : "",
     song_url: songUrl,
-    comments: event.category === "Cultural" ? (comments || "") : "",
+    comments:
+      event.category === "Cultural"
+        ? comments || ""
+        : event.category === "Kids Stall"
+          ? String(comments || "").slice(0, 2000)
+          : "",
     status: "PENDING_REVIEW",
     reviewed_by: "",
     reviewed_at: "",
@@ -417,6 +518,119 @@ function rejectRegistration(volunteer, registrationId, reason) {
     updateRowFields(sheet, rowIndex, fields);
     logAudit(volunteer.email, "Rejected event registration", "EventRegistration", registrationId, "PENDING_REVIEW", "REJECTED");
     return Object.assign({}, before, fields, { registration_id: registrationId });
+  });
+}
+
+/** Sets one labelled line ("Payment ref: …") in a registration's comments,
+ *  replacing the line if it is there and adding it if not. */
+function setCommentLine_(comments, label, value) {
+  const lines = String(comments || "").split("\n").filter((l) => l.trim() !== "");
+  const prefix = label.toLowerCase() + ":";
+  const index = lines.findIndex((l) => l.toLowerCase().startsWith(prefix));
+  const line = `${label}: ${value}`;
+  if (index === -1) lines.push(line);
+  else lines[index] = line;
+  return lines.join("\n");
+}
+
+/** An organiser records the UPI reference for a stall's table fee and marks it
+ *  checked against the bank. For parents who paid but never typed the
+ *  reference, or whose stall was sent before the payment step existed. The
+ *  facts are kept as labelled lines in the registration's comments, the same
+ *  place the sign-up form puts them, so nothing else needs to change. */
+function recordRegistrationPayment(volunteer, registrationId, reference, amount) {
+  requirePermission(volunteer, "Events");
+  const ref = String(reference || "").trim();
+  if (!ref) throw new ApiError("Enter the UPI reference (UTR) from the bank record", 400);
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+    ensureColumn(sheet, "comments");
+    const rowIndex = findRowIndexById(sheet, "registration_id", registrationId);
+    if (rowIndex === -1) throw new ApiError("Unknown registration", 404);
+    const before = getRowObject(sheet, rowIndex);
+    let comments = String(before.comments || "");
+    const amountNum = Number(amount);
+    if (amountNum > 0 && !/^table fee due:/im.test(comments)) comments = setCommentLine_(comments, "Table fee due", String(amountNum));
+    comments = setCommentLine_(comments, "Payment ref", ref);
+    comments = setCommentLine_(
+      comments,
+      "Payment verified",
+      `${volunteer.email} on ${Utilities.formatDate(new Date(), "Asia/Kolkata", "d MMM yyyy")}`
+    );
+    updateRowFields(sheet, rowIndex, { comments });
+    logAudit(volunteer.email, "Recorded stall payment", "EventRegistration", registrationId, String(before.comments || ""), comments);
+    return Object.assign({}, before, { comments, registration_id: registrationId });
+  });
+}
+
+/** An organiser fills in or corrects a stall's details (idea, kids, tables,
+ *  chairs, power, other needs) for a sign-up whose details were lost or
+ *  need changing. Only the stall lines are written; payment lines are left as
+ *  they are, except the amount due, which follows the tables unless a payment
+ *  has already been verified. */
+function updateRegistrationStall(volunteer, registrationId, d) {
+  requirePermission(volunteer, "Events");
+  d = d || {};
+  const num = (v) => Math.max(0, Math.min(50, Math.floor(Number(v) || 0)));
+  const idea = String(d.idea || "").trim().slice(0, 300);
+  if (!idea) throw new ApiError("Enter what the stall will be", 400);
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+    ensureColumn(sheet, "comments");
+    ensureColumn(sheet, "sub_category");
+    const rowIndex = findRowIndexById(sheet, "registration_id", registrationId);
+    if (rowIndex === -1) throw new ApiError("Unknown registration", 404);
+    const before = getRowObject(sheet, rowIndex);
+    let comments = String(before.comments || "");
+    const power = d.power ? "Yes" + (String(d.powerDetails || "").trim() ? ": " + String(d.powerDetails).trim().slice(0, 200) : "") : "No";
+    comments = setCommentLine_(comments, "Stall", idea.replace(/\n/g, " "));
+    comments = setCommentLine_(comments, "Kids at stall", String(num(d.kids)));
+    comments = setCommentLine_(comments, "Tables", String(num(d.tables)));
+    comments = setCommentLine_(comments, "Chairs", String(num(d.chairs)));
+    comments = setCommentLine_(comments, "Power", power);
+    const other = String(d.other || "").replace(/\n/g, " ").trim().slice(0, 300);
+    if (other) comments = setCommentLine_(comments, "Other needs", other);
+    else comments = comments.split("\n").filter((l) => !/^other needs:/i.test(l)).join("\n");
+    const fee = Number(d.fee);
+    if (fee >= 0 && d.fee !== undefined && d.fee !== null && !/^payment verified:/im.test(comments)) {
+      comments = setCommentLine_(comments, "Table fee due", String(Math.floor(fee)));
+      if (!/^payment ref:/im.test(comments)) comments = setCommentLine_(comments, "Payment ref", "none yet");
+    }
+    const fields = { comments };
+    const type = String(d.stallType || "").trim().slice(0, 60);
+    if (type) fields.sub_category = type;
+    updateRowFields(sheet, rowIndex, fields);
+    logAudit(volunteer.email, "Edited stall details", "EventRegistration", registrationId, String(before.comments || ""), comments);
+    return Object.assign({}, before, fields, { registration_id: registrationId });
+  });
+}
+
+/** A parent adds the UPI reference to their own stall sign-up after paying.
+ *  Checked by registration ID and the mobile number it was made with (the
+ *  same identity the rest of "My Stuff" uses). It only records the reference:
+ *  nothing is marked paid until an organiser verifies it against the bank, so
+ *  a verified payment can't be changed, and a rejected or cancelled sign-up
+ *  takes none. */
+function addRegistrationPaymentRef({ registrationId, mobile, reference }) {
+  requireFields({ registrationId, mobile, reference }, ["registrationId", "mobile", "reference"]);
+  const ref = String(reference).trim();
+  if (!/^[A-Za-z0-9-]{6,30}$/.test(ref)) {
+    throw new ApiError("That doesn't look like a UPI reference. It is usually 12 digits, shown as UTR in your payment app", 400);
+  }
+  return withLock(() => {
+    const sheet = getSheet(SHEETS.EVENT_REGISTRATIONS);
+    ensureColumn(sheet, "comments");
+    const rowIndex = findRowIndexById(sheet, "registration_id", registrationId);
+    if (rowIndex === -1) throw new ApiError("Unknown registration", 404);
+    const before = getRowObject(sheet, rowIndex);
+    if (String(before.mobile) !== String(mobile)) throw new ApiError("Unknown registration", 404);
+    if (before.status === "REJECTED" || before.status === "CANCELLED") {
+      throw new ApiError(`Cannot add a payment to a ${String(before.status).toLowerCase()} registration`, 400);
+    }
+    const comments = String(before.comments || "");
+    if (/^payment verified:/im.test(comments)) return { registrationId, alreadyVerified: true };
+    updateRowFields(sheet, rowIndex, { comments: setCommentLine_(comments, "Payment ref", ref) });
+    return { registrationId, alreadyVerified: false };
   });
 }
 

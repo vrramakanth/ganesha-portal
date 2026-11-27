@@ -1,12 +1,15 @@
 "use client";
 
+import { isStallComments, parsePayment, parseStallNeeds } from "@/lib/stallNeeds";
+import StallPaymentStep from "@/components/StallPaymentStep";
+import { mealName } from "@/lib/meal";
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { useResidentProfile } from "@/lib/useResidentProfile";
-import { formatCurrency } from "@/lib/date";
+import { formatCurrency, formatEventDate } from "@/lib/date";
 import { fileToBase64 } from "@/lib/file";
 import { parseVolunteerAvailability, isAreaApproved } from "@/lib/volunteerAreas";
 import type { EventRegistration } from "@/lib/types";
@@ -327,7 +330,40 @@ export default function MyStuffPage() {
                     tone={r.check_in_at ? "success" : statusTone(r.status)}
                   />
                 </div>
-                {r.sub_category && r.status !== "REJECTED" && r.status !== "CANCELLED" && (
+                {(() => {
+                  const pay = parsePayment(r.comments);
+                  if (!pay.fee && !pay.verified) return null;
+                  return pay.verified ? (
+                    <p className="text-xs font-semibold text-green-700">✓ Payment received</p>
+                  ) : pay.ref ? (
+                    <p className="text-xs text-muted">Payment reference received. A volunteer is checking it.</p>
+                  ) : (
+                    <p className="text-xs text-saffron-text">Payment not received yet.</p>
+                  );
+                })()}
+                {(() => {
+                  const pay = parsePayment(r.comments);
+                  const needs = parseStallNeeds(r.comments);
+                  if (!pay.fee || pay.ref || pay.verified || r.status === "REJECTED" || r.status === "CANCELLED") return null;
+                  return (
+                    <details className="rounded-lg border border-border">
+                      <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-maroon">
+                        Pay for tables / add payment reference
+                      </summary>
+                      <div className="p-2">
+                        <StallPaymentStep
+                          amount={pay.fee}
+                          tables={needs?.tables ?? 0}
+                          fee={needs && needs.tables ? pay.fee / needs.tables : pay.fee}
+                          festival={festival}
+                          registrationId={r.registration_id}
+                          mobile={activeMobile}
+                        />
+                      </div>
+                    </details>
+                  );
+                })()}
+                {r.sub_category && !isStallComments(r.comments) && r.status !== "REJECTED" && r.status !== "CANCELLED" && (
                   <SongUploader registration={r} mobile={activeMobile} onUpdated={() => setRefreshKey((k) => k + 1)} />
                 )}
               </div>
@@ -361,8 +397,8 @@ export default function MyStuffPage() {
 
           {modules.meal && communityDinner && (
             <Section
-              title="My Community Dinner"
-              subtitle="Your household's one-time Community Dinner signup — separate from Dinner Tokens above"
+              title={`My ${mealName(festival)}`}
+              subtitle={`Your household's one-time ${mealName(festival)} signup — separate from Dinner Tokens above`}
             >
               <div className="px-4 py-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -394,7 +430,7 @@ export default function MyStuffPage() {
                   )}
                 <a
                   href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-                    `Hi, I'd like to request a change to my Community Dinner registration.\nRegistration ID: ${communityDinner.registration_id}\nName: ${communityDinner.resident_name}\nBlock/Flat: ${communityDinner.block} ${communityDinner.flat_number}\n\nWhat needs to change: `
+                    `Hi, I'd like to request a change to my ${mealName(festival)} registration.\nRegistration ID: ${communityDinner.registration_id}\nName: ${communityDinner.resident_name}\nBlock/Flat: ${communityDinner.block} ${communityDinner.flat_number}\n\nWhat needs to change: `
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -450,7 +486,7 @@ export default function MyStuffPage() {
               <Row key={e.expense_id}>
                 <div>
                   <p className="font-semibold text-sm">{e.purpose}</p>
-                  <p className="text-xs text-muted">{e.date}</p>
+                  <p className="text-xs text-muted">{formatEventDate(e.date)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-maroon">{formatCurrency(Number(e.amount))}</p>

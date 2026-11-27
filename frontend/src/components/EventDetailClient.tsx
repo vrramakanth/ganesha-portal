@@ -1,5 +1,15 @@
 "use client";
 
+import EventFeedback from "@/components/EventFeedback";
+import MagicMomentsButton from "@/components/MagicMomentsButton";
+import { splitMagicMoments } from "@/lib/magicMoments";
+import KidsStallForm from "@/components/KidsStallForm";
+import { kidsStallIntro } from "@/lib/kidsStallIntro";
+import { HUB_URL } from "@/lib/hub";
+import { isUnlisted } from "@/lib/events";
+import FlatOptIn from "@/components/FlatOptIn";
+import Link from "next/link";
+import LinkifiedText from "@/components/LinkifiedText";
 import { useEffect, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -8,7 +18,9 @@ import { useResidentProfile } from "@/lib/useResidentProfile";
 import { formatEventDate, formatEventTime } from "@/lib/date";
 import { eventSubCategories } from "@/lib/culturalSubCategories";
 import { fileToBase64 } from "@/lib/file";
-import type { EventRecord, EventRegistration } from "@/lib/types";
+import { mealName, mealNameLower, mealDeadlineLabel } from "@/lib/meal";
+import { trackEvent } from "@/lib/track";
+import type { EventRecord, EventRegistration, FestivalInfo } from "@/lib/types";
 import BlockSelect from "@/components/BlockSelect";
 import FlatInput from "@/components/FlatInput";
 import MobileInput from "@/components/MobileInput";
@@ -112,13 +124,41 @@ function RsvpSection({ event }: { event: EventRecord }) {
   );
 }
 
+/** A "Dinner"-category event is a shared meal: its sign-up is the household
+ *  meal registration (adults, children, guests), not a one-tap RSVP, so the
+ *  event's own address can be shared and lead straight to it. */
+function MealSignupCard({ festival }: { festival: FestivalInfo | null }) {
+  const name = mealName(festival);
+  const deadline = mealDeadlineLabel(festival);
+  const adult = Number(festival?.meal_adult_price || "200");
+  const child = Number(festival?.meal_child_price || "100");
+  return (
+    <div className="space-y-2 rounded-xl border border-border bg-card p-4">
+      <p className="text-sm font-semibold">Register for {mealNameLower(festival)}</p>
+      <p className="text-sm text-muted">
+        {festival?.meal_pricing_mode === "everyone_paid"
+          ? `₹${adult}/adult, ₹${child}/child.`
+          : `Free for residents and their families. Guests are welcome at ₹${adult}/adult, ₹${child}/child.`}
+        {deadline ? ` Register by ${deadline}.` : ""}
+      </p>
+      <Link
+        href="/community-dinner"
+        onClick={() => trackEvent("meal_register_click")}
+        className="block w-full rounded-xl bg-maroon py-3 text-center text-sm font-semibold text-white active:bg-maroon-dark transition-colors"
+      >
+        Register for {name} →
+      </Link>
+    </div>
+  );
+}
+
 type SubmitOutcome =
   | { performance: Performance; registration: EventRegistration; error?: undefined }
   | { performance: Performance; registration?: undefined; error: string };
 
 export default function EventDetailClient({ eventId }: { eventId: string }) {
   const { data: events, loading, error } = useAsync(() => api.events.list(), []);
-  const { festival: festivalInfo } = useFestivalConfig();
+  const { festival: festivalInfo, modules } = useFestivalConfig();
   const wrappedUp = festivalInfo?.festival_wrapped_up === "true";
   const event = (events ?? []).find((e) => e.event_id === eventId);
   const { profile, saveProfile, loaded } = useResidentProfile();
@@ -158,6 +198,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
 
   const canRegister = event.status === "OPEN" && Number(event.fee || 0) === 0 && !wrappedUp;
   const isCultural = event.category === "Cultural";
+  const description = splitMagicMoments(event.description ?? "");
 
   function updatePerformance(key: string, patch: Partial<Performance>) {
     setPerformances((prev) => prev.map((p) => (p.key === key ? { ...p, ...patch } : p)));
@@ -239,8 +280,8 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         <PageHeader
           title={succeeded.length > 0 ? "Nomination submitted!" : "Something went wrong"}
           subtitle={event.name}
-          backHref="/events"
-          backLabel="← Events"
+          backHref={isUnlisted(event) ? HUB_URL : "/events"}
+          backLabel={isUnlisted(event) ? "← Namma Habba" : "← Events"}
         />
         {succeeded.length > 0 && (
           <p className="text-sm text-muted">
@@ -277,17 +318,63 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       <PageHeader
         title={event.name}
         subtitle={`${formatEventDate(event.date)} · ${formatEventTime(event.start_time)} · ${event.location}`}
-        backHref="/events"
-        backLabel="← Events"
+        // An unlisted event isn't in the Events list; it's reached from the hub, so back goes there.
+        backHref={isUnlisted(event) ? HUB_URL : "/events"}
+        backLabel={isUnlisted(event) ? "← Namma Habba" : "← Events"}
       />
-      {event.description && <p className="text-sm text-muted">{event.description}</p>}
+      {event.category === "Kids Stall" && kidsStallIntro(event.name) && (
+        <div className="rounded-2xl bg-[#1457c9] p-4 text-white shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#ffd23f]">🎈 {kidsStallIntro(event.name)!.title}</p>
+          <p className="mt-1.5 text-base font-bold leading-snug">{kidsStallIntro(event.name)!.headline}</p>
+          <p className="mt-1.5 text-sm text-white/90">{kidsStallIntro(event.name)!.line}</p>
+        </div>
+      )}
+      {description.text &&
+        (event.category === "Kids Stall" && kidsStallIntro(event.name) ? (
+          <details className="rounded-xl border border-border bg-card p-3 text-sm">
+            <summary className="cursor-pointer text-xs font-semibold">Read the full details</summary>
+            <p className="mt-2 text-sm text-muted whitespace-pre-line">
+              <LinkifiedText text={description.text} />
+            </p>
+          </details>
+        ) : (
+          <p className="text-sm text-muted whitespace-pre-line">
+            <LinkifiedText text={description.text} />
+          </p>
+        ))}
+      {description.url && <MagicMomentsButton url={description.url} label="Memories" />}
 
       {wrappedUp ? (
         <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">
           This event has ended. Thank you for celebrating with us! 🙏
         </p>
       ) : (
-        event.status !== "CANCELLED" && event.status !== "COMPLETED" && <RsvpSection event={event} />
+        event.status !== "CANCELLED" &&
+        event.status !== "COMPLETED" &&
+        (event.category === "Flat Opt-in" ? (
+          <FlatOptIn eventId={event.event_id} open={event.status === "OPEN"} />
+        ) : event.category === "Kids Stall" ? (
+          event.status === "CLOSED" || event.status === "FULL" ? (
+            <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">
+              {event.status === "FULL"
+                ? "🎈 All stall spots are taken. Thank you for the great response!"
+                : "🎈 Stall sign-ups are closed. Thank you to everyone who took part!"}
+            </p>
+          ) : (
+            <section className="space-y-3">
+              <h2 className="text-lg font-bold">Register for a stall</h2>
+              <KidsStallForm eventId={event.event_id} open={event.status === "OPEN"} description={event.description} />
+            </section>
+          )
+        ) : event.category === "Dinner" && modules.meal ? (
+          <MealSignupCard festival={festivalInfo} />
+        ) : (
+          <RsvpSection event={event} />
+        ))
+      )}
+
+      {(event.category === "Flat Opt-in" || event.category === "Kids Stall") && (
+        <EventFeedback eventName={event.name} eventDate={event.date} />
       )}
 
       {isCultural && !canRegister && (
@@ -425,6 +512,23 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
           </button>
           </form>
         </>
+      )}
+
+      {/* An unlisted event isn't reachable from Home's Admin Login without
+          first hunting for it, so give its organisers a way in from here:
+          straight to this event's nominations where it takes sign-ups, else
+          to the Events list. The volunteer area asks for sign-in as usual. */}
+      {isUnlisted(event) && (
+        <Link
+          href={
+            event.category === "Kids Stall" || isCultural
+              ? `/volunteer/events/registrations?event=${encodeURIComponent(event.event_id)}`
+              : "/volunteer/events"
+          }
+          className="mx-auto pb-4 text-xs font-medium text-muted"
+        >
+          Admin login
+        </Link>
       )}
     </div>
   );

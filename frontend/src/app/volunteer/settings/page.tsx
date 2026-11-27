@@ -24,7 +24,7 @@ type Field = {
   key: string;
   label: string;
   description: string;
-  type?: "text" | "number" | "select";
+  type?: "text" | "number" | "select" | "textarea";
   options?: { value: string; label: string }[];
 };
 
@@ -41,6 +41,12 @@ const IDENTITY_FIELDS: Field[] = [
   { key: "contact", label: "Contact", description: "Shown on the More page." },
   { key: "theme_primary", label: "Theme: primary colour", description: "Hex colour, e.g. #7a1330 — headers and buttons. Leave empty for the default maroon." },
   { key: "theme_accent", label: "Theme: accent colour", description: "Hex colour, e.g. #f4791f — highlights and badges. Leave empty for the default saffron." },
+  { key: "theme_banner", label: "Theme banner", description: "This year's theme in big letters across the Home page, e.g. BENGALURU. Leave empty for no banner." },
+  { key: "theme_banner_label", label: "Theme banner small heading", description: "The small line above the theme. Leave empty to use \"This year's theme\"." },
+  { key: "wrapup_message", label: "Wrap-up closing message", description: "The thank-you line shown on Home once the festival is wrapped up. Leave empty for the default." },
+  { key: "wrapup_days", label: "Wrap-up days of celebration", type: "number", description: "Shown as \"days of celebration\" on the wrap-up. Leave empty to count the days that have events." },
+  { key: "wrapup_highlights", label: "Wrap-up highlights", type: "textarea", description: "One highlight per line, shown as a checklist on the wrap-up. Leave empty for none." },
+  { key: "wrapup_image_url", label: "Wrap-up poster image", description: "Address of a poster or photo shown at the top of the wrap-up, e.g. /images/navratri-garba-poster.jpg. Leave empty for none." },
   { key: "photo_album_url", label: "Photo album link", description: "Google Photos (or similar) album residents can add to. Leave empty to hide the button." },
   { key: "closing_message", label: "Closing message", description: "Sign-off line shown when donations close and on the wrap-up summary, e.g. \"Merry Christmas! 🎄\". Leave empty for none (Ganesha deployments default to \"Ganpati Bappa Morya!…\")." },
   { key: "id_prefix", label: "ID prefix", description: "Prefix for every generated ID (transactions, receipts, tokens…), e.g. \"GWG\"." },
@@ -58,6 +64,15 @@ const MONEY_FIELDS: Field[] = [
   { key: "upi_payee_name", label: "UPI payee name", description: "Shown to residents during payment." },
 ];
 
+/** What residents see for the meal. Always shown while the Meal module is on
+ *  (the Configuration row is created on first save), unlike the pricing
+ *  fields below, which wait for their rows to exist. */
+const MEAL_DISPLAY_FIELDS: Field[] = [
+  { key: "meal_name", label: "Meal name", description: "What residents see, e.g. Breakfast. Leave empty for \"Community Dinner\"." },
+  { key: "meal_when", label: "Meal day and place", description: "One line shown with the sign-up, e.g. Sunday 1 Nov, 8:30 AM · Central courtyard. Leave empty to show nothing." },
+  { key: "meal_registration_deadline", label: "Registration cut-off date", description: "YYYY-MM-DD, e.g. 2026-10-30. Sign-up closes by itself after that day. Leave empty for no cut-off." },
+];
+
 /** Finance-gated, same as Money — only shown when the Meal module is on.
  *  A caterer's rate is always subject to negotiation, so these are plain
  *  editable Configuration values, not a code-level constant. */
@@ -65,7 +80,7 @@ const MEAL_PRICING_FIELDS: Field[] = [
   {
     key: "meal_pricing_mode",
     label: "Pricing model",
-    description: "How Community Dinner charges attendees.",
+    description: "How the meal charges attendees.",
     type: "select",
     options: [
       { value: "household_free_guest_paid", label: "Household free, guests pay" },
@@ -115,6 +130,7 @@ export default function SettingsPage() {
   const handledKeys = new Set([
     ...IDENTITY_FIELDS.map((f) => f.key),
     ...MONEY_FIELDS.map((f) => f.key),
+    ...MEAL_DISPLAY_FIELDS.map((f) => f.key),
     ...MEAL_PRICING_FIELDS.map((f) => f.key),
     "enabled_modules",
     "hero_image_url",
@@ -229,6 +245,13 @@ export default function SettingsPage() {
                 </option>
               ))}
             </select>
+          ) : field.type === "textarea" ? (
+            <textarea
+              rows={4}
+              defaultValue={value}
+              onChange={(e) => setEdits((prev) => ({ ...prev, [field.key]: e.target.value }))}
+              className="w-3/5 rounded-lg border border-border px-2 py-1.5 text-sm"
+            />
           ) : (
             <input
               type={field.type || "text"}
@@ -321,6 +344,15 @@ export default function SettingsPage() {
               <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Money</h2>
               <div className="rounded-xl border border-border bg-card divide-y divide-border">
                 {MONEY_FIELDS.filter((f) => config.some((c) => c.key === f.key)).map(renderField)}
+              </div>
+            </div>
+          )}
+
+          {modules.meal && (
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Meal</h2>
+              <div className="rounded-xl border border-border bg-card divide-y divide-border">
+                {MEAL_DISPLAY_FIELDS.map(renderField)}
               </div>
             </div>
           )}

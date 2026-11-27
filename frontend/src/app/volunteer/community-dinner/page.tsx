@@ -5,6 +5,8 @@ import Link from "next/link";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
+import { mealName } from "@/lib/meal";
 import { formatCurrency, formatEventDate } from "@/lib/date";
 import { fileToBase64 } from "@/lib/file";
 import type { CommunityDinnerRegistration } from "@/lib/types";
@@ -61,6 +63,8 @@ function toEditFields(r: CommunityDinnerRegistration): EditFields {
  *  admin with only one of the two still sees what they can act on. */
 export default function VolunteerCommunityDinnerPage() {
   const { idToken, volunteer } = useVolunteerAuth();
+  const { festival } = useFestivalConfig();
+  const name = mealName(festival);
   const hasDinner = volunteer?.permissions.includes("Dinner") ?? false;
   const hasFinance = volunteer?.permissions.includes("Finance") ?? false;
   const [refreshKey, setRefreshKey] = useState(0);
@@ -102,7 +106,7 @@ export default function VolunteerCommunityDinnerPage() {
     if (
       !opening &&
       !window.confirm(
-        "Close Community Dinner registrations? Residents won't be able to register any more, but anyone already paying for guests can finish, and you can reopen this any time."
+        `Close ${name} registrations? Residents won't be able to register any more, but anyone already paying for guests can finish, and you can reopen this any time.`
       )
     ) {
       return;
@@ -243,7 +247,7 @@ export default function VolunteerCommunityDinnerPage() {
   return (
     <div className="flex flex-col gap-6 px-5 pt-8">
       <PageHeader
-        title="Community Dinner"
+        title={name}
         subtitle="Registrations, guest payments, and edits"
         backHref="/volunteer"
         backLabel="← Dashboard"
@@ -273,7 +277,7 @@ export default function VolunteerCommunityDinnerPage() {
       )}
 
       {!hasDinner && !hasFinance && (
-        <p className="text-sm text-muted">You don&apos;t have access to Community Dinner registrations.</p>
+        <p className="text-sm text-muted">You don&apos;t have access to {name} registrations.</p>
       )}
       {(loadingAll || loadingReview) && <LoadingIndicator />}
       {actionError && <p className="text-sm text-red-600">{actionError}</p>}

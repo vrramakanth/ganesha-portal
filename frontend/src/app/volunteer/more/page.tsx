@@ -1,5 +1,6 @@
 "use client";
 
+import { mealName } from "@/lib/meal";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import NammaHabbaAttribution from "@/components/NammaHabbaAttribution";
@@ -7,7 +8,7 @@ import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
 
 export default function VolunteerMorePage() {
-  const { modules } = useFestivalConfig();
+  const { festival, modules } = useFestivalConfig();
   const { volunteer } = useVolunteerAuth();
 
   const links = [
@@ -23,7 +24,7 @@ export default function VolunteerMorePage() {
       ? [
           {
             href: "/volunteer/community-dinner",
-            label: "Community Dinner",
+            label: mealName(festival),
             description: "Registrations, guest payment review, and edits",
           },
         ]

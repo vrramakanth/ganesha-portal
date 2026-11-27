@@ -10,8 +10,8 @@ export default function VolunteerNav() {
 
   const items = [
     { href: "/volunteer", label: "Dashboard" },
-    ...(modules.donations && volunteer?.permissions.includes("Finance")
-      ? [{ href: "/volunteer/donations", label: "Donations", matchPrefix: true }]
+    ...((modules.donations || modules.sponsorships) && volunteer?.permissions.includes("Finance")
+      ? [{ href: "/volunteer/donations", label: modules.donations ? "Donations" : "Payments", matchPrefix: true }]
       : []),
     ...(modules.events ? [{ href: "/volunteer/events", label: "Events", matchPrefix: true }] : []),
     ...(modules.meal ? [{ href: "/volunteer/dinner", label: "Dinner", matchPrefix: true }] : []),

@@ -49,6 +49,20 @@ export type FestivalInfo = {
   closing_message?: string;
   theme_primary: string;
   theme_accent: string;
+  /** Absent on a backend that predates the keys; empty when the festival has no theme banner. */
+  theme_banner?: string;
+  theme_banner_label?: string;
+  /** Wrap-up page for festivals without donations: closing line, one highlight per line, and a poster image. */
+  wrapup_message?: string;
+  wrapup_days?: string;
+  /** What the festival calls its meal; absent/empty means "Community Dinner". */
+  meal_name?: string;
+  /** Free-text day/time/place line for the meal, e.g. "Sunday 1 Nov, 8:30 AM · Central courtyard". */
+  meal_when?: string;
+  /** YYYY-MM-DD, inclusive; registration closes itself after this day. */
+  meal_registration_deadline?: string;
+  wrapup_highlights?: string;
+  wrapup_image_url?: string;
   volunteer_areas: { label: string; note: string | null }[];
 };
 
@@ -79,6 +93,8 @@ export type EventRecord = {
   rsvp_yes?: number | string;
   rsvp_no?: number | string;
   whatsapp_intro?: string;
+  /** "TRUE"/true when the event is hidden from lists and reachable only by its direct link. */
+  unlisted?: string | boolean;
 };
 
 export type PublicStats = {

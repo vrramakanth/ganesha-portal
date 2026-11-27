@@ -10,6 +10,11 @@
  *  Announcements/Feedback/Bugs, PIN lookup, Backup, Audit Log, Reports)
  *  are always available, regardless of which modules are enabled. */
 
+/** Reviewing payments is shared: a sponsorship is recorded into the same
+ *  transactions list and verified there, so a festival with only
+ *  Sponsorships on still needs these routes. */
+const PAYMENT_REVIEW_MODULES = ["donations", "sponsorships"];
+
 const ROUTES = {
   // --- Public ---
   "festival.get": { handler: () => getFestivalInfo() },
@@ -37,7 +42,10 @@ const ROUTES = {
   "donations.mine": { module: "donations", handler: (p) => listDonationsByMobile(p.mobile) },
   "events.register": { module: "events", handler: (p) => registerForEvent(p) },
   "events.rsvp": { module: "events", handler: (p) => rsvpEvent(p.eventId, p.response) },
+  "events.flat.set": { module: "events", handler: (p) => setFlatParticipation(p) },
+  "events.flat.list": { module: "events", handler: (p) => listFlatParticipation(p.eventId) },
   "events.registrations.updateSong": { module: "events", handler: (p) => updateRegistrationSong(p) },
+  "registrations.paymentRef": { module: "events", handler: (p) => addRegistrationPaymentRef(p) },
   "registrations.mine": { module: "events", handler: (p) => listRegistrationsByMobile(p.mobile) },
   "dinner.register": { module: "meal", handler: (p) => registerDinner(p) },
   "dinner.submitReference": { module: "meal", handler: (p) => submitDinnerPaymentReference(p) },
@@ -55,12 +63,12 @@ const ROUTES = {
   // --- Volunteer (requires idToken; some also require a permission) ---
   "auth.check": { auth: true, handler: (p, v) => v },
   "volunteer.dashboard": { auth: true, handler: (p, v) => getVolunteerDashboard(v) },
-  "volunteer.transactions": { auth: true, module: "donations", handler: (p, v) => listTransactions(v) },
-  "volunteer.payment.verify": { auth: true, module: "donations", handler: (p, v) => verifyPaymentManual(v, p.transactionId, p.notes) },
-  "volunteer.payment.reject": { auth: true, module: "donations", handler: (p, v) => rejectPayment(v, p.transactionId, p.notes) },
+  "volunteer.transactions": { auth: true, module: PAYMENT_REVIEW_MODULES, handler: (p, v) => listTransactions(v) },
+  "volunteer.payment.verify": { auth: true, module: PAYMENT_REVIEW_MODULES, handler: (p, v) => verifyPaymentManual(v, p.transactionId, p.notes) },
+  "volunteer.payment.reject": { auth: true, module: PAYMENT_REVIEW_MODULES, handler: (p, v) => rejectPayment(v, p.transactionId, p.notes) },
   "volunteer.payment.attachScreenshot": {
     auth: true,
-    module: "donations",
+    module: PAYMENT_REVIEW_MODULES,
     handler: (p, v) => attachPaymentScreenshot(v, p.transactionId, p.screenshot, p.mimeType),
   },
   "volunteer.festival.setWrappedUp": { auth: true, handler: (p, v) => setFestivalWrappedUp(v, p.wrapped) },
@@ -73,6 +81,16 @@ const ROUTES = {
   "volunteer.events.registrations.pending": { auth: true, module: "events", handler: (p, v) => listPendingRegistrations(v) },
   "volunteer.events.registrations.all": { auth: true, module: "events", handler: (p, v) => listAllRegistrations(v) },
   "volunteer.events.registrations.approve": { auth: true, module: "events", handler: (p, v) => approveRegistration(v, p.registrationId) },
+  "volunteer.events.registrations.recordPayment": {
+    auth: true,
+    module: "events",
+    handler: (p, v) => recordRegistrationPayment(v, p.registrationId, p.reference, p.amount),
+  },
+  "volunteer.events.registrations.stall": {
+    auth: true,
+    module: "events",
+    handler: (p, v) => updateRegistrationStall(v, p.registrationId, p),
+  },
   "volunteer.events.registrations.reject": { auth: true, module: "events", handler: (p, v) => rejectRegistration(v, p.registrationId, p.reason) },
   "volunteer.events.checkin": { auth: true, module: "events", handler: (p, v) => checkInRegistration(v, p.registrationId) },
   "volunteer.dinner.dashboard": { auth: true, module: "meal", handler: (p) => getDinnerDashboard(p.eventId) },

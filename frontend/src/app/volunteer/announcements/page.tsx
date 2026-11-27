@@ -10,6 +10,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function AnnouncementsPage() {
   const { idToken } = useVolunteerAuth();
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -60,6 +61,19 @@ export default function AnnouncementsPage() {
     }
   }
 
+  /** A link residents can open straight to this announcement (and its video). */
+  async function copyLink(id: string) {
+    const url = `${window.location.origin}/announcements/${id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 2000);
+    } catch {
+      // Clipboard access can be blocked; let the volunteer copy it by hand.
+      window.prompt("Copy this link", url);
+    }
+  }
+
   async function deactivate(id: string) {
     setError(null);
     try {
@@ -85,7 +99,7 @@ export default function AnnouncementsPage() {
       {showForm && (
         <form onSubmit={handleCreate} className="space-y-3 rounded-xl border border-border bg-card p-4">
           <input name="title" required placeholder="Title" className="w-full rounded-lg border border-border px-3 py-2.5 text-sm" />
-          <textarea name="message" required placeholder="Message" className="w-full rounded-lg border border-border px-3 py-2.5 text-sm" />
+          <textarea name="message" required placeholder="Message (paste a YouTube link to show the video)" className="w-full rounded-lg border border-border px-3 py-2.5 text-sm" />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             type="submit"
@@ -154,6 +168,9 @@ export default function AnnouncementsPage() {
                   className="text-xs font-semibold text-maroon"
                 >
                   Edit
+                </button>
+                <button onClick={() => copyLink(a.announcement_id)} className="text-xs font-semibold text-maroon">
+                  {copiedId === a.announcement_id ? "Copied!" : "Copy link"}
                 </button>
                 <button onClick={() => deactivate(a.announcement_id)} className="text-xs font-semibold text-maroon">
                   Deactivate

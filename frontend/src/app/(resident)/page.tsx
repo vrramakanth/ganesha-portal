@@ -1,5 +1,7 @@
 "use client";
 
+import { isUnlisted } from "@/lib/events";
+import { mealName, mealNameLower, mealDeadlineLabel, mealWhen } from "@/lib/meal";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,6 +10,7 @@ import { useAsync } from "@/lib/useAsync";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { photoAlbumUrl } from "@/lib/photoAlbum";
 import { HUB_URL } from "@/lib/hub";
+import { trackEvent } from "@/lib/track";
 import { formatCurrency, formatEventWhen, formatEventTime } from "@/lib/date";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
@@ -15,6 +18,7 @@ import LinkifiedText from "@/components/LinkifiedText";
 import FindYourCounter from "@/components/FindYourCounter";
 import DonationsClosed from "@/components/DonationsClosed";
 import WrapUpSummary from "@/components/WrapUpSummary";
+import FestivalWrapUp from "@/components/FestivalWrapUp";
 
 // Traffic-light read on (spent + worst-case costs ahead) vs collected —
 // a resident-facing signal that stays honest (the estimate is real, so
@@ -59,13 +63,16 @@ export default function Home() {
   const [expandedNews, setExpandedNews] = useState<Record<string, boolean>>({});
 
   const upcoming = (events ?? [])
-    .filter((e) => e.status === "OPEN")
+    .filter((e) => e.status === "OPEN" && !isUnlisted(e))
     .sort((a, b) => {
       const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
       if (dateDiff !== 0) return dateDiff;
       return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
     })
     .slice(0, 2);
+  // A "Dinner"-category event is the meal's own listing (its page leads to the
+  // sign-up), so the separate meal card would just repeat it.
+  const hasMealEvent = (events ?? []).some((e) => e.category === "Dinner" && e.status !== "DRAFT" && !isUnlisted(e));
   const news = (announcements ?? [])
     .slice()
     .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
@@ -136,12 +143,29 @@ export default function Home() {
         <p className="text-muted text-sm">{festival?.tagline ?? ""}</p>
       </header>
 
-      {stats?.wrappedUp && (
-        <WrapUpSummary
-          stats={stats}
-          eventsCount={(events ?? []).length}
-          voices={feedback ?? []}
-        />
+      {festival?.theme_banner?.trim() && (
+        <section
+          aria-label="Theme"
+          className="rounded-2xl bg-maroon px-5 py-7 text-center text-white shadow-sm"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-saffron">
+            {festival.theme_banner_label?.trim() || "This year's theme"}
+          </p>
+          <p className="mt-2 break-words text-4xl font-extrabold uppercase tracking-wider">
+            {festival.theme_banner.trim()}
+          </p>
+          <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-saffron" />
+        </section>
+      )}
+
+      {stats?.wrappedUp && festival && (
+        // Only a festival that collects donations has the money-and-turnout
+        // summary; every other festival gets the events-only thank-you.
+        modules.donations ? (
+          <WrapUpSummary stats={stats} eventsCount={(events ?? []).length} voices={feedback ?? []} />
+        ) : (
+          <FestivalWrapUp festival={festival} events={events ?? []} voices={feedback ?? []} />
+        )
       )}
 
       {/* Waits for stats to actually load before picking a branch — stats
@@ -157,6 +181,7 @@ export default function Home() {
       ) : (
         <Link
           href="/donate"
+          onClick={() => trackEvent("donate_click")}
           className="w-full rounded-xl bg-saffron py-4 text-center text-lg font-semibold text-on-saffron shadow-sm active:bg-saffron-dark transition-colors"
         >
           Donate Now
@@ -248,7 +273,8 @@ export default function Home() {
             // Only the very next event shows the attending count — showing
             // it on every card made "upcoming" feel like a leaderboard
             // instead of pointing at what's happening soonest.
-            const attending = index === 0 ? Number(event.rsvp_yes) || 0 : 0;
+            const isMealEvent = event.category === "Dinner" && modules.meal;
+            const attending = index === 0 && !isMealEvent ? Number(event.rsvp_yes) || 0 : 0;
             return (
               <Link
                 key={event.event_id}
@@ -272,7 +298,9 @@ export default function Home() {
                       </>
                     )}
                     {isFreeOpen && !isCultural && (
-                      <p className="animate-twinkle text-xs font-bold text-saffron-text">RSVP to attend →</p>
+                      <p className="animate-twinkle text-xs font-bold text-saffron-text">
+                        {isMealEvent ? `Register for ${mealNameLower(festival)} →` : "RSVP to attend →"}
+                      </p>
                     )}
                   </div>
                 )}
@@ -286,16 +314,18 @@ export default function Home() {
       </section>
       )}
 
-      {stats && !stats.wrappedUp && modules.meal && (
+      {stats && !stats.wrappedUp && modules.meal && !hasMealEvent && (
       <section className="rounded-xl border border-border bg-card p-5 space-y-3">
         <div>
-          <p className="font-semibold">Community Dinner</p>
-          <p className="text-xs font-medium text-saffron-text">20th September, evening — details to follow</p>
+          <p className="font-semibold">{mealName(festival)}</p>
+          {mealWhen(festival) && (
+            <p className="text-xs font-medium text-saffron-text">{mealWhen(festival)}</p>
+          )}
           <p className="text-sm font-semibold">Free for all residents</p>
           <p className="text-sm text-muted">
             {dinnerCount?.open === false
               ? "Registrations are now closed. Thank you to everyone who signed up!"
-              : "Register your household — one time only. Guests welcome at ₹200/adult, ₹100/child."}
+              : `Register your household — one time only. Guests welcome at ₹${Number(festival?.meal_adult_price || "200")}/adult, ₹${Number(festival?.meal_child_price || "100")}/child.${mealDeadlineLabel(festival) ? ` Register by ${mealDeadlineLabel(festival)}.` : ""}`}
           </p>
           {!!dinnerCount && dinnerCount.registered > 0 && (
             <p className="mt-1 text-sm font-semibold text-maroon">
@@ -337,8 +367,8 @@ export default function Home() {
               return (
                 <div key={a.announcement_id} className="px-4 py-3">
                   <p className="font-semibold text-sm">{a.title}</p>
-                  <p className={`mt-0.5 text-sm text-muted ${isExpanded ? "" : "line-clamp-2"}`}>
-                    <LinkifiedText text={a.message} />
+                  <p className={`mt-0.5 text-sm text-muted ${isExpanded || a.message.length <= 80 ? "" : "line-clamp-2"}`}>
+                    <LinkifiedText text={a.message} embedVideos={isExpanded || a.message.length <= 80} />
                   </p>
                   {a.message.length > 80 && (
                     <button

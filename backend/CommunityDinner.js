@@ -20,7 +20,50 @@ const COMMUNITY_DINNER_OPEN_KEY = "community_dinner_registration_open";
 /** Open unless explicitly set to "false" in Configuration, so a missing
  *  row (the state before anyone's ever closed it) means open. */
 function isCommunityDinnerRegistrationOpen() {
-  return String(getConfig(COMMUNITY_DINNER_OPEN_KEY, "true")).trim().toLowerCase() !== "false";
+  if (String(getConfig(COMMUNITY_DINNER_OPEN_KEY, "true")).trim().toLowerCase() === "false") return false;
+  return !isMealRegistrationDeadlinePassed();
+}
+
+/** What this festival calls its meal ("Community Dinner", "Breakfast"…),
+ *  the `meal_name` Configuration key. */
+function getMealName() {
+  return String(getConfig("meal_name", "Community Dinner")).trim() || "Community Dinner";
+}
+
+/** Optional cut-off, the `meal_registration_deadline` key as YYYY-MM-DD:
+ *  registration stays open through the end of that day, India time, and
+ *  closes by itself after — no one has to remember to close it. Empty or
+ *  unreadable means no deadline. */
+function isMealRegistrationDeadlinePassed() {
+  const raw = getMealRegistrationDeadline();
+  if (!raw) return false;
+  const today = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd");
+  return today > raw;
+}
+
+/** The cut-off as YYYY-MM-DD, or "" for none. Google Sheets turns a typed
+ *  date into a real date cell, which arrives here as a Date (or, from the
+ *  config cache, an ISO timestamp), so those are converted back to the
+ *  India-time day rather than being ignored. */
+function getMealRegistrationDeadline() {
+  const raw = getConfig("meal_registration_deadline", "");
+  if (raw instanceof Date || /^\d{4}-\d{2}-\d{2}T/.test(String(raw))) {
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? "" : Utilities.formatDate(d, "Asia/Kolkata", "yyyy-MM-dd");
+  }
+  const text = String(raw).trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
+}
+
+/** The "day and place" line as text. A value Sheets turned into a date cell
+ *  is written back out as a readable day and time instead of a raw timestamp. */
+function getMealWhenText() {
+  const raw = getConfig("meal_when", "");
+  if (raw instanceof Date || /^\d{4}-\d{2}-\d{2}T/.test(String(raw))) {
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? "" : Utilities.formatDate(d, "Asia/Kolkata", "EEE d MMM, h:mm a");
+  }
+  return String(raw).trim();
 }
 
 /** Closing only stops NEW registrations (enforced in
@@ -213,7 +256,7 @@ function registerCommunityDinner({ residentName, mobile, block, flatNumber, adul
     );
     if (pendingWhileClosed) return pendingWhileClosed;
     throw new ApiError(
-      "Community Dinner registrations are now closed. Please message an admin on WhatsApp if you still need to register.",
+      `${getMealName()} registrations are now closed. Please message an admin on WhatsApp if you still need to register.`,
       409
     );
   }
@@ -238,7 +281,7 @@ function registerCommunityDinner({ residentName, mobile, block, flatNumber, adul
     const locked = existing.some((r) => (r.status === "CONFIRMED" || r.status === "MANUAL_REVIEW") && matches(r));
     if (locked) {
       throw new ApiError(
-        "This mobile number or flat is already registered for the Community Dinner. Go to My Stuff in the app to message an admin directly if you need to make a change.",
+        `This mobile number or flat is already registered for the ${getMealName()}. Go to My Stuff in the app to message an admin directly if you need to make a change.`,
         409
       );
     }

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { useVolunteerAuth } from "@/lib/VolunteerAuthContext";
-import { formatCurrency } from "@/lib/date";
+import { formatCurrency, formatEventDate } from "@/lib/date";
 import PageHeader from "@/components/PageHeader";
 import StatTile from "@/components/StatTile";
 import StatusBadge, { type BadgeTone } from "@/components/StatusBadge";
@@ -154,7 +154,7 @@ export default function ReviewExpensesPage() {
                       <div>
                         <p className="font-semibold text-sm">{e.purpose}</p>
                         <p className="text-xs text-muted">
-                          {e.date} · {e.spender_name || e.spender_mobile}
+                          {formatEventDate(e.date)} · {e.spender_name || e.spender_mobile}
                         </p>
                       </div>
                       <p className="font-semibold text-maroon shrink-0">{formatCurrency(Number(e.amount))}</p>
@@ -276,7 +276,7 @@ export default function ReviewExpensesPage() {
                   <div>
                     <p className="font-semibold text-sm">{e.purpose}</p>
                     <p className="text-xs text-muted">
-                      {e.date} · {e.spender_name || e.spender_mobile}
+                      {formatEventDate(e.date)} · {e.spender_name || e.spender_mobile}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

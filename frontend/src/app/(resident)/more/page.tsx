@@ -1,9 +1,11 @@
 "use client";
 
+import { mealName } from "@/lib/meal";
 import { useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
+import { trackEvent } from "@/lib/track";
 import { useFestivalConfig } from "@/lib/FestivalConfigContext";
 import { photoAlbumUrl } from "@/lib/photoAlbum";
 import PageHeader from "@/components/PageHeader";
@@ -72,7 +74,7 @@ export default function MorePage() {
         className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3.5"
       >
         <div>
-          <p className="font-semibold text-sm">Community Dinner</p>
+          <p className="font-semibold text-sm">{mealName(festival)}</p>
           <p className="text-xs text-muted">
             {dinnerCount?.open === false ? "Registrations are closed" : "Register your household — one time only"}
           </p>
@@ -142,12 +144,15 @@ export default function MorePage() {
         </Link>
       </section>
 
-      <Link
-        href="/volunteer-signup"
-        className="w-full rounded-xl bg-maroon py-4 text-center text-sm font-semibold text-white active:bg-maroon-dark transition-colors"
-      >
-        Join Seva
-      </Link>
+      {modules.volunteers && (
+        <Link
+          href="/volunteer-signup"
+          onClick={() => trackEvent("join_seva_click")}
+          className="w-full rounded-xl bg-maroon py-4 text-center text-sm font-semibold text-white active:bg-maroon-dark transition-colors"
+        >
+          Join Seva
+        </Link>
+      )}
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">

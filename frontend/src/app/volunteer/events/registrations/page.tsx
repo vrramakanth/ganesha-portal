@@ -1,5 +1,10 @@
 "use client";
 
+import StallEditControl from "@/components/StallEditControl";
+import StallPaymentControl from "@/components/StallPaymentControl";
+import StallDetails from "@/components/StallDetails";
+import { parseStallNeeds, summariseStalls, tableFee } from "@/lib/stallNeeds";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -29,7 +34,7 @@ function csvEscape(value: string): string {
  *  columns (resident_id, reviewed_by, timestamps, …), just what an
  *  organizer actually wants to scan or print for event-day planning. */
 function buildReportCsv(registrations: EventRegistration[], eventNameById: Map<string, string>): string {
-  const headers = ["Event", "Participant", "Age", "Block", "Flat", "Mobile", "Type", "Status", "Song"];
+  const headers = ["Event", "Participant", "Age", "Block", "Flat", "Mobile", "Type", "Status", "Song", "Tables", "Chairs", "Power", "Amount due", "Payment ref", "Details"];
   const rows = registrations.map((r) => [
     eventNameById.get(r.event_id) ?? r.event_id,
     r.participant_name,
@@ -40,8 +45,24 @@ function buildReportCsv(registrations: EventRegistration[], eventNameById: Map<s
     r.sub_category || "",
     STATUS_LABEL[r.status] ?? r.status,
     r.song_url ? "Yes" : "No",
-  ]);
+    stallNeedsCells(r.comments),
+  ].flat());
   return [headers, ...rows].map((row) => row.map((v) => csvEscape(String(v))).join(",")).join("\n");
+}
+
+/** Tables, chairs, power and the free-text details, for stall sign-ups;
+ *  other registrations keep their comments in the last column only. */
+function stallNeedsCells(comments: string | undefined): string[] {
+  const needs = parseStallNeeds(comments);
+  if (!needs) return ["", "", "", "", "", (comments ?? "").replace(/\s*\n\s*/g, " | ")];
+  return [
+    String(needs.tables),
+    String(needs.chairs),
+    needs.power ? `Yes${needs.powerDetails ? `: ${needs.powerDetails}` : ""}` : "No",
+    needs.fee ? String(needs.fee) : "",
+    needs.paymentRef,
+    [needs.idea, needs.other && `Other: ${needs.other}`].filter(Boolean).join(" | "),
+  ];
 }
 
 function confirmationMessage(r: EventRegistration, eventName: string): string {
@@ -85,13 +106,84 @@ export default function EventRegistrationsPage() {
     return map;
   }, [events]);
 
+  // Which event the admin is looking at ("" = all), kept in the address as
+  // ?event=<id> so one event's reviewers can bookmark or be sent a link that
+  // opens straight on theirs.
+  const [eventFilter, setEventFilter] = useState(() =>
+    typeof window === "undefined" ? "" : (new URLSearchParams(window.location.search).get("event") ?? "")
+  );
+  function chooseEvent(id: string) {
+    setEventFilter(id);
+    const url = new URL(window.location.href);
+    if (id) url.searchParams.set("event", id);
+    else url.searchParams.delete("event");
+    window.history.replaceState(null, "", url.toString());
+  }
+
+  /** One chip per event that has any nomination, with how many await review. */
+  const eventChips = useMemo(() => {
+    const chips = new Map<string, { id: string; name: string; pending: number; total: number }>();
+    allRegistrations.forEach((r) => {
+      const chip = chips.get(r.event_id) ?? {
+        id: r.event_id,
+        name: eventNameById.get(r.event_id) ?? r.event_id,
+        pending: 0,
+        total: 0,
+      };
+      chip.total += 1;
+      if (r.status === "PENDING_REVIEW") chip.pending += 1;
+      chips.set(r.event_id, chip);
+    });
+    return [...chips.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [allRegistrations, eventNameById]);
+
+  const shownPending = useMemo(
+    () => registrations.filter((r) => !eventFilter || r.event_id === eventFilter),
+    [registrations, eventFilter]
+  );
+  /** The pending list, one group per event so each event's admins find theirs. */
+  const pendingGroups = useMemo(() => {
+    const groups = new Map<string, EventRegistration[]>();
+    shownPending.forEach((r) => groups.set(r.event_id, [...(groups.get(r.event_id) ?? []), r]));
+    return [...groups.entries()]
+      .map(([id, list]) => ({ id, name: eventNameById.get(id) ?? id, list }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [shownPending, eventNameById]);
+
   const sortedReport = useMemo(
     () =>
-      [...allRegistrations].sort((a, b) => {
+      allRegistrations
+        .filter((r) => !eventFilter || r.event_id === eventFilter)
+        .sort((a, b) => {
         const eventCompare = (eventNameById.get(a.event_id) ?? "").localeCompare(eventNameById.get(b.event_id) ?? "");
         return eventCompare !== 0 ? eventCompare : a.participant_name.localeCompare(b.participant_name);
       }),
-    [allRegistrations, eventNameById]
+    [allRegistrations, eventNameById, eventFilter]
+  );
+
+  const stallEventIds = useMemo(
+    () => new Set(events.filter((e) => e.category === "Kids Stall").map((e) => e.event_id)),
+    [events]
+  );
+
+  const feeFor = (eventId: string) => tableFee(events.find((e) => e.event_id === eventId)?.description);
+
+  /** Confirmed stall sign-ups, with everything an organiser needs to set them up. */
+  const approvedStalls = useMemo(
+    () =>
+      allRegistrations
+        .filter((r) => r.status === "CONFIRMED" && (!eventFilter || r.event_id === eventFilter) && stallEventIds.has(r.event_id))
+        .sort((a, b) => {
+          const byEvent = (eventNameById.get(a.event_id) ?? "").localeCompare(eventNameById.get(b.event_id) ?? "");
+          return byEvent !== 0 ? byEvent : a.participant_name.localeCompare(b.participant_name);
+        }),
+    [allRegistrations, eventFilter, eventNameById, stallEventIds]
+  );
+  const approvedWithoutDetails = approvedStalls.filter((r) => !parseStallNeeds(r.comments)).length;
+
+  const stallTotals = useMemo(
+    () => summariseStalls(allRegistrations.filter((r) => !eventFilter || r.event_id === eventFilter)),
+    [allRegistrations, eventFilter]
   );
 
   function downloadReport() {
@@ -189,17 +281,62 @@ export default function EventRegistrationsPage() {
         </section>
       )}
 
-      <div className="rounded-xl border border-border bg-card divide-y divide-border">
-        {registrations.length === 0 && !loading && (
+      {eventChips.length > 1 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Event</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => chooseEvent("")}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                !eventFilter ? "border-maroon bg-maroon text-white" : "border-border text-foreground"
+              }`}
+            >
+              All events{registrations.length > 0 ? ` (${registrations.length} to review)` : ""}
+            </button>
+            {eventChips.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => chooseEvent(c.id)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                  eventFilter === c.id ? "border-maroon bg-maroon text-white" : "border-border text-foreground"
+                }`}
+              >
+                {c.name}
+                {c.pending > 0 ? ` (${c.pending} to review)` : ""}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {stallEventIds.size > 0 && (
+        <Link
+          href={`/volunteer/events/stalls${eventFilter && stallEventIds.has(eventFilter) ? `?event=${encodeURIComponent(eventFilter)}` : ""}`}
+          className="block rounded-xl border border-border bg-card py-3 text-center text-sm font-semibold text-maroon"
+        >
+          📄 Stall list (PDF) · every stall on one sheet
+        </Link>
+      )}
+
+      {pendingGroups.length === 0 && !loading && (
+        <div className="rounded-xl border border-border bg-card">
           <p className="px-4 py-3 text-sm text-muted">No nominations awaiting review.</p>
-        )}
-        {registrations.map((r) => (
+        </div>
+      )}
+      {pendingGroups.map((group) => (
+      <section key={group.id} className="space-y-2">
+        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
+          {group.name} <span className="font-normal normal-case">· {group.list.length} awaiting review</span>
+        </h2>
+      <div className="rounded-xl border border-border bg-card divide-y divide-border">
+        {group.list.map((r) => (
           <div key={r.registration_id} className="px-4 py-3 space-y-2">
             <div>
               <p className="font-semibold text-sm">{r.participant_name}</p>
               <p className="text-xs text-muted">
-                {eventNameById.get(r.event_id) ?? r.event_id}
-                {r.sub_category ? ` · ${r.sub_category}` : ""}
+                {r.sub_category ?? ""}
               </p>
               <p className="text-xs text-muted">
                 Block {r.block}, Flat {r.flat_number} · {r.mobile}
@@ -215,7 +352,19 @@ export default function EventRegistrationsPage() {
                   🎵 Play song
                 </a>
               )}
-              {r.comments && <p className="text-xs text-muted italic">“{r.comments}”</p>}
+              {parseStallNeeds(r.comments) || stallEventIds.has(r.event_id) ? (
+                <>
+                  <StallDetails registration={r} isStall={stallEventIds.has(r.event_id)} />
+                  {canReview && stallEventIds.has(r.event_id) && (
+                    <>
+                      <StallEditControl registration={r} idToken={idToken as string} feePerTable={feeFor(r.event_id)} onSaved={() => setRefreshKey((k) => k + 1)} />
+                      <StallPaymentControl registration={r} idToken={idToken as string} onSaved={() => setRefreshKey((k) => k + 1)} />
+                    </>
+                  )}
+                </>
+              ) : (
+                r.comments && <p className="text-xs text-muted italic">“{r.comments}”</p>
+              )}
             </div>
             {canReview && (
               <div className="flex gap-2">
@@ -240,12 +389,83 @@ export default function EventRegistrationsPage() {
           </div>
         ))}
       </div>
+      </section>
+      ))}
+
+      {approvedStalls.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
+            Approved stalls{eventFilter ? ` · ${eventNameById.get(eventFilter) ?? ""}` : ""}{" "}
+            <span className="font-normal normal-case">· {approvedStalls.length}</span>
+          </h2>
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {approvedStalls.map((r) => (
+              <div key={r.registration_id} className="px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-sm">{r.participant_name}</p>
+                    <p className="text-xs text-muted">
+                      {!eventFilter ? `${eventNameById.get(r.event_id) ?? r.event_id} · ` : ""}
+                      Block {r.block}, Flat {r.flat_number} · {r.mobile}
+                      {r.participant_age ? ` · Age ${r.participant_age}` : ""}
+                    </p>
+                  </div>
+                  <StatusBadge label="Confirmed" tone="success" />
+                </div>
+                <StallDetails registration={r} isStall />
+                {canReview && (
+                  <>
+                    <StallEditControl registration={r} idToken={idToken as string} feePerTable={feeFor(r.event_id)} onSaved={() => setRefreshKey((k) => k + 1)} />
+                    <StallPaymentControl registration={r} idToken={idToken as string} onSaved={() => setRefreshKey((k) => k + 1)} />
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          {approvedWithoutDetails > 0 && (
+            <p className="text-xs text-muted">
+              {approvedWithoutDetails} of these {approvedWithoutDetails === 1 ? "has" : "have"} no stall details saved (tables,
+              chairs, power, payment), so {approvedWithoutDetails === 1 ? "it isn't" : "they aren't"} in the totals below. Ask{" "}
+              {approvedWithoutDetails === 1 ? "that parent" : "those parents"} to send them again.
+            </p>
+          )}
+        </section>
+      )}
+
+      {stallTotals.stalls > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">
+            Stall set-up needs{eventFilter ? ` · ${eventNameById.get(eventFilter) ?? ""}` : ""}
+          </h2>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[
+              { value: stallTotals.stalls, label: "stalls" },
+              { value: stallTotals.kids, label: "kids" },
+              { value: stallTotals.tables, label: "tables" },
+              { value: stallTotals.chairs, label: "chairs" },
+              { value: stallTotals.power, label: "need power" },
+              ...(stallTotals.feeDue > 0
+                ? [{ value: `₹${stallTotals.feeVerified} / ₹${stallTotals.feeDue}`, label: "table fees verified / due" }]
+                : []),
+            ].map((t) => (
+              <div key={t.label} className="rounded-lg border border-border bg-card px-3 py-2.5">
+                <p className="text-lg font-bold leading-tight text-maroon">{t.value}</p>
+                <p className="text-[11px] leading-tight text-muted">{t.label}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted">Counts every stall sign-up that hasn&apos;t been rejected (pending and confirmed).</p>
+        </section>
+      )}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold tracking-wide uppercase text-muted">Participant Report</h2>
-            <p className="text-xs text-muted">{sortedReport.length} total nominations across every event</p>
+            <p className="text-xs text-muted">
+              {sortedReport.length} total nominations{" "}
+              {eventFilter ? `for ${eventNameById.get(eventFilter) ?? "this event"}` : "across every event"}
+            </p>
           </div>
           <button
             type="button"
