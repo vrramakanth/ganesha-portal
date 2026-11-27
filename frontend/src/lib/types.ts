@@ -45,6 +45,8 @@ export type FestivalInfo = {
   meal_child_price: string;
   /** Absent on a backend that predates the key; empty when the festival has no album. */
   photo_album_url?: string;
+  /** Sign-off line on the closing/wrap-up screens. Absent on a backend that predates the key. */
+  closing_message?: string;
   theme_primary: string;
   theme_accent: string;
   volunteer_areas: { label: string; note: string | null }[];

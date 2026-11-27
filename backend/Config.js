@@ -97,6 +97,16 @@ function getFestivalName() {
   return getConfig("festival_name", "Ganesha Chathurthi 2026");
 }
 
+/** Sign-off line on the closing/wrap-up screens ("closing_message" key).
+ *  Unset, only a Ganesha deployment keeps its traditional farewell; every
+ *  other festival shows none until one is configured. */
+function getClosingMessage() {
+  const ganeshaDefault = /ganesh|ganpati|ganapati|vinayaka/i.test(getFestivalName())
+    ? "Ganpati Bappa Morya! Pudhchya Varshi Lavkar Ya! 🙏"
+    : "";
+  return getConfig("closing_message", ganeshaDefault);
+}
+
 /** The community/society name — distinct from the festival name (e.g.
  *  "Brigade Woods" vs. "Ganesha Chathurthi 2026") and, unlike it, was
  *  previously hardcoded as a literal string in the receipt generator

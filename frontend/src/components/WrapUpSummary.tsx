@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/date";
+import { useFestivalConfig } from "@/lib/FestivalConfigContext";
+import { closingMessage, isGaneshaFestival } from "@/lib/festivalVoice";
+import { photoAlbumUrl } from "@/lib/photoAlbum";
 import type { FeedbackReport, PublicStats } from "@/lib/types";
 
 const PHOTOS_URL = "https://photos.app.goo.gl/ZhCpaqaWJnbeGdkk9";
@@ -58,18 +61,30 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-/** The thank-you shown on Home once the festival has wrapped up. Money and
- *  headcount figures come from live data; the comparison is against 2025. */
-export default function WrapUpSummary({
-  stats,
-  eventsCount,
-  voices,
-}: {
+type WrapUpProps = {
   stats: PublicStats;
   eventsCount: number;
   voices: FeedbackReport[];
-}) {
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+};
+
+/** The thank-you shown on Home once the festival has wrapped up. Ganesha
+ *  Chathurthi 2026 keeps its own hand-written recap (2025 comparison, its
+ *  festival-week highlights); every other festival gets a generic one built
+ *  only from live data and its own configuration. */
+export default function WrapUpSummary(props: WrapUpProps) {
+  const { festival } = useFestivalConfig();
+  return isGaneshaFestival(festival) ? <GaneshaWrapUp {...props} /> : <GenericWrapUp {...props} />;
+}
+
+/** Ganesha Chathurthi 2026's recap. Money and headcount figures come from
+ *  live data; the comparison is against 2025. */
+function GaneshaWrapUp({
+  stats,
+  eventsCount,
+  voices,
+}: WrapUpProps) {
+  const { festival } = useFestivalConfig();
+  const closing = closingMessage(festival);
   const perFlat = stats.families > 0 ? stats.totalCollected / stats.families : 0;
   const lastPerFlat = LAST_YEAR.raised / LAST_YEAR.flatsDonated;
   const participation = Math.round((stats.families / LAST_YEAR.totalFlats) * 100);
@@ -145,30 +160,7 @@ export default function WrapUpSummary({
         </div>
       </Group>
 
-      {voices.length > 0 && (
-        <Group title="Community Voices">
-          <div className="space-y-2">
-            {voices.map((f) => {
-              const open = !!expanded[f.feedback_id];
-              return (
-                <div key={f.feedback_id} className="rounded-lg border border-border bg-background px-3 py-2.5">
-                  <p className={`text-sm ${open ? "" : "line-clamp-3"}`}>&ldquo;{f.message}&rdquo;</p>
-                  <p className="mt-1 text-xs text-muted">— {f.reporter_name || "A Brigade Woods resident"}</p>
-                  {f.message.length > 120 && (
-                    <button
-                      type="button"
-                      onClick={() => setExpanded((prev) => ({ ...prev, [f.feedback_id]: !prev[f.feedback_id] }))}
-                      className="mt-1 text-xs font-semibold text-maroon"
-                    >
-                      {open ? "Show less" : "Read more"}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </Group>
-      )}
+      <CommunityVoices voices={voices} />
 
       <p className="text-center text-sm">
         Thank you: donors · volunteers · performers · sponsors, incl. Aster Whitefield Hospital
@@ -188,7 +180,90 @@ export default function WrapUpSummary({
         </Link>
       </div>
 
-      <p className="text-center text-sm font-semibold text-maroon">Ganpati Bappa Morya! Pudhchya Varshi Lavkar Ya! 🙏</p>
+      {closing && <p className="text-center text-sm font-semibold text-maroon">{closing}</p>}
     </section>
+  );
+}
+
+/** Any festival other than Ganesha: only live figures and this festival's
+ *  own configuration, so nothing from another celebration leaks in. */
+function GenericWrapUp({ stats, eventsCount, voices }: WrapUpProps) {
+  const { festival, modules, communityName } = useFestivalConfig();
+  const closing = closingMessage(festival);
+  const album = photoAlbumUrl(festival);
+  const showDonations = modules.donations && stats.donationCount > 0;
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-5 space-y-5">
+      <div className="text-center">
+        <h2 className="text-lg font-bold text-maroon">
+          Thank you for celebrating {festival?.festival_name || "with us"}
+        </h2>
+        <p className="text-sm text-muted">Thank you, {communityName} 🙏 Until next year!</p>
+      </div>
+
+      {(showDonations || eventsCount > 0) && (
+        <Group title="Together, we made it happen">
+          <div className="grid grid-cols-2 gap-2">
+            {showDonations && <Tile value={formatCurrency(stats.totalCollected)} label="raised" />}
+            {showDonations && <Tile value={stats.families} label="flats contributed" />}
+            {showDonations && <Tile value={stats.donationCount} label="digital receipts" />}
+            {eventsCount > 0 && <Tile value={eventsCount} label="events and programmes" />}
+          </div>
+        </Group>
+      )}
+
+      <CommunityVoices voices={voices} />
+
+      <p className="text-center text-sm">Thank you: volunteers · performers · everyone who joined in</p>
+
+      <div className={`grid gap-2 ${album ? "grid-cols-2" : "grid-cols-1"}`}>
+        {album && (
+          <a
+            href={album}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-xl bg-saffron py-3 text-center text-sm font-semibold text-on-saffron active:bg-saffron-dark transition-colors"
+          >
+            Add your photos
+          </a>
+        )}
+        <Link href="/feedback" className="rounded-xl border border-border py-3 text-center text-sm font-semibold text-maroon">
+          Tell us how you felt
+        </Link>
+      </div>
+
+      {closing && <p className="text-center text-sm font-semibold text-maroon">{closing}</p>}
+    </section>
+  );
+}
+
+function CommunityVoices({ voices }: { voices: FeedbackReport[] }) {
+  const { communityName } = useFestivalConfig();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  if (voices.length === 0) return null;
+  return (
+    <Group title="Community Voices">
+      <div className="space-y-2">
+        {voices.map((f) => {
+          const open = !!expanded[f.feedback_id];
+          return (
+            <div key={f.feedback_id} className="rounded-lg border border-border bg-background px-3 py-2.5">
+              <p className={`text-sm ${open ? "" : "line-clamp-3"}`}>&ldquo;{f.message}&rdquo;</p>
+              <p className="mt-1 text-xs text-muted">— {f.reporter_name || `A ${communityName} resident`}</p>
+              {f.message.length > 120 && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded((prev) => ({ ...prev, [f.feedback_id]: !prev[f.feedback_id] }))}
+                  className="mt-1 text-xs font-semibold text-maroon"
+                >
+                  {open ? "Show less" : "Read more"}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Group>
   );
 }

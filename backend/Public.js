@@ -46,6 +46,7 @@ function getFestivalInfo() {
   // registry (Modules.js), so the frontend can build its nav/pages from
   // one call instead of hardcoding which festival features exist.
   info.community_name = getCommunityName();
+  info.closing_message = getClosingMessage();
   info.modules = getEnabledModules();
   // Guidelines are only sent to a volunteer once approved (Volunteers.js),
   // so the public payload carries just what the sign-up form needs.

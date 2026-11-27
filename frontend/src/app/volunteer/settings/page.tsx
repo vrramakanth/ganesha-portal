@@ -42,6 +42,7 @@ const IDENTITY_FIELDS: Field[] = [
   { key: "theme_primary", label: "Theme: primary colour", description: "Hex colour, e.g. #7a1330 — headers and buttons. Leave empty for the default maroon." },
   { key: "theme_accent", label: "Theme: accent colour", description: "Hex colour, e.g. #f4791f — highlights and badges. Leave empty for the default saffron." },
   { key: "photo_album_url", label: "Photo album link", description: "Google Photos (or similar) album residents can add to. Leave empty to hide the button." },
+  { key: "closing_message", label: "Closing message", description: "Sign-off line shown when donations close and on the wrap-up summary, e.g. \"Merry Christmas! 🎄\". Leave empty for none (Ganesha deployments default to \"Ganpati Bappa Morya!…\")." },
   { key: "id_prefix", label: "ID prefix", description: "Prefix for every generated ID (transactions, receipts, tokens…), e.g. \"GWG\"." },
 ];
 
